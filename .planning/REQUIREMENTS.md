@@ -11,7 +11,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **FND-01**: Il progetto è un package Node.js ESM-only, TypeScript, bundled con tsup in un singolo `.mjs`, pubblicabile su npm pubblico come `loci`
 - [x] **FND-02**: Il bin `loci` è installabile globalmente (`npm i -g loci`) e funziona identicamente su Windows 10+, Linux moderno, macOS moderno
-- [ ] **FND-03**: Cold start del comando `loci --version` inferiore a 300ms su hardware moderno
+- [x] **FND-03**: Cold start del comando `loci --version` inferiore a 300ms su hardware moderno
 - [x] **FND-04**: Gerarchia di errori tipati (`LociError` + sottoclassi per categoria) definita e usata in tutto il codebase
 - [x] **FND-05**: Test runner (vitest) e linter/formatter (biome) configurati e funzionanti fin dal primo commit di codice
 - [x] **FND-06**: Pipeline CI su GitHub Actions con matrice Windows / Linux / macOS che esegue build + test + lint ad ogni push
@@ -138,7 +138,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | FND-01 | Phase 1 | Complete |
 | FND-02 | Phase 1 | Complete |
-| FND-03 | Phase 1 | Pending |
+| FND-03 | Phase 1 | Complete |
 | FND-04 | Phase 1 | Complete |
 | FND-05 | Phase 1 | Complete |
 | FND-06 | Phase 1 | Complete |

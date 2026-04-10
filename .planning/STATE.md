@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: "Completed 01-03-PLAN.md (test suite: errors + types + cli E2E)"
-last_updated: "2026-04-10T15:48:44.786Z"
+status: verifying
+stopped_at: Completed 01-04-PLAN.md (GitHub Actions matrix) — Phase 1 structurally complete, awaiting verifier
+last_updated: "2026-04-10T15:54:20.487Z"
 last_activity: 2026-04-10
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 
 Phase: 01 (foundation) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-10
 
 Progress: [░░░░░░░░░░] 0%
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 4m | 3 tasks | 16 files |
 | Phase 01 P02 | 5m | 3 tasks | 9 files |
 | Phase 01-foundation P03 | 4m | 2 tasks | 3 files |
+| Phase 01-foundation P04 | 2m | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,7 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: [Phase 01 P03]: Tests import from '../errors.js' / '../types.js' with .js suffix (moduleResolution: bundler + verbatimModuleSyntax requires it)
 - [Phase 01-foundation]: [Phase 01 P03]: E2E tests use process.execPath (not 'node') — avoids Windows PATH shadowing; spawnSync with encoding utf8 keeps Windows from deadlocking
 - [Phase 01-foundation]: [Phase 01 P03]: oneOfEachConcrete() factory in errors.test.ts is the single source of truth for the 11 concrete LociError subclasses — prevents code-uniqueness drift as Phase 2+ adds/modifies classes
+- [Phase 01-foundation]: [Phase 01 P04]: CI matrix locked to 3 OSes × Node [20, 22] = 6 jobs; fail-fast disabled; no hyperfine gate in Phase 1 (deferred to Phase 5 per D-11); concurrency.group cancels stacked runs on same ref
 
 ### Pending Todos
 
@@ -85,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-10T15:48:44.773Z
-Stopped at: Completed 01-03-PLAN.md (test suite: errors + types + cli E2E)
+Last session: 2026-04-10T15:54:20.470Z
+Stopped at: Completed 01-04-PLAN.md (GitHub Actions matrix) — Phase 1 structurally complete, awaiting verifier
 Resume file: None

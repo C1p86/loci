@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 01-01-PLAN.md — Repository scaffolding (package.json, tsconfig, tsup/vitest/biome configs, hygiene files, D-05 directory skeleton)
 - [x] 01-02-PLAN.md — Core source (errors.ts full LociError hierarchy, types.ts pipeline contracts, version.ts, cli.ts commander wiring, feature stubs)
 - [x] 01-03-PLAN.md — Test suite (errors.test.ts instanceof/code-uniqueness/exit-code-mapping, types.test.ts expectTypeOf, cli.e2e.test.ts spawn smoke)
-- [ ] 01-04-PLAN.md — GitHub Actions CI matrix (ubuntu/windows/macos × Node 20/22, build→test→lint→smoke)
+- [x] 01-04-PLAN.md — GitHub Actions CI matrix (ubuntu/windows/macos × Node 20/22, build→test→lint→smoke)
 
 ### Phase 2: Config System
 **Goal**: The 4-layer YAML config merges correctly, secrets are tagged for redaction from this moment forward, and safety guards (git tracking warning, YAML error messages) are in place
