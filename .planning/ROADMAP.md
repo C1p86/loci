@@ -29,7 +29,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. `loci --version` exits in under 300ms cold on a modern laptop
   3. `npm test` and `npm run lint` pass on a fresh clone with no manual setup
   4. GitHub Actions CI runs build + test + lint on a Windows / Linux / macOS matrix and all checks are green
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 01-01-PLAN.md — Repository scaffolding (package.json, tsconfig, tsup/vitest/biome configs, hygiene files, D-05 directory skeleton)
+- [ ] 01-02-PLAN.md — Core source (errors.ts full LociError hierarchy, types.ts pipeline contracts, version.ts, cli.ts commander wiring, feature stubs)
+- [ ] 01-03-PLAN.md — Test suite (errors.test.ts instanceof/code-uniqueness/exit-code-mapping, types.test.ts expectTypeOf, cli.e2e.test.ts spawn smoke)
+- [ ] 01-04-PLAN.md — GitHub Actions CI matrix (ubuntu/windows/macos × Node 20/22, build→test→lint→smoke)
 
 ### Phase 2: Config System
 **Goal**: The 4-layer YAML config merges correctly, secrets are tagged for redaction from this moment forward, and safety guards (git tracking warning, YAML error messages) are in place
@@ -85,7 +89,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/? | Not started | - |
+| 1. Foundation | 0/4 | Not started | - |
 | 2. Config System | 0/? | Not started | - |
 | 3. Commands & Resolver | 0/? | Not started | - |
 | 4. Executor & CLI | 0/? | Not started | - |
