@@ -136,13 +136,69 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (popolato dal roadmapper) | — | Pending |
+| FND-01 | Phase 1 | Pending |
+| FND-02 | Phase 1 | Pending |
+| FND-03 | Phase 1 | Pending |
+| FND-04 | Phase 1 | Pending |
+| FND-05 | Phase 1 | Pending |
+| FND-06 | Phase 1 | Pending |
+| CFG-01 | Phase 2 | Pending |
+| CFG-02 | Phase 2 | Pending |
+| CFG-03 | Phase 2 | Pending |
+| CFG-04 | Phase 2 | Pending |
+| CFG-05 | Phase 2 | Pending |
+| CFG-06 | Phase 2 | Pending |
+| CFG-07 | Phase 2 | Pending |
+| CFG-08 | Phase 2 | Pending |
+| CFG-09 | Phase 2 | Pending |
+| CFG-10 | Phase 2 | Pending |
+| CMD-01 | Phase 3 | Pending |
+| CMD-02 | Phase 3 | Pending |
+| CMD-03 | Phase 3 | Pending |
+| CMD-04 | Phase 3 | Pending |
+| CMD-05 | Phase 3 | Pending |
+| CMD-06 | Phase 3 | Pending |
+| CMD-07 | Phase 3 | Pending |
+| CMD-08 | Phase 3 | Pending |
+| CMD-09 | Phase 3 | Pending |
+| INT-01 | Phase 3 | Pending |
+| INT-02 | Phase 3 | Pending |
+| INT-03 | Phase 3 | Pending |
+| INT-04 | Phase 3 | Pending |
+| INT-05 | Phase 3 | Pending |
+| EXE-01 | Phase 4 | Pending |
+| EXE-02 | Phase 4 | Pending |
+| EXE-03 | Phase 4 | Pending |
+| EXE-04 | Phase 4 | Pending |
+| EXE-05 | Phase 4 | Pending |
+| EXE-06 | Phase 4 | Pending |
+| EXE-07 | Phase 4 | Pending |
+| CLI-01 | Phase 4 | Pending |
+| CLI-02 | Phase 4 | Pending |
+| CLI-03 | Phase 4 | Pending |
+| CLI-04 | Phase 4 | Pending |
+| CLI-05 | Phase 4 | Pending |
+| CLI-06 | Phase 4 | Pending |
+| CLI-07 | Phase 4 | Pending |
+| CLI-08 | Phase 4 | Pending |
+| CLI-09 | Phase 4 | Pending |
+| INIT-01 | Phase 5 | Pending |
+| INIT-02 | Phase 5 | Pending |
+| INIT-03 | Phase 5 | Pending |
+| INIT-04 | Phase 5 | Pending |
+| INIT-05 | Phase 5 | Pending |
+| INIT-06 | Phase 5 | Pending |
+| DOC-01 | Phase 5 | Pending |
+| DOC-02 | Phase 5 | Pending |
+| DOC-03 | Phase 5 | Pending |
+| DOC-04 | Phase 5 | Pending |
+| DOC-05 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 50 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 50 ⚠️
+- v1 requirements: 57 total (FND×6, CFG×10, CMD×9, INT×5, EXE×7, CLI×9, INIT×6, DOC×5)
+- Mapped to phases: 57
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-10*
-*Last updated: 2026-04-10 after initial definition*
+*Last updated: 2026-04-10 after roadmap creation*
