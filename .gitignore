@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+.vscode/
+.idea/
+# Project-specific
+.loci/secrets.yml
+.loci/local.yml
