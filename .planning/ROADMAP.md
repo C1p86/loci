@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. GitHub Actions CI runs build + test + lint on a Windows / Linux / macOS matrix and all checks are green
 **Plans**: 4 plans
 - [x] 01-01-PLAN.md — Repository scaffolding (package.json, tsconfig, tsup/vitest/biome configs, hygiene files, D-05 directory skeleton)
-- [ ] 01-02-PLAN.md — Core source (errors.ts full LociError hierarchy, types.ts pipeline contracts, version.ts, cli.ts commander wiring, feature stubs)
+- [x] 01-02-PLAN.md — Core source (errors.ts full LociError hierarchy, types.ts pipeline contracts, version.ts, cli.ts commander wiring, feature stubs)
 - [ ] 01-03-PLAN.md — Test suite (errors.test.ts instanceof/code-uniqueness/exit-code-mapping, types.test.ts expectTypeOf, cli.e2e.test.ts spawn smoke)
 - [ ] 01-04-PLAN.md — GitHub Actions CI matrix (ubuntu/windows/macos × Node 20/22, build→test→lint→smoke)
 
