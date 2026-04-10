@@ -14,7 +14,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **FND-03**: Cold start del comando `loci --version` inferiore a 300ms su hardware moderno
 - [x] **FND-04**: Gerarchia di errori tipati (`LociError` + sottoclassi per categoria) definita e usata in tutto il codebase
 - [x] **FND-05**: Test runner (vitest) e linter/formatter (biome) configurati e funzionanti fin dal primo commit di codice
-- [ ] **FND-06**: Pipeline CI su GitHub Actions con matrice Windows / Linux / macOS che esegue build + test + lint ad ogni push
+- [x] **FND-06**: Pipeline CI su GitHub Actions con matrice Windows / Linux / macOS che esegue build + test + lint ad ogni push
 
 ### Config System
 
@@ -141,7 +141,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FND-03 | Phase 1 | Pending |
 | FND-04 | Phase 1 | Complete |
 | FND-05 | Phase 1 | Complete |
-| FND-06 | Phase 1 | Pending |
+| FND-06 | Phase 1 | Complete |
 | CFG-01 | Phase 2 | Pending |
 | CFG-02 | Phase 2 | Pending |
 | CFG-03 | Phase 2 | Pending |
