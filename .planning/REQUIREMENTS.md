@@ -31,15 +31,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Commands System
 
-- [ ] **CMD-01**: Utente può definire `.loci/commands.yml` (committato) con mapping `alias → definizione comando`
-- [ ] **CMD-02**: Una definizione comando può essere un singolo comando (string o argv array)
-- [ ] **CMD-03**: Una definizione comando può essere una **sequenza**: lista ordinata di comandi eseguiti in serie; la catena si interrompe al primo comando con exit code ≠ 0
-- [ ] **CMD-04**: Una definizione comando può essere un **gruppo parallelo**: lista di comandi eseguiti contemporaneamente; se uno fallisce, gli altri vengono terminati
-- [ ] **CMD-05**: Una definizione comando può riferire altri alias definiti nello stesso file (**composizione**), es. `ci` = `[lint, test, build]` dove ciascuno è a sua volta un alias
-- [ ] **CMD-06**: Il commands loader rileva cicli di composizione (`A → B → A`) al load time e emette errore con la catena completa del ciclo
+- [x] **CMD-01**: Utente può definire `.loci/commands.yml` (committato) con mapping `alias → definizione comando`
+- [x] **CMD-02**: Una definizione comando può essere un singolo comando (string o argv array)
+- [x] **CMD-03**: Una definizione comando può essere una **sequenza**: lista ordinata di comandi eseguiti in serie; la catena si interrompe al primo comando con exit code ≠ 0
+- [x] **CMD-04**: Una definizione comando può essere un **gruppo parallelo**: lista di comandi eseguiti contemporaneamente; se uno fallisce, gli altri vengono terminati
+- [x] **CMD-05**: Una definizione comando può riferire altri alias definiti nello stesso file (**composizione**), es. `ci` = `[lint, test, build]` dove ciascuno è a sua volta un alias
+- [x] **CMD-06**: Il commands loader rileva cicli di composizione (`A → B → A`) al load time e emette errore con la catena completa del ciclo
 - [ ] **CMD-07**: Una definizione comando può includere blocchi opzionali `linux:` / `windows:` / `macos:` che sovrascrivono il comando di default per quella piattaforma
-- [ ] **CMD-08**: Una definizione comando può includere una `description` opzionale, usata in `loci --list` e `loci <alias> --help`
-- [ ] **CMD-09**: Il commands loader emette errore se un alias referenziato (in composizione) non esiste
+- [x] **CMD-08**: Una definizione comando può includere una `description` opzionale, usata in `loci --list` e `loci <alias> --help`
+- [x] **CMD-09**: Il commands loader emette errore se un alias referenziato (in composizione) non esiste
 
 ### Interpolation & Env Injection
 
@@ -152,15 +152,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CFG-08 | Phase 2 | Complete |
 | CFG-09 | Phase 2 | Complete |
 | CFG-10 | Phase 2 | Complete |
-| CMD-01 | Phase 3 | Pending |
-| CMD-02 | Phase 3 | Pending |
-| CMD-03 | Phase 3 | Pending |
-| CMD-04 | Phase 3 | Pending |
-| CMD-05 | Phase 3 | Pending |
-| CMD-06 | Phase 3 | Pending |
+| CMD-01 | Phase 3 | Complete |
+| CMD-02 | Phase 3 | Complete |
+| CMD-03 | Phase 3 | Complete |
+| CMD-04 | Phase 3 | Complete |
+| CMD-05 | Phase 3 | Complete |
+| CMD-06 | Phase 3 | Complete |
 | CMD-07 | Phase 3 | Pending |
-| CMD-08 | Phase 3 | Pending |
-| CMD-09 | Phase 3 | Pending |
+| CMD-08 | Phase 3 | Complete |
+| CMD-09 | Phase 3 | Complete |
 | INT-01 | Phase 3 | Pending |
 | INT-02 | Phase 3 | Pending |
 | INT-03 | Phase 3 | Pending |

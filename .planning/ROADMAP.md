@@ -58,7 +58,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. An alias that references another alias (`ci: [lint, test, build]`) executes each constituent alias correctly
   4. Values from `secrets.yml` injected as env vars do not appear in any verbose or debug output — they show as `***` or are omitted
 **Plans**: 2 plans
-- [ ] 03-01-PLAN.md — Commands loader (YAML parser, tokenizer, normalizer, DFS cycle detection, eager validation)
+- [x] 03-01-PLAN.md — Commands loader (YAML parser, tokenizer, normalizer, DFS cycle detection, eager validation)
 - [ ] 03-02-PLAN.md — Resolver (platform selection, ${VAR} interpolation, env var builder, secrets redaction utility)
 
 ### Phase 4: Executor & CLI
