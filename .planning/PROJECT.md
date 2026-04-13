@@ -105,4 +105,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-13 after Phase 1 (Foundation) completion — project scaffold, error hierarchy, CLI binary, test suite, CI matrix all verified cross-platform*
+*Last updated: 2026-04-13 after Phase 3 (Commands & Resolver) completion — commands.yml loader with tokenizer, normalizer, DFS cycle detection; resolver with ${VAR} interpolation, platform selection, env var mapping, secrets redaction. 80 tests, strict TS clean.*
