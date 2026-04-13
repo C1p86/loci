@@ -23,7 +23,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "smoke": "node dist/cli.mjs --version",
-    "prepare": "npm run build",
+    "prepare": "node node_modules/tsup/dist/cli-default.js",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
