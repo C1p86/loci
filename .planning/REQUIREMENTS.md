@@ -18,16 +18,16 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Config System
 
-- [ ] **CFG-01**: Utente può definire un file YAML di config a livello machine; il path è letto dalla env var `LOCI_MACHINE_CONFIG`
-- [ ] **CFG-02**: Utente può definire `.loci/config.yml` nella root del progetto (committato) con defaults di progetto
-- [ ] **CFG-03**: Utente può definire `.loci/secrets.yml` nella root del progetto (gitignored) con token/password
-- [ ] **CFG-04**: Utente può definire `.loci/local.yml` nella root del progetto (gitignored) con override per-PC
-- [ ] **CFG-05**: Il config loader fonde i 4 livelli in un unico oggetto con precedenza deterministica `machine → project → secrets → local` (ultimo vince)
-- [ ] **CFG-06**: Il config loader tagga la provenienza di ogni chiave (quale dei 4 file l'ha fornita), necessario per redaction e per `--verbose`
-- [ ] **CFG-07**: Il config loader emette un errore esplicito se un file esiste ma è YAML invalido, con nome file e riga dell'errore
-- [ ] **CFG-08**: Il config loader non fallisce se uno o più dei 4 file mancano (solo il machine è opzionale a priori; gli altri sono opzionali in assenza)
-- [ ] **CFG-09**: Se `secrets.yml` è presente, loci verifica con `git ls-files --error-unmatch` che NON sia tracciato dal repo; se lo è, emette un warning esplicito (non blocca l'esecuzione)
-- [ ] **CFG-10**: Parser YAML usato garantisce semantica YAML 1.2 (nessuna coercion di `no`/`yes`/`on`/`off` come boolean, nessuna interpretazione di `0123` come ottale)
+- [x] **CFG-01**: Utente può definire un file YAML di config a livello machine; il path è letto dalla env var `LOCI_MACHINE_CONFIG`
+- [x] **CFG-02**: Utente può definire `.loci/config.yml` nella root del progetto (committato) con defaults di progetto
+- [x] **CFG-03**: Utente può definire `.loci/secrets.yml` nella root del progetto (gitignored) con token/password
+- [x] **CFG-04**: Utente può definire `.loci/local.yml` nella root del progetto (gitignored) con override per-PC
+- [x] **CFG-05**: Il config loader fonde i 4 livelli in un unico oggetto con precedenza deterministica `machine → project → secrets → local` (ultimo vince)
+- [x] **CFG-06**: Il config loader tagga la provenienza di ogni chiave (quale dei 4 file l'ha fornita), necessario per redaction e per `--verbose`
+- [x] **CFG-07**: Il config loader emette un errore esplicito se un file esiste ma è YAML invalido, con nome file e riga dell'errore
+- [x] **CFG-08**: Il config loader non fallisce se uno o più dei 4 file mancano (solo il machine è opzionale a priori; gli altri sono opzionali in assenza)
+- [x] **CFG-09**: Se `secrets.yml` è presente, loci verifica con `git ls-files --error-unmatch` che NON sia tracciato dal repo; se lo è, emette un warning esplicito (non blocca l'esecuzione)
+- [x] **CFG-10**: Parser YAML usato garantisce semantica YAML 1.2 (nessuna coercion di `no`/`yes`/`on`/`off` come boolean, nessuna interpretazione di `0123` come ottale)
 
 ### Commands System
 
@@ -142,16 +142,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FND-04 | Phase 1 | Complete |
 | FND-05 | Phase 1 | Complete |
 | FND-06 | Phase 1 | Complete |
-| CFG-01 | Phase 2 | Pending |
-| CFG-02 | Phase 2 | Pending |
-| CFG-03 | Phase 2 | Pending |
-| CFG-04 | Phase 2 | Pending |
-| CFG-05 | Phase 2 | Pending |
-| CFG-06 | Phase 2 | Pending |
-| CFG-07 | Phase 2 | Pending |
-| CFG-08 | Phase 2 | Pending |
-| CFG-09 | Phase 2 | Pending |
-| CFG-10 | Phase 2 | Pending |
+| CFG-01 | Phase 2 | Complete |
+| CFG-02 | Phase 2 | Complete |
+| CFG-03 | Phase 2 | Complete |
+| CFG-04 | Phase 2 | Complete |
+| CFG-05 | Phase 2 | Complete |
+| CFG-06 | Phase 2 | Complete |
+| CFG-07 | Phase 2 | Complete |
+| CFG-08 | Phase 2 | Complete |
+| CFG-09 | Phase 2 | Complete |
+| CFG-10 | Phase 2 | Complete |
 | CMD-01 | Phase 3 | Pending |
 | CMD-02 | Phase 3 | Pending |
 | CMD-03 | Phase 3 | Pending |

@@ -13,7 +13,7 @@ loci is built as a strict pipeline: Foundation → Config → Commands/Resolver 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Foundation** - Project scaffold, shared types, error hierarchy, CI matrix on Windows/Linux/macOS
-- [ ] **Phase 2: Config System** - 4-layer YAML loader with deterministic merge, secrets redaction contract, gitignore safety check
+- [x] **Phase 2: Config System** - 4-layer YAML loader with deterministic merge, secrets redaction contract, gitignore safety check (completed 2026-04-13)
 - [ ] **Phase 3: Commands & Resolver** - commands.yml parser, alias composition with cycle detection, `${VAR}` interpolation
 - [ ] **Phase 4: Executor & CLI** - cross-platform command execution, parallel groups, full commander.js frontend wired end-to-end
 - [ ] **Phase 5: Init & Distribution** - `loci init` scaffolding, README, npm publish
@@ -46,7 +46,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Missing config files do not cause a crash — loci runs with whatever files are present
   5. `yes`, `no`, `on`, `off`, and `0123` in YAML files are treated as strings, not booleans or octals
 **Plans**: 1 plan
-- [ ] 02-01-PLAN.md — Config loader implementation (readLayer, flattenToStrings, mergeLayers, git secrets check) + comprehensive test suite
+- [x] 02-01-PLAN.md — Config loader implementation (readLayer, flattenToStrings, mergeLayers, git secrets check) + comprehensive test suite
 
 ### Phase 3: Commands & Resolver
 **Goal**: `commands.yml` is fully parsed, alias composition is flattened with cycle detection at load time, and all `${VAR}` placeholders are resolved before any process is spawned
@@ -91,7 +91,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/4 | Not started | - |
-| 2. Config System | 0/1 | Not started | - |
+| 2. Config System | 1/1 | Complete   | 2026-04-13 |
 | 3. Commands & Resolver | 0/? | Not started | - |
 | 4. Executor & CLI | 0/? | Not started | - |
 | 5. Init & Distribution | 0/? | Not started | - |
