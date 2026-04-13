@@ -6,13 +6,8 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import {
-  CircularAliasError,
-  CommandSchemaError,
-  UnknownAliasError,
-  YamlParseError,
-} from '../../errors.js';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { CircularAliasError, CommandSchemaError, YamlParseError } from '../../errors.js';
 import { commandsLoader } from '../index.js';
 
 // ---------------------------------------------------------------------------
@@ -84,7 +79,10 @@ describe('commandsLoader.load — happy path', () => {
   it('normalizes object with steps to kind:sequential', async () => {
     writeCommands('ci:\n  steps:\n    - lint\n    - test\n    - build\n');
     const result = await commandsLoader.load(tmpDir);
-    expect(result.get('ci')).toMatchObject({ kind: 'sequential', steps: ['lint', 'test', 'build'] });
+    expect(result.get('ci')).toMatchObject({
+      kind: 'sequential',
+      steps: ['lint', 'test', 'build'],
+    });
   });
 
   it('preserves description field on sequential command', async () => {
@@ -105,7 +103,10 @@ describe('commandsLoader.load — happy path', () => {
   it('preserves description on parallel command', async () => {
     writeCommands('check:\n  parallel:\n    - lint\n  description: "Concurrent checks"\n');
     const result = await commandsLoader.load(tmpDir);
-    expect(result.get('check')).toMatchObject({ kind: 'parallel', description: 'Concurrent checks' });
+    expect(result.get('check')).toMatchObject({
+      kind: 'parallel',
+      description: 'Concurrent checks',
+    });
   });
 
   it('normalizes platform overrides correctly', async () => {
@@ -147,7 +148,10 @@ describe('commandsLoader.load — happy path', () => {
     const result = await commandsLoader.load(tmpDir);
     expect(result.size).toBe(4);
     expect(result.get('lint')).toMatchObject({ kind: 'single' });
-    expect(result.get('ci')).toMatchObject({ kind: 'sequential', steps: ['lint', 'test', 'build'] });
+    expect(result.get('ci')).toMatchObject({
+      kind: 'sequential',
+      steps: ['lint', 'test', 'build'],
+    });
   });
 });
 
@@ -169,8 +173,7 @@ describe('commandsLoader.load — YAML error cases', () => {
   it('YamlParseError contains the file path', async () => {
     writeCommands('build: {unclosed\n');
     await expect(commandsLoader.load(tmpDir)).rejects.toSatisfy(
-      (e: unknown) =>
-        e instanceof YamlParseError && e.message.includes('commands.yml'),
+      (e: unknown) => e instanceof YamlParseError && e.message.includes('commands.yml'),
     );
   });
 });
