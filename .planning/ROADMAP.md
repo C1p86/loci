@@ -2,7 +2,7 @@
 
 ## Overview
 
-loci is built as a strict pipeline: Foundation → Config → Commands/Resolver → Executor/CLI → Polish. Each phase delivers a self-contained, testable capability. Security contracts (secrets redaction, git-tracked secrets warning) are locked into Phase 2 before any other phase can accidentally log config values. Cross-platform CI comes online in Phase 1 so every subsequent phase is Windows-verified from day one.
+loci is built as a strict pipeline: Foundation -> Config -> Commands/Resolver -> Executor/CLI -> Polish. Each phase delivers a self-contained, testable capability. Security contracts (secrets redaction, git-tracked secrets warning) are locked into Phase 2 before any other phase can accidentally log config values. Cross-platform CI comes online in Phase 1 so every subsequent phase is Windows-verified from day one.
 
 ## Phases
 
@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 01-01-PLAN.md — Repository scaffolding (package.json, tsconfig, tsup/vitest/biome configs, hygiene files, D-05 directory skeleton)
 - [x] 01-02-PLAN.md — Core source (errors.ts full LociError hierarchy, types.ts pipeline contracts, version.ts, cli.ts commander wiring, feature stubs)
 - [x] 01-03-PLAN.md — Test suite (errors.test.ts instanceof/code-uniqueness/exit-code-mapping, types.test.ts expectTypeOf, cli.e2e.test.ts spawn smoke)
-- [x] 01-04-PLAN.md — GitHub Actions CI matrix (ubuntu/windows/macos × Node 20/22, build→test→lint→smoke)
+- [x] 01-04-PLAN.md — GitHub Actions CI matrix (ubuntu/windows/macos x Node 20/22, build->test->lint->smoke)
 
 ### Phase 2: Config System
 **Goal**: The 4-layer YAML config merges correctly, secrets are tagged for redaction from this moment forward, and safety guards (git tracking warning, YAML error messages) are in place
@@ -54,10 +54,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Requirements**: CMD-01, CMD-02, CMD-03, CMD-04, CMD-05, CMD-06, CMD-07, CMD-08, CMD-09, INT-01, INT-02, INT-03, INT-04, INT-05
 **Success Criteria** (what must be TRUE):
   1. An alias referencing `${DEPLOY_HOST}` (defined in any config layer) resolves to the correct value before the command runs; if the variable is missing, loci prints which alias and which placeholder is undefined and exits without running anything
-  2. A circular alias chain (`A → B → A`) is detected at startup and reported with the full cycle path — the command never runs
+  2. A circular alias chain (`A -> B -> A`) is detected at startup and reported with the full cycle path — the command never runs
   3. An alias that references another alias (`ci: [lint, test, build]`) executes each constituent alias correctly
   4. Values from `secrets.yml` injected as env vars do not appear in any verbose or debug output — they show as `***` or are omitted
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 03-01-PLAN.md — Commands loader (YAML parser, tokenizer, normalizer, DFS cycle detection, eager validation)
+- [ ] 03-02-PLAN.md — Resolver (platform selection, ${VAR} interpolation, env var builder, secrets redaction utility)
 
 ### Phase 4: Executor & CLI
 **Goal**: Users can run any defined alias end-to-end: single commands, sequential chains, and parallel groups execute correctly cross-platform; the full commander.js interface (`--list`, `--dry-run`, `--verbose`, pass-through args) is wired and working
@@ -86,12 +88,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/4 | Not started | - |
 | 2. Config System | 1/1 | Complete   | 2026-04-13 |
-| 3. Commands & Resolver | 0/? | Not started | - |
+| 3. Commands & Resolver | 0/2 | Not started | - |
 | 4. Executor & CLI | 0/? | Not started | - |
 | 5. Init & Distribution | 0/? | Not started | - |
