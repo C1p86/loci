@@ -37,17 +37,17 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **CMD-04**: Una definizione comando può essere un **gruppo parallelo**: lista di comandi eseguiti contemporaneamente; se uno fallisce, gli altri vengono terminati
 - [x] **CMD-05**: Una definizione comando può riferire altri alias definiti nello stesso file (**composizione**), es. `ci` = `[lint, test, build]` dove ciascuno è a sua volta un alias
 - [x] **CMD-06**: Il commands loader rileva cicli di composizione (`A → B → A`) al load time e emette errore con la catena completa del ciclo
-- [ ] **CMD-07**: Una definizione comando può includere blocchi opzionali `linux:` / `windows:` / `macos:` che sovrascrivono il comando di default per quella piattaforma
+- [x] **CMD-07**: Una definizione comando può includere blocchi opzionali `linux:` / `windows:` / `macos:` che sovrascrivono il comando di default per quella piattaforma
 - [x] **CMD-08**: Una definizione comando può includere una `description` opzionale, usata in `loci --list` e `loci <alias> --help`
 - [x] **CMD-09**: Il commands loader emette errore se un alias referenziato (in composizione) non esiste
 
 ### Interpolation & Env Injection
 
-- [ ] **INT-01**: I comandi supportano placeholder `${NOME}` che vengono risolti dal merged config prima dello spawn
-- [ ] **INT-02**: Se un placeholder referenzia un parametro non presente in nessun file di config, loci emette errore esplicito con nome del parametro e alias di origine — il comando NON viene eseguito
-- [ ] **INT-03**: I valori interpolati vengono inseriti come argv token separati (non concatenati in una shell string), così valori con spazi/quote/metacaratteri non rompono nulla e non permettono injection
-- [ ] **INT-04**: Tutti i parametri del merged config vengono iniettati automaticamente come variabili d'ambiente del processo figlio, così i sub-comandi possono leggerli con `process.env.X` senza bisogno di interpolazione esplicita
-- [ ] **INT-05**: I valori marcati come provenienti da `secrets.yml` sono esclusi dai log di debug/verbose (sanitization layer), e sostituiti da `***` in `--dry-run`
+- [x] **INT-01**: I comandi supportano placeholder `${NOME}` che vengono risolti dal merged config prima dello spawn
+- [x] **INT-02**: Se un placeholder referenzia un parametro non presente in nessun file di config, loci emette errore esplicito con nome del parametro e alias di origine — il comando NON viene eseguito
+- [x] **INT-03**: I valori interpolati vengono inseriti come argv token separati (non concatenati in una shell string), così valori con spazi/quote/metacaratteri non rompono nulla e non permettono injection
+- [x] **INT-04**: Tutti i parametri del merged config vengono iniettati automaticamente come variabili d'ambiente del processo figlio, così i sub-comandi possono leggerli con `process.env.X` senza bisogno di interpolazione esplicita
+- [x] **INT-05**: I valori marcati come provenienti da `secrets.yml` sono esclusi dai log di debug/verbose (sanitization layer), e sostituiti da `***` in `--dry-run`
 
 ### Execution
 
@@ -158,14 +158,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CMD-04 | Phase 3 | Complete |
 | CMD-05 | Phase 3 | Complete |
 | CMD-06 | Phase 3 | Complete |
-| CMD-07 | Phase 3 | Pending |
+| CMD-07 | Phase 3 | Complete |
 | CMD-08 | Phase 3 | Complete |
 | CMD-09 | Phase 3 | Complete |
-| INT-01 | Phase 3 | Pending |
-| INT-02 | Phase 3 | Pending |
-| INT-03 | Phase 3 | Pending |
-| INT-04 | Phase 3 | Pending |
-| INT-05 | Phase 3 | Pending |
+| INT-01 | Phase 3 | Complete |
+| INT-02 | Phase 3 | Complete |
+| INT-03 | Phase 3 | Complete |
+| INT-04 | Phase 3 | Complete |
+| INT-05 | Phase 3 | Complete |
 | EXE-01 | Phase 4 | Pending |
 | EXE-02 | Phase 4 | Pending |
 | EXE-03 | Phase 4 | Pending |

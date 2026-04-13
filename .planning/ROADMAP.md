@@ -59,7 +59,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Values from `secrets.yml` injected as env vars do not appear in any verbose or debug output — they show as `***` or are omitted
 **Plans**: 2 plans
 - [x] 03-01-PLAN.md — Commands loader (YAML parser, tokenizer, normalizer, DFS cycle detection, eager validation)
-- [ ] 03-02-PLAN.md — Resolver (platform selection, ${VAR} interpolation, env var builder, secrets redaction utility)
+- [x] 03-02-PLAN.md — Resolver (platform selection, ${VAR} interpolation, env var builder, secrets redaction utility)
 
 ### Phase 4: Executor & CLI
 **Goal**: Users can run any defined alias end-to-end: single commands, sequential chains, and parallel groups execute correctly cross-platform; the full commander.js interface (`--list`, `--dry-run`, `--verbose`, pass-through args) is wired and working
