@@ -47,7 +47,7 @@ function resolveAlias(
 ): ExecutionPlan {
   if (depth > 10) {
     throw new CommandSchemaError(
-      chain[0],
+      chain[0] ?? aliasName,
       `alias nesting exceeds maximum depth of 10: ${chain.join(' -> ')}`,
     );
   }

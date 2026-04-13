@@ -78,14 +78,14 @@ function normalizeObject(
   if (Object.hasOwn(obj, 'steps')) {
     const steps = validateStringArray(aliasName, obj.steps, 'steps');
     const description = typeof obj.description === 'string' ? obj.description : undefined;
-    return { kind: 'sequential', steps, description };
+    return { kind: 'sequential', steps, ...(description !== undefined ? { description } : {}) };
   }
 
   // Check for parallel (concurrent group)
   if (Object.hasOwn(obj, 'parallel')) {
     const group = validateStringArray(aliasName, obj.parallel, 'parallel');
     const description = typeof obj.description === 'string' ? obj.description : undefined;
-    return { kind: 'parallel', group, description };
+    return { kind: 'parallel', group, ...(description !== undefined ? { description } : {}) };
   }
 
   // Single command (cmd + optional description + optional platform overrides)
@@ -124,7 +124,12 @@ function normalizeObject(
     throw new CommandSchemaError(aliasName, 'cmd must be a string or array of strings');
   }
 
-  return { kind: 'single', cmd, description, platforms };
+  return {
+    kind: 'single',
+    cmd,
+    ...(description !== undefined ? { description } : {}),
+    ...(platforms !== undefined ? { platforms } : {}),
+  };
 }
 
 /**
