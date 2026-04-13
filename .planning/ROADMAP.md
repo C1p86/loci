@@ -45,7 +45,8 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Running `loci` in a directory with a malformed YAML file shows the filename and line number of the parse error, then exits non-zero
   4. Missing config files do not cause a crash — loci runs with whatever files are present
   5. `yes`, `no`, `on`, `off`, and `0123` in YAML files are treated as strings, not booleans or octals
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 02-01-PLAN.md — Config loader implementation (readLayer, flattenToStrings, mergeLayers, git secrets check) + comprehensive test suite
 
 ### Phase 3: Commands & Resolver
 **Goal**: `commands.yml` is fully parsed, alias composition is flattened with cycle detection at load time, and all `${VAR}` placeholders are resolved before any process is spawned
@@ -90,7 +91,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/4 | Not started | - |
-| 2. Config System | 0/? | Not started | - |
+| 2. Config System | 0/1 | Not started | - |
 | 3. Commands & Resolver | 0/? | Not started | - |
 | 4. Executor & CLI | 0/? | Not started | - |
 | 5. Init & Distribution | 0/? | Not started | - |
