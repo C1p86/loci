@@ -23,6 +23,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "smoke": "node dist/cli.mjs --version",
+    "prepare": "npm run build",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
