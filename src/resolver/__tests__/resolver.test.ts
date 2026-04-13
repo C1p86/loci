@@ -6,9 +6,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { CommandSchemaError, UndefinedPlaceholderError, UnknownAliasError } from '../../errors.js';
 import type { CommandDef, CommandMap, ResolvedConfig } from '../../types.js';
 import { buildEnvVars, redactSecrets } from '../envvars.js';
+import { resolver } from '../index.js';
 import { interpolateArgv } from '../interpolate.js';
 import { currentOsKey, selectPlatformCmd } from '../platform.js';
-import { resolver } from '../index.js';
 
 /* ============================================================
  * platform.ts tests
@@ -182,9 +182,10 @@ describe('interpolateArgv', () => {
   });
 
   it('supports dot-notation keys', () => {
-    expect(
-      interpolateArgv(['echo', '${deploy.host}'], 'test', { 'deploy.host': 'srv' }),
-    ).toEqual(['echo', 'srv']);
+    expect(interpolateArgv(['echo', '${deploy.host}'], 'test', { 'deploy.host': 'srv' })).toEqual([
+      'echo',
+      'srv',
+    ]);
   });
 
   it('returns token unchanged when no placeholders', () => {
