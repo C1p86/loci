@@ -14,7 +14,11 @@ Serve a chi lavora su più progetti e vuole evitare di ricordare/digitare a mano
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] Carica e fonde config da 4 livelli con precedenza deterministica (machine < project < secrets < local) — Validated in Phase 2: Config System
+- [x] Formato file di config: YAML (con semantica YAML 1.2 — yes/no/on/off sono stringhe) — Validated in Phase 2: Config System
+- [x] Precedenza di merge (ultimo vince): machine → project → secrets → local — Validated in Phase 2: Config System
+- [x] File secrets.yml protetto: warning stderr se tracciato da git, valori mai loggati — Validated in Phase 2: Config System
+- [x] Errore chiaro con filename e riga per YAML malformato — Validated in Phase 2: Config System
 
 ### Active
 
