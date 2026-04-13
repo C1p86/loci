@@ -396,7 +396,7 @@ async function setupFixture(files: Record<string, string>): Promise<string> {
 
 **If this table is empty:** All claims in this research were verified or cited — no user confirmation needed. (3 assumptions require planner decision.)
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`secretKeys` semantics: "ever in secrets" vs "final value from secrets"**
    - What we know: CONTEXT.md says "keys from `secrets.yml`" without specifying whether this means final-provenance or ever-present
