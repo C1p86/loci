@@ -9,6 +9,7 @@ import type {
   ExecutionPlan,
   ExecutionResult,
   Executor,
+  ExecutorOptions,
   PlatformOverrides,
   ResolvedConfig,
   Resolver,
@@ -56,8 +57,8 @@ describe('types.ts — pipeline contracts', () => {
     expectTypeOf<PlanKinds>().toEqualTypeOf<'single' | 'sequential' | 'parallel'>();
   });
 
-  it('Executor.run takes ExecutionPlan and returns Promise<ExecutionResult>', () => {
-    expectTypeOf<Executor['run']>().parameters.toEqualTypeOf<[ExecutionPlan]>();
+  it('Executor.run takes ExecutionPlan + ExecutorOptions and returns Promise<ExecutionResult>', () => {
+    expectTypeOf<Executor['run']>().parameters.toEqualTypeOf<[ExecutionPlan, ExecutorOptions]>();
     expectTypeOf<Executor['run']>().returns.resolves.toEqualTypeOf<ExecutionResult>();
   });
 

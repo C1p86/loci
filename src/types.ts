@@ -57,6 +57,7 @@ export type CommandDef =
       readonly kind: 'parallel';
       readonly group: readonly CommandRef[];
       readonly description?: string;
+      readonly failMode?: 'fast' | 'complete'; // D-15: validated at load time
     };
 
 export type CommandMap = ReadonlyMap<string, CommandDef>;
@@ -78,6 +79,7 @@ export type ExecutionPlan =
         readonly alias: string;
         readonly argv: readonly string[];
       }[];
+      readonly failMode: 'fast' | 'complete'; // resolved with default 'fast'
     };
 
 export interface Resolver {
@@ -92,6 +94,11 @@ export interface ExecutionResult {
   readonly exitCode: number;
 }
 
+export interface ExecutorOptions {
+  readonly cwd: string;
+  readonly env: Record<string, string>;
+}
+
 export interface Executor {
-  run(plan: ExecutionPlan): Promise<ExecutionResult>;
+  run(plan: ExecutionPlan, options: ExecutorOptions): Promise<ExecutionResult>;
 }

@@ -85,7 +85,26 @@ function normalizeObject(
   if (Object.hasOwn(obj, 'parallel')) {
     const group = validateStringArray(aliasName, obj.parallel, 'parallel');
     const description = typeof obj.description === 'string' ? obj.description : undefined;
-    return { kind: 'parallel', group, ...(description !== undefined ? { description } : {}) };
+
+    // D-15: failMode validation
+    let failMode: 'fast' | 'complete' | undefined;
+    if (Object.hasOwn(obj, 'failMode')) {
+      const raw = obj.failMode;
+      if (raw !== 'fast' && raw !== 'complete') {
+        throw new CommandSchemaError(
+          aliasName,
+          `failMode must be "fast" or "complete", got "${String(raw)}"`,
+        );
+      }
+      failMode = raw;
+    }
+
+    return {
+      kind: 'parallel',
+      group,
+      ...(description !== undefined ? { description } : {}),
+      ...(failMode !== undefined ? { failMode } : {}),
+    };
   }
 
   // Single command (cmd + optional description + optional platform overrides)

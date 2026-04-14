@@ -103,7 +103,7 @@ function resolveAlias(
           group.push({ alias: entry, argv });
         }
       }
-      return { kind: 'parallel', group };
+      return { kind: 'parallel', group, failMode: def.failMode ?? 'fast' };
     }
   }
 }
