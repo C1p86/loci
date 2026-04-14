@@ -1,12 +1,25 @@
 // src/executor/index.ts
 //
-// Phase 4 stub. Throws NotImplementedError per D-06.
+// Executor interface implementation dispatching to single/sequential/parallel runners.
 
-import { NotImplementedError } from '../errors.js';
-import type { ExecutionPlan, ExecutionResult, Executor } from '../types.js';
+import type { ExecutionPlan, ExecutionResult, Executor, ExecutorOptions } from '../types.js';
+import { runParallel } from './parallel.js';
+import { runSequential } from './sequential.js';
+import { runSingle } from './single.js';
+
+export { buildSecretValues, printDryRun, printVerboseTrace } from './output.js';
 
 export const executor: Executor = {
-  async run(_plan: ExecutionPlan): Promise<ExecutionResult> {
-    throw new NotImplementedError('Executor (Phase 4)');
+  async run(plan: ExecutionPlan, options: ExecutorOptions): Promise<ExecutionResult> {
+    const { cwd, env } = options;
+
+    switch (plan.kind) {
+      case 'single':
+        return runSingle(plan.argv, cwd, env);
+      case 'sequential':
+        return runSequential(plan.steps, cwd, env);
+      case 'parallel':
+        return runParallel(plan.group, plan.failMode, cwd, env);
+    }
   },
 };

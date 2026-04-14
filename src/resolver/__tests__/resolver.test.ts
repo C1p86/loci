@@ -378,6 +378,7 @@ describe('resolver.resolve - parallel', () => {
     const plan = resolver.resolve('watch', commands, config);
     expect(plan).toEqual({
       kind: 'parallel',
+      failMode: 'fast',
       group: [
         { alias: 'npm run watch:ts', argv: ['npm', 'run', 'watch:ts'] },
         { alias: 'npm run watch:css', argv: ['npm', 'run', 'watch:css'] },
@@ -395,6 +396,7 @@ describe('resolver.resolve - parallel', () => {
     const plan = resolver.resolve('watch', commands, config);
     expect(plan).toEqual({
       kind: 'parallel',
+      failMode: 'fast',
       group: [
         { alias: 'watch:ts', argv: ['npm', 'run', 'watch:ts'] },
         { alias: 'watch:css', argv: ['npm', 'run', 'watch:css'] },
