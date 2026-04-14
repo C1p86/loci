@@ -51,13 +51,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Execution
 
-- [ ] **EXE-01**: I comandi vengono eseguiti con `execa` usando `shell: false` di default (argv array, cross-platform garantito, `PATHEXT` gestito)
-- [ ] **EXE-02**: stdout e stderr dei processi figli sono streamati in tempo reale allo stdout/stderr di loci (no buffering)
-- [ ] **EXE-03**: L'exit code di loci riflette l'esito del comando eseguito: 0 se successo; primo exit code non-zero nella catena se sequenza fallisce; exit code del primo fallito se gruppo parallelo fallisce
-- [ ] **EXE-04**: In un gruppo parallelo, quando un comando fallisce, i comandi ancora in esecuzione vengono terminati (kill cross-platform via `execa.kill()` + cleanup orfani con `tree-kill` o equivalente su Windows)
-- [ ] **EXE-05**: L'output dei comandi paralleli è prefissato con il nome/indice del comando per distinguerlo (stile `concurrently`)
-- [ ] **EXE-06**: Il working directory dei processi figli è la root del progetto (dove risiede `.loci/`)
-- [ ] **EXE-07**: SIGINT (Ctrl+C) propaga correttamente al processo figlio e loci esce pulitamente, senza lasciare orfani
+- [x] **EXE-01**: I comandi vengono eseguiti con `execa` usando `shell: false` di default (argv array, cross-platform garantito, `PATHEXT` gestito)
+- [x] **EXE-02**: stdout e stderr dei processi figli sono streamati in tempo reale allo stdout/stderr di loci (no buffering)
+- [x] **EXE-03**: L'exit code di loci riflette l'esito del comando eseguito: 0 se successo; primo exit code non-zero nella catena se sequenza fallisce; exit code del primo fallito se gruppo parallelo fallisce
+- [x] **EXE-04**: In un gruppo parallelo, quando un comando fallisce, i comandi ancora in esecuzione vengono terminati (kill cross-platform via `execa.kill()` + cleanup orfani con `tree-kill` o equivalente su Windows)
+- [x] **EXE-05**: L'output dei comandi paralleli è prefissato con il nome/indice del comando per distinguerlo (stile `concurrently`)
+- [x] **EXE-06**: Il working directory dei processi figli è la root del progetto (dove risiede `.loci/`)
+- [x] **EXE-07**: SIGINT (Ctrl+C) propaga correttamente al processo figlio e loci esce pulitamente, senza lasciare orfani
 
 ### CLI Frontend
 
@@ -166,13 +166,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INT-03 | Phase 3 | Complete |
 | INT-04 | Phase 3 | Complete |
 | INT-05 | Phase 3 | Complete |
-| EXE-01 | Phase 4 | Pending |
-| EXE-02 | Phase 4 | Pending |
-| EXE-03 | Phase 4 | Pending |
-| EXE-04 | Phase 4 | Pending |
-| EXE-05 | Phase 4 | Pending |
-| EXE-06 | Phase 4 | Pending |
-| EXE-07 | Phase 4 | Pending |
+| EXE-01 | Phase 4 | Complete |
+| EXE-02 | Phase 4 | Complete |
+| EXE-03 | Phase 4 | Complete |
+| EXE-04 | Phase 4 | Complete |
+| EXE-05 | Phase 4 | Complete |
+| EXE-06 | Phase 4 | Complete |
+| EXE-07 | Phase 4 | Complete |
 | CLI-01 | Phase 4 | Pending |
 | CLI-02 | Phase 4 | Pending |
 | CLI-03 | Phase 4 | Pending |

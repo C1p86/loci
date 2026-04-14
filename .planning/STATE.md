@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 4 context gathered
-last_updated: "2026-04-13T16:40:28.173Z"
-last_activity: 2026-04-13
+status: executing
+stopped_at: Completed 04-executor-cli-01-PLAN.md
+last_updated: "2026-04-14T16:57:01.185Z"
+last_activity: 2026-04-14
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
+  total_plans: 9
+  completed_plans: 8
+  percent: 89
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Phase 03 — commands-resolver
+**Current focus:** Phase 04 — executor-cli
 
 ## Current Position
 
-Phase: 4
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-13
+Phase: 04 (executor-cli) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-14
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-config-system P01 | 6m | 3 tasks | 2 files |
 | Phase 03 P01 | 3m | 2 tasks | 6 files |
 | Phase 03 P02 | 4m | 2 tasks | 5 files |
+| Phase 04-executor-cli P01 | 20m | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,9 @@ Recent decisions affecting current work:
 - [Phase 03]: D-09 lookup-based alias detection: only step/group entries matching CommandMap keys are graph edges; unknown entries are inline commands (no UnknownAliasError at load time for non-alias steps)
 - [Phase 03]: Depth cap (D-10) enforced at depth > 10 in DFS with CommandSchemaError showing full expansion chain
 - [Phase 03]: Sequential nested alias refs expand inline: sub-steps merge into parent sequence; parallel group entries must resolve to single commands
+- [Phase 04-executor-cli]: reject:false + result.failed detection for ENOENT SpawnError (avoids double-throw path)
+- [Phase 04-executor-cli]: failMode fast abort fires in per-promise .then() callback, not after allSettled, to kill remaining processes promptly
+- [Phase 04-executor-cli]: ExecutorOptions interface (cwd+env) added to Executor.run contract for clean CLI wiring in Plan 02
 
 ### Pending Todos
 
@@ -97,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-13T16:40:28.133Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-executor-cli/04-CONTEXT.md
+Last session: 2026-04-14T16:57:01.147Z
+Stopped at: Completed 04-executor-cli-01-PLAN.md
+Resume file: None

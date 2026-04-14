@@ -73,7 +73,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. `loci --list` (or `loci` with no arguments) shows all available aliases with their descriptions
   6. `loci <alias> -- --some-flag value` passes `--some-flag value` through to the underlying command without loci interpreting the flags
 **Plans**: 2 plans
-- [ ] 04-01-PLAN.md — Executor engine (types/failMode extension, output formatting, single/sequential/parallel execution with AbortController cancellation)
+- [x] 04-01-PLAN.md — Executor engine (types/failMode extension, output formatting, single/sequential/parallel execution with AbortController cancellation)
 - [ ] 04-02-PLAN.md — CLI frontend (commander.js dynamic alias registration, walk-up discovery, --list/--dry-run/--verbose/pass-through, E2E tests)
 
 ### Phase 5: Init & Distribution
@@ -96,5 +96,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 1. Foundation | 0/4 | Not started | - |
 | 2. Config System | 1/1 | Complete   | 2026-04-13 |
 | 3. Commands & Resolver | 0/2 | Not started | - |
-| 4. Executor & CLI | 0/2 | Not started | - |
+| 4. Executor & CLI | 1/2 | In Progress|  |
 | 5. Init & Distribution | 0/? | Not started | - |
