@@ -61,15 +61,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### CLI Frontend
 
-- [ ] **CLI-01**: CLI basata su commander.js (v14 stabile), registra dinamicamente a runtime i comandi caricati da `.loci/commands.yml`
-- [ ] **CLI-02**: `loci` senza argomenti mostra la lista degli alias disponibili con le loro `description`
-- [ ] **CLI-03**: `loci --list` (o `-l`) mostra la stessa lista in formato compatto
-- [ ] **CLI-04**: `loci --help` mostra l'help generale; `loci <alias> --help` mostra l'help specifico dell'alias
-- [ ] **CLI-05**: `loci <alias> -- <extra args>` passa `<extra args>` al comando sottostante senza interpretarli (via `passThroughOptions` + `enablePositionalOptions`)
-- [ ] **CLI-06**: `loci <alias> --dry-run` risolve e stampa il comando (o la catena/gruppo) che verrebbe eseguito, con i secrets sostituiti da `***`, senza eseguirlo
-- [ ] **CLI-07**: `loci <alias> --verbose` stampa informazioni di debug: quali file di config sono stati letti, da dove proviene ogni chiave, comando finale risolto, valori NON secret
-- [ ] **CLI-08**: `loci --version` stampa la versione del package
-- [ ] **CLI-09**: Errori (config, placeholder mancante, alias sconosciuto, YAML invalido, ciclo di composizione) sono presentati con categoria, causa, e suggerimento quando possibile; exit code dedicati per categoria (≠ 0)
+- [x] **CLI-01**: CLI basata su commander.js (v14 stabile), registra dinamicamente a runtime i comandi caricati da `.loci/commands.yml`
+- [x] **CLI-02**: `loci` senza argomenti mostra la lista degli alias disponibili con le loro `description`
+- [x] **CLI-03**: `loci --list` (o `-l`) mostra la stessa lista in formato compatto
+- [x] **CLI-04**: `loci --help` mostra l'help generale; `loci <alias> --help` mostra l'help specifico dell'alias
+- [x] **CLI-05**: `loci <alias> -- <extra args>` passa `<extra args>` al comando sottostante senza interpretarli (via `passThroughOptions` + `enablePositionalOptions`)
+- [x] **CLI-06**: `loci <alias> --dry-run` risolve e stampa il comando (o la catena/gruppo) che verrebbe eseguito, con i secrets sostituiti da `***`, senza eseguirlo
+- [x] **CLI-07**: `loci <alias> --verbose` stampa informazioni di debug: quali file di config sono stati letti, da dove proviene ogni chiave, comando finale risolto, valori NON secret
+- [x] **CLI-08**: `loci --version` stampa la versione del package
+- [x] **CLI-09**: Errori (config, placeholder mancante, alias sconosciuto, YAML invalido, ciclo di composizione) sono presentati con categoria, causa, e suggerimento quando possibile; exit code dedicati per categoria (≠ 0)
 
 ### Init Command
 
@@ -173,15 +173,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXE-05 | Phase 4 | Complete |
 | EXE-06 | Phase 4 | Complete |
 | EXE-07 | Phase 4 | Complete |
-| CLI-01 | Phase 4 | Pending |
-| CLI-02 | Phase 4 | Pending |
-| CLI-03 | Phase 4 | Pending |
-| CLI-04 | Phase 4 | Pending |
-| CLI-05 | Phase 4 | Pending |
-| CLI-06 | Phase 4 | Pending |
-| CLI-07 | Phase 4 | Pending |
-| CLI-08 | Phase 4 | Pending |
-| CLI-09 | Phase 4 | Pending |
+| CLI-01 | Phase 4 | Complete |
+| CLI-02 | Phase 4 | Complete |
+| CLI-03 | Phase 4 | Complete |
+| CLI-04 | Phase 4 | Complete |
+| CLI-05 | Phase 4 | Complete |
+| CLI-06 | Phase 4 | Complete |
+| CLI-07 | Phase 4 | Complete |
+| CLI-08 | Phase 4 | Complete |
+| CLI-09 | Phase 4 | Complete |
 | INIT-01 | Phase 5 | Pending |
 | INIT-02 | Phase 5 | Pending |
 | INIT-03 | Phase 5 | Pending |
