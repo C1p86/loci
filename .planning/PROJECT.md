@@ -19,29 +19,18 @@ Serve a chi lavora su più progetti e vuole evitare di ricordare/digitare a mano
 - [x] Precedenza di merge (ultimo vince): machine → project → secrets → local — Validated in Phase 2: Config System
 - [x] File secrets.yml protetto: warning stderr se tracciato da git, valori mai loggati — Validated in Phase 2: Config System
 - [x] Errore chiaro con filename e riga per YAML malformato — Validated in Phase 2: Config System
+- [x] Tipi di comando supportati: singolo, catena sequenziale (stop al primo fallimento), gruppo parallelo — Validated in Phase 4: Executor & CLI
+- [x] Output dei comandi figli streamato su stdout/stderr in tempo reale — Validated in Phase 4: Executor & CLI
+- [x] Exit code del comando (o del primo fallito nella catena) propagato come exit code di `loci` — Validated in Phase 4: Executor & CLI
+- [x] Comando `loci` senza argomenti (o `loci --list`) elenca gli alias disponibili con loro descrizione — Validated in Phase 4: Executor & CLI
 
 ### Active
 
 - [ ] CLI Node.js basato su commander.js, installabile globalmente da npm (`npm i -g loci`)
 - [ ] Funziona identicamente su Windows, Linux, macOS
-- [ ] Carica e fonde config da 4 livelli con precedenza deterministica:
-  1. **Machine** — path del file indicato dalla env var `LOCI_MACHINE_CONFIG`
-  2. **Project** — `.loci/config.yml` nella root del progetto, committato
-  3. **Secrets** — `.loci/secrets.yml` nella root del progetto, gitignored (token, password)
-  4. **Local** — `.loci/local.yml` nella root del progetto, gitignored (override per-PC dei valori machine/project)
-- [ ] Formato file di config: **YAML**
-- [ ] Precedenza di merge (ultimo vince): machine → project → secrets → local
-- [ ] File comandi `.loci/commands.yml` committato, mappa `alias → comando` (o catena/gruppo di comandi)
-- [ ] Tipi di comando supportati:
-  - Singolo comando shell
-  - **Catena sequenziale** — lista di comandi eseguiti in ordine, con **stop al primo fallimento** (exit code ≠ 0)
-  - **Gruppo parallelo** — lista di comandi eseguiti contemporaneamente
-  - **Composizione** — un alias può riferire altri alias definiti nello stesso file (riuso)
+- [ ] Composizione — un alias può riferire altri alias definiti nello stesso file (riuso)
 - [ ] Interpolazione parametri nei comandi tramite placeholder `${NOME}` che risolve dal config unito
-- [ ] Output dei comandi figli streamato su stdout/stderr in tempo reale
-- [ ] Exit code del comando (o del primo fallito nella catena) propagato come exit code di `loci`
 - [ ] Errore chiaro se un placeholder referenzia un parametro non definito in nessun livello
-- [ ] Comando `loci` senza argomenti (o `loci --help`) elenca gli alias disponibili con loro descrizione
 
 ### Out of Scope
 
@@ -105,4 +94,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-13 after Phase 3 (Commands & Resolver) completion — commands.yml loader with tokenizer, normalizer, DFS cycle detection; resolver with ${VAR} interpolation, platform selection, env var mapping, secrets redaction. 80 tests, strict TS clean.*
+*Last updated: 2026-04-14 after Phase 4 (Executor & CLI) completion — cross-platform command executor with single/sequential/parallel modes, ANSI output formatting, failMode support; full CLI rewrite with dynamic alias registration, --list/--dry-run/--verbose flags, pass-through args. 202 tests, strict TS clean.*
