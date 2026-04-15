@@ -78,6 +78,42 @@ function buildAliasHelpText(alias: string, def: CommandDef): string {
 }
 
 /* ------------------------------------------------------------------ */
+/* parseCliOverrides helper (CLI-KV)                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Partition raw CLI args into KEY=VALUE overrides and pass-through args.
+ *
+ * Rules:
+ * - Split at the first '--' separator (if present). Everything after '--' is pass-through verbatim.
+ * - Before '--': args matching /^([^=]+)=(.*)$/ (non-empty key) are overrides.
+ * - Before '--': args NOT matching that pattern are pass-through.
+ * - Overrides have highest config precedence (above local.yml). No redaction applies.
+ */
+export function parseCliOverrides(args: readonly string[]): {
+  overrides: Record<string, string>;
+  passThrough: string[];
+} {
+  const dashDashIdx = args.indexOf('--');
+  const preArgs = dashDashIdx === -1 ? args : args.slice(0, dashDashIdx);
+  const postArgs = dashDashIdx === -1 ? [] : [...args.slice(dashDashIdx + 1)];
+
+  const overrides: Record<string, string> = {};
+  const prePassThrough: string[] = [];
+
+  for (const arg of preArgs) {
+    const match = /^([^=]+)=(.*)$/.exec(arg);
+    if (match?.[1] !== undefined) {
+      overrides[match[1]] = match[2] ?? '';
+    } else {
+      prePassThrough.push(arg);
+    }
+  }
+
+  return { overrides, passThrough: [...prePassThrough, ...postArgs] };
+}
+
+/* ------------------------------------------------------------------ */
 /* appendExtraArgs helper (CLI-05)                                       */
 /* ------------------------------------------------------------------ */
 
@@ -128,13 +164,21 @@ function registerAliases(
       .addHelpText('after', buildAliasHelpText(alias, def));
 
     sub.action(async function (this: Command, options: { dryRun?: boolean; verbose?: boolean }) {
-      const extraArgs: string[] = this.args;
+      const { overrides, passThrough } = parseCliOverrides(this.args);
 
-      // Resolve the execution plan
-      const plan = resolver.resolve(alias, commands, config);
+      // Merge CLI overrides into config values (highest precedence — above local.yml)
+      const effectiveValues = Object.keys(overrides).length > 0
+        ? { ...config.values, ...overrides }
+        : config.values;
+      const effectiveConfig: ResolvedConfig = Object.keys(overrides).length > 0
+        ? { ...config, values: effectiveValues }
+        : config;
 
-      // Build env vars for child processes
-      const env = buildEnvVars(config.values);
+      // Resolve the execution plan using effective (override-patched) config
+      const plan = resolver.resolve(alias, commands, effectiveConfig);
+
+      // Build env vars: base from effectiveValues (includes CLI overrides); no redaction for overrides
+      const env = buildEnvVars(effectiveValues);
       const secretValues = buildSecretValues(config);
 
       // Verbose trace (D-28, D-26, D-30) — always to stderr
@@ -159,8 +203,8 @@ function registerAliases(
         return;
       }
 
-      // Append extra args (pass-through) to the plan's argv
-      const finalPlan = extraArgs.length > 0 ? appendExtraArgs(plan, extraArgs) : plan;
+      // Append pass-through args to the plan's argv
+      const finalPlan = passThrough.length > 0 ? appendExtraArgs(plan, passThrough) : plan;
 
       // Execute
       const result = await executor.run(finalPlan, { cwd: projectRoot, env });
