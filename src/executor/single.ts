@@ -35,7 +35,7 @@ export async function runSingle(
     }
     return { exitCode: result.exitCode ?? 1 };
   } catch (err: unknown) {
-    if (err instanceof Error && err.constructor.name === 'SpawnError') throw err;
+    if (err instanceof SpawnError) throw err;
     throw new SpawnError(cmd, err);
   }
 }
