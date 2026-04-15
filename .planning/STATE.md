@@ -112,8 +112,13 @@ None yet.
 
 ### Blockers/Concerns
 
-- npm package name `loci` availability unverified — run `npm info loci` before starting Phase 5
-- Phase 4 (Executor & CLI) needs targeted research before planning: execa v9 parallel abort pattern and commander v14 passThroughOptions interaction
+None
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260415-j2u | Rename CLI command from loci to xci | 2026-04-15 | 3f37119 | [260415-j2u-rename-cli-command-from-loci-to-xci](./quick/260415-j2u-rename-cli-command-from-loci-to-xci/) |
 
 ## Session Continuity
 
