@@ -119,10 +119,10 @@ describe('loci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   // D-19: No .loci/ directory
   // ------------------------------------------------------------------
 
-  it('D-19: no .loci/ directory shows friendly message and exits 0', () => {
+  it('D-19: no .loci/ directory shows friendly message', () => {
     const dir = trackDir(mkdtempSync(join(tmpdir(), 'loci-no-loci-')));
     const { stdout, code } = runCliInDir(dir, []);
-    expect(code).toBe(0);
+    expect(code).not.toBe(0);
     expect(stdout).toContain('No .loci/ directory found');
   });
 
@@ -394,6 +394,35 @@ describe('loci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     // COMMAND_ERROR is 20
     expect(code).toBe(20);
     expect(stderr.toLowerCase()).toMatch(/yaml|parse|invalid/);
+  });
+
+  // ------------------------------------------------------------------
+  // D-19 gap regression: no .loci/ exits non-zero
+  // ------------------------------------------------------------------
+
+  it('D-19: no .loci/ directory exits non-zero when no --version/--help', () => {
+    const dir = trackDir(mkdtempSync(join(tmpdir(), 'loci-no-loci-exit-')));
+    const { stdout, code } = runCliInDir(dir, []);
+    expect(stdout).toContain('No .loci/ directory found');
+    expect(code).not.toBe(0);
+  });
+
+  // ------------------------------------------------------------------
+  // Gap 1 regression: unknown alias clean output
+  // ------------------------------------------------------------------
+
+  it('CLI-09 / Gap 1: unknown alias shows clean error without commander noise', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.loci/commands.yml': 'greet:\n  cmd: [echo, hello]\n',
+      }),
+    );
+    const { stderr, code } = runCliInDir(dir, ['nonexistent']);
+    expect(code).toBe(50);
+    expect(stderr).toContain('Unknown alias');
+    // Must NOT contain commander's raw excessArguments phrasing
+    expect(stderr).not.toMatch(/too many arguments/i);
+    expect(stderr).not.toMatch(/excess arguments/i);
   });
 
   // ------------------------------------------------------------------

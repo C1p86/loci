@@ -181,9 +181,13 @@ function buildProgram(): Command {
     .description('Local CI - cross-platform command alias runner')
     .version(LOCI_VERSION, '-V, --version', 'output the current loci version')
     .helpOption('-h, --help', 'display help for command')
-    .showHelpAfterError()
     .enablePositionalOptions() // CRITICAL for passThroughOptions on subcommands
-    .exitOverride();
+    .exitOverride()
+    // Suppress commander's own stderr output for errors we handle ourselves.
+    // Without this, showHelpAfterError() + exitOverride() causes double output:
+    // commander writes "error: too many arguments\n<help>" then throws, then
+    // handleError() writes our clean "error [CLI_UNKNOWN_ALIAS]" message.
+    .configureOutput({ writeErr: () => {} });
 
   program.option('-l, --list', 'list all available aliases');
 
@@ -204,6 +208,16 @@ function handleError(err: unknown, _program?: Command): number {
   const commanderErr = err as { code?: string; exitCode?: number; message?: string };
   if (commanderErr.code === 'commander.helpDisplayed' || commanderErr.code === 'commander.version') {
     return 0;
+  }
+
+  // Gap 1 fix: commander.excessArguments fires for unknown aliases in some v14 edge cases.
+  // Suppress commander's own output by using exitOverride(); then reformat as UnknownAliasError.
+  if (commanderErr.code === 'commander.excessArguments') {
+    const match = commanderErr.message?.match(/excess arguments: (.+)/i);
+    const aliasName = match ? match[1].split(',')[0]?.trim().replace(/^'|'$/g, '') : 'unknown';
+    process.stderr.write(`error [CLI_UNKNOWN_ALIAS]: Unknown alias: "${aliasName}"\n`);
+    process.stderr.write('  suggestion: Run `loci --list` to see available aliases\n');
+    return 50;
   }
 
   // D-24: unknown command (alias not found) — show error + available aliases
@@ -236,15 +250,25 @@ async function main(argv: readonly string[]): Promise<number> {
 
   if (projectRoot === null) {
     // D-19: no .loci/ found — --version, --help, --list still work
+    let helpOrVersionDisplayed = false;
     program.action(() => {
       process.stdout.write("No .loci/ directory found. Run 'loci init' to get started.\n");
     });
     try {
       await program.parseAsync(argv as string[]);
     } catch (err) {
-      return handleError(err, program);
+      const commanderErr = err as { code?: string };
+      if (
+        commanderErr.code === 'commander.helpDisplayed' ||
+        commanderErr.code === 'commander.version'
+      ) {
+        helpOrVersionDisplayed = true;
+      } else {
+        return handleError(err, program);
+      }
     }
-    return 0;
+    // Exit 0 only when --help or --version was shown; otherwise exit 1 (D-19 gap fix)
+    return helpOrVersionDisplayed ? 0 : 1;
   }
 
   // Load config and commands
