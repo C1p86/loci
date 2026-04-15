@@ -24,9 +24,13 @@ Serve a chi lavora su più progetti e vuole evitare di ricordare/digitare a mano
 - [x] Exit code del comando (o del primo fallito nella catena) propagato come exit code di `loci` — Validated in Phase 4: Executor & CLI
 - [x] Comando `loci` senza argomenti (o `loci --list`) elenca gli alias disponibili con loro descrizione — Validated in Phase 4: Executor & CLI
 
+- [x] `loci init` scaffolda .loci/ con template dimostrativi (single, sequential, parallel) e aggiorna .gitignore — Validated in Phase 5: Init & Distribution
+- [x] README completo con quickstart, config reference, commands reference, platform overrides — Validated in Phase 5: Init & Distribution
+- [x] Package pronto per npm publish come `xci` (MIT license, npm publish --dry-run passa) — Validated in Phase 5: Init & Distribution
+
 ### Active
 
-- [ ] CLI Node.js basato su commander.js, installabile globalmente da npm (`npm i -g loci`)
+- [ ] CLI Node.js basato su commander.js, installabile globalmente da npm (`npm i -g xci`)
 - [ ] Funziona identicamente su Windows, Linux, macOS
 - [ ] Composizione — un alias può riferire altri alias definiti nello stesso file (riuso)
 - [ ] Interpolazione parametri nei comandi tramite placeholder `${NOME}` che risolve dal config unito
