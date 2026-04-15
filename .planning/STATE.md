@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-init-distribution-01-PLAN.md
-last_updated: "2026-04-15T11:42:23.672Z"
+stopped_at: Completed 05-init-distribution-02-PLAN.md
+last_updated: "2026-04-15T11:45:28.280Z"
 last_activity: 2026-04-15
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 13
-  completed_plans: 11
-  percent: 85
+  completed_plans: 12
+  percent: 92
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 ## Current Position
 
 Phase: 05 (init-distribution) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-15
 
@@ -66,6 +66,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-executor-cli P02 | 5m | 2 tasks | 2 files |
 | Phase 04-executor-cli P03 | 2m | 2 tasks | 2 files |
 | Phase 05-init-distribution P01 | 3m | 2 tasks | 4 files |
+| Phase 05-init-distribution P02 | 1m | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -97,6 +98,7 @@ Recent decisions affecting current work:
 - [Phase 04-executor-cli]: Pass-through test uses script file not 'node -e' to avoid Node v22 treating '--foo' as its own option
 - [Phase 04-executor-cli]: configureOutput writeErr noop to suppress commander stderr double-output with exitOverride
 - [Phase 05-init-distribution]: registerInitCommand called before findLociRoot; postAction hook enables exit-0 from no-.loci/ dirs
+- [Phase 05-init-distribution]: README uses npm package name 'xci' per D-01; binary command documented as 'loci'; badges included for CI workflow and npm xci package
 
 ### Pending Todos
 
@@ -109,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-15T11:42:23.644Z
-Stopped at: Completed 05-init-distribution-01-PLAN.md
+Last session: 2026-04-15T11:45:28.246Z
+Stopped at: Completed 05-init-distribution-02-PLAN.md
 Resume file: None
