@@ -70,8 +70,12 @@ export async function runParallel(
   // Track first failure code across all promises for 'fast' mode
   let firstFailCode = 0;
 
-  const settled = await Promise.allSettled(rawPromises);
-  process.off('SIGINT', sigintHandler);
+  let settled: PromiseSettledResult<{ exitCode: number; canceled: boolean }>[];
+  try {
+    settled = await Promise.allSettled(rawPromises);
+  } finally {
+    process.off('SIGINT', sigintHandler);
+  }
 
   if (wasInterrupted) {
     printParallelSummary(
