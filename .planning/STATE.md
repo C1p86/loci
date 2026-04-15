@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: "Checkpoint reached: Task 2 of 05-03-PLAN.md — awaiting user verification of Phase 5 deliverables"
-last_updated: "2026-04-15T11:48:03.926Z"
+status: verifying
+stopped_at: Completed 05-03-PLAN.md — Phase 5 complete, all plans done
+last_updated: "2026-04-15T12:51:39.456Z"
 last_activity: 2026-04-15
 progress:
   total_phases: 5
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 
 Phase: 05 (init-distribution) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-15
 
 Progress: [░░░░░░░░░░] 0%
@@ -68,6 +68,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05-init-distribution P01 | 3m | 2 tasks | 4 files |
 | Phase 05-init-distribution P02 | 1m | 1 tasks | 1 files |
 | Phase 05-init-distribution P03 | 1m | 1 tasks | 2 files |
+| Phase 05-init-distribution P03 | 1 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,8 @@ Recent decisions affecting current work:
 - [Phase 05-init-distribution]: registerInitCommand called before findLociRoot; postAction hook enables exit-0 from no-.loci/ dirs
 - [Phase 05-init-distribution]: README uses npm package name 'xci' per D-01; binary command documented as 'loci'; badges included for CI workflow and npm xci package
 - [Phase 05-init-distribution]: Package name set to 'xci' per D-01 (npm name loci is taken); bin command stays loci; LICENSE added to package.json files array
+- [Phase 05-init-distribution]: Package name set to 'xci' per D-01 (npm name 'loci' is taken); bin command stays 'loci'
+- [Phase 05-init-distribution]: LICENSE explicitly in package.json files array for unambiguous tarball inclusion
 
 ### Pending Todos
 
@@ -113,6 +116,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-15T11:48:03.906Z
-Stopped at: Checkpoint reached: Task 2 of 05-03-PLAN.md — awaiting user verification of Phase 5 deliverables
+Last session: 2026-04-15T12:51:39.437Z
+Stopped at: Completed 05-03-PLAN.md — Phase 5 complete, all plans done
 Resume file: None
