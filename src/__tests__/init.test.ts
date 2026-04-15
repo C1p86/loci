@@ -96,10 +96,10 @@ describe('runInit() — unit tests', () => {
 });
 
 /* ------------------------------------------------------------------ */
-/* E2E tests — `loci init` via CLI                                      */
+/* E2E tests — `xci init` via CLI                                       */
 /* ------------------------------------------------------------------ */
 
-describe('loci init — E2E via dist/cli.mjs', () => {
+describe('xci init — E2E via dist/cli.mjs', () => {
   beforeAll(() => {
     if (!existsSync(CLI)) {
       throw new Error(
@@ -108,7 +108,7 @@ describe('loci init — E2E via dist/cli.mjs', () => {
     }
   });
 
-  it('loci init creates .loci/ and exits 0', () => {
+  it('xci init creates .loci/ and exits 0', () => {
     const result = spawnSync(process.execPath, [CLI, 'init'], {
       cwd: tmpDir,
       encoding: 'utf8',
@@ -117,7 +117,7 @@ describe('loci init — E2E via dist/cli.mjs', () => {
     expect(existsSync(join(tmpDir, '.loci', 'commands.yml'))).toBe(true);
   });
 
-  it('loci init is idempotent — second run exits 0 and shows skipped', () => {
+  it('xci init is idempotent — second run exits 0 and shows skipped', () => {
     // First run
     const first = spawnSync(process.execPath, [CLI, 'init'], {
       cwd: tmpDir,

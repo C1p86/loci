@@ -1,6 +1,6 @@
 // src/init/templates.ts
 //
-// Static YAML template strings for `loci init` scaffold files.
+// Static YAML template strings for `xci init` scaffold files.
 
 export const CONFIG_YML = `\
 # .loci/config.yml
@@ -17,8 +17,8 @@ export const COMMANDS_YML = `\
 # Define command aliases for this project.
 
 hello:
-  description: Say hello — run with \`loci hello\`
-  cmd: ["node", "-e", "console.log('hello from loci')"]
+  description: Say hello — run with \`xci hello\`
+  cmd: ["node", "-e", "console.log('hello from xci')"]
 
 # Sequential: runs steps in order, stops at first failure
 # check-and-build:

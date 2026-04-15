@@ -8,7 +8,7 @@
     "node": ">=20.5.0"
   },
   "bin": {
-    "loci": "./dist/cli.mjs"
+    "xci": "./dist/cli.mjs"
   },
   "files": [
     "dist",

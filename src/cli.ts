@@ -46,7 +46,7 @@ function printAliasList(commands: CommandMap): void {
     const kind = def.kind;
     process.stdout.write(`  ${alias}  ${desc ? '- ' + desc : ''}  (${kind})\n`);
   }
-  process.stdout.write('\nRun `loci <alias> --help` for details on a specific alias.\n');
+  process.stdout.write('\nRun `xci <alias> --help` for details on a specific alias.\n');
 }
 
 /* ------------------------------------------------------------------ */
@@ -178,9 +178,9 @@ function registerAliases(
 function buildProgram(): Command {
   const program = new Command();
   program
-    .name('loci')
+    .name('xci')
     .description('Local CI - cross-platform command alias runner')
-    .version(LOCI_VERSION, '-V, --version', 'output the current loci version')
+    .version(LOCI_VERSION, '-V, --version', 'output the current xci version')
     .helpOption('-h, --help', 'display help for command')
     .enablePositionalOptions() // CRITICAL for passThroughOptions on subcommands
     .exitOverride()
@@ -217,14 +217,14 @@ function handleError(err: unknown, _program?: Command): number {
     const match = commanderErr.message?.match(/excess arguments: (.+)/i);
     const aliasName = match ? match[1].split(',')[0]?.trim().replace(/^'|'$/g, '') : 'unknown';
     process.stderr.write(`error [CLI_UNKNOWN_ALIAS]: Unknown alias: "${aliasName}"\n`);
-    process.stderr.write('  suggestion: Run `loci --list` to see available aliases\n');
+    process.stderr.write('  suggestion: Run `xci --list` to see available aliases\n');
     return 50;
   }
 
   // D-24: unknown command (alias not found) — show error + available aliases
   if (commanderErr.code === 'commander.unknownCommand') {
     process.stderr.write(`error [CLI_UNKNOWN_ALIAS]: Unknown alias: "${commanderErr.message}"\n`);
-    process.stderr.write('  suggestion: Run `loci --list` to see available aliases\n');
+    process.stderr.write('  suggestion: Run `xci --list` to see available aliases\n');
     return 50;
   }
 
@@ -257,7 +257,7 @@ async function main(argv: readonly string[]): Promise<number> {
     let helpOrVersionDisplayed = false;
     let subcommandRan = false;
     program.action(() => {
-      process.stdout.write("No .loci/ directory found. Run 'loci init' to get started.\n");
+      process.stdout.write("No .loci/ directory found. Run 'xci init' to get started.\n");
     });
     // Track when a registered subcommand (e.g. init) runs successfully
     program.hook('postAction', (_thisCommand, actionCommand) => {

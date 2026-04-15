@@ -115,7 +115,7 @@ export class UnknownAliasError extends CommandError {
   constructor(aliasName: string) {
     super(`Unknown alias: "${aliasName}"`, {
       code: 'CMD_UNKNOWN_ALIAS',
-      suggestion: 'Run `loci --list` to see available aliases',
+      suggestion: 'Run `xci --list` to see available aliases',
     });
   }
 }
@@ -143,7 +143,7 @@ export class ShellInjectionError extends ExecutorError {
   constructor(value: string) {
     super('Command contains shell metacharacters in an argument slot', {
       code: 'EXE_SHELL_INJECTION',
-      suggestion: 'loci uses shell:false by default; review your command definition',
+      suggestion: 'xci uses shell:false by default; review your command definition',
     });
     // NB: never include `value` in the message — it may be a secret.
     // The value is accepted into the constructor for Phase 4 API compatibility
@@ -167,7 +167,7 @@ export class UnknownFlagError extends CliError {
   constructor(flag: string) {
     super(`Unknown flag: ${flag}`, {
       code: 'CLI_UNKNOWN_FLAG',
-      suggestion: 'Run `loci --help` for available flags',
+      suggestion: 'Run `xci --help` for available flags',
     });
   }
 }

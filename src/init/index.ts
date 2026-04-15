@@ -1,6 +1,6 @@
 // src/init/index.ts
 //
-// `loci init` subcommand — scaffolds a .loci/ directory with example config files
+// `xci init` subcommand — scaffolds a .loci/ directory with example config files
 // and updates .gitignore to ignore secrets.yml and local.yml.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -85,20 +85,20 @@ function ensureGitignore(projectDir: string, results: SummaryItem[]): void {
  * Print the init summary to stdout.
  *
  * Example output:
- *   loci init
+ *   xci init
  *
  *     created  .loci/config.yml
  *     created  .loci/commands.yml
  *     skipped  .gitignore
  *
- *   Run `loci hello` to test your setup.
+ *   Run `xci hello` to test your setup.
  */
 function printInitSummary(results: SummaryItem[]): void {
-  process.stdout.write('loci init\n\n');
+  process.stdout.write('xci init\n\n');
   for (const { action, path } of results) {
     process.stdout.write(`  ${action.padEnd(8)} ${path}\n`);
   }
-  process.stdout.write('\nRun `loci hello` to test your setup.\n');
+  process.stdout.write('\nRun `xci hello` to test your setup.\n');
 }
 
 /* ------------------------------------------------------------------ */
@@ -131,7 +131,7 @@ export function runInit(cwd: string): void {
 
 /**
  * Register the `init` subcommand on `program`.
- * Must be called BEFORE findLociRoot() so `loci init` works in a directory
+ * Must be called BEFORE findLociRoot() so `xci init` works in a directory
  * that does not yet have a .loci/ directory.
  */
 export function registerInitCommand(program: Command): void {

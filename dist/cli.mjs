@@ -11277,7 +11277,7 @@ var UnknownAliasError = class extends CommandError {
   constructor(aliasName) {
     super(`Unknown alias: "${aliasName}"`, {
       code: "CMD_UNKNOWN_ALIAS",
-      suggestion: "Run `loci --list` to see available aliases"
+      suggestion: "Run `xci --list` to see available aliases"
     });
   }
 };
@@ -11309,7 +11309,7 @@ var UnknownFlagError = class extends CliError {
   constructor(flag) {
     super(`Unknown flag: ${flag}`, {
       code: "CLI_UNKNOWN_FLAG",
-      suggestion: "Run `loci --help` for available flags"
+      suggestion: "Run `xci --help` for available flags"
     });
   }
 };
@@ -11446,7 +11446,7 @@ var configLoader = {
     if (layers[2] !== null) {
       if (isSecretTrackedByGit(cwd)) {
         process.stderr.write(
-          "[loci] WARNING: .loci/secrets.yml is tracked by git. Run: git rm --cached .loci/secrets.yml\n"
+          "[xci] WARNING: .loci/secrets.yml is tracked by git. Run: git rm --cached .loci/secrets.yml\n"
         );
       }
     }
@@ -18631,8 +18631,8 @@ var COMMANDS_YML = `# .loci/commands.yml
 # Define command aliases for this project.
 
 hello:
-  description: Say hello \u2014 run with \`loci hello\`
-  cmd: ["node", "-e", "console.log('hello from loci')"]
+  description: Say hello \u2014 run with \`xci hello\`
+  cmd: ["node", "-e", "console.log('hello from xci')"]
 
 # Sequential: runs steps in order, stops at first failure
 # check-and-build:
@@ -18698,12 +18698,12 @@ ${missing.join("\n")}
   results.push({ path: ".gitignore", action: "updated" });
 }
 function printInitSummary(results) {
-  process.stdout.write("loci init\n\n");
+  process.stdout.write("xci init\n\n");
   for (const { action, path: path6 } of results) {
     process.stdout.write(`  ${action.padEnd(8)} ${path6}
 `);
   }
-  process.stdout.write("\nRun `loci hello` to test your setup.\n");
+  process.stdout.write("\nRun `xci hello` to test your setup.\n");
 }
 function runInit(cwd) {
   const lociDir = join(cwd, ".loci");
@@ -18746,7 +18746,7 @@ function printAliasList(commands) {
     process.stdout.write(`  ${alias}  ${desc ? "- " + desc : ""}  (${kind})
 `);
   }
-  process.stdout.write("\nRun `loci <alias> --help` for details on a specific alias.\n");
+  process.stdout.write("\nRun `xci <alias> --help` for details on a specific alias.\n");
 }
 function buildAliasHelpText(alias, def) {
   const lines = [""];
@@ -18828,7 +18828,7 @@ function registerAliases(program2, commands, config, projectRoot) {
 }
 function buildProgram() {
   const program2 = new Command();
-  program2.name("loci").description("Local CI - cross-platform command alias runner").version(LOCI_VERSION, "-V, --version", "output the current loci version").helpOption("-h, --help", "display help for command").enablePositionalOptions().exitOverride().configureOutput({ writeErr: () => {
+  program2.name("xci").description("Local CI - cross-platform command alias runner").version(LOCI_VERSION, "-V, --version", "output the current xci version").helpOption("-h, --help", "display help for command").enablePositionalOptions().exitOverride().configureOutput({ writeErr: () => {
   } });
   program2.option("-l, --list", "list all available aliases");
   return program2;
@@ -18850,13 +18850,13 @@ function handleError(err, _program) {
     const aliasName = match ? match[1].split(",")[0]?.trim().replace(/^'|'$/g, "") : "unknown";
     process.stderr.write(`error [CLI_UNKNOWN_ALIAS]: Unknown alias: "${aliasName}"
 `);
-    process.stderr.write("  suggestion: Run `loci --list` to see available aliases\n");
+    process.stderr.write("  suggestion: Run `xci --list` to see available aliases\n");
     return 50;
   }
   if (commanderErr.code === "commander.unknownCommand") {
     process.stderr.write(`error [CLI_UNKNOWN_ALIAS]: Unknown alias: "${commanderErr.message}"
 `);
-    process.stderr.write("  suggestion: Run `loci --list` to see available aliases\n");
+    process.stderr.write("  suggestion: Run `xci --list` to see available aliases\n");
     return 50;
   }
   if (commanderErr.code?.startsWith("commander.")) {
@@ -18879,7 +18879,7 @@ async function main(argv) {
     let helpOrVersionDisplayed = false;
     let subcommandRan = false;
     program2.action(() => {
-      process.stdout.write("No .loci/ directory found. Run 'loci init' to get started.\n");
+      process.stdout.write("No .loci/ directory found. Run 'xci init' to get started.\n");
     });
     program2.hook("postAction", (_thisCommand, actionCommand) => {
       if (actionCommand !== program2) {

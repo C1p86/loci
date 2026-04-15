@@ -1,6 +1,6 @@
 // src/__tests__/cli.e2e.test.ts
 //
-// E2E tests for the full loci CLI.
+// E2E tests for the full xci CLI.
 // NOTE: `npm run build` must be run before these tests. CI orders build → test automatically.
 // Locally: `npm run build && npm test`
 
@@ -97,7 +97,7 @@ beforeAll(() => {
 /* Tests                                                                 */
 /* ------------------------------------------------------------------ */
 
-describe('loci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
+describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   // ------------------------------------------------------------------
   // CLI-08: --version
   // ------------------------------------------------------------------
@@ -137,7 +137,7 @@ describe('loci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     const dir = trackDir(mkdtempSync(join(tmpdir(), 'loci-no-loci-')));
     const { stdout, code } = runCliInDir(dir, ['--help']);
     expect(code).toBe(0);
-    expect(stdout).toContain('Usage: loci');
+    expect(stdout).toContain('Usage: xci');
   });
 
   // ------------------------------------------------------------------
@@ -342,7 +342,7 @@ describe('loci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     );
     const { stdout, code } = runCliInDir(dir, ['--help']);
     expect(code).toBe(0);
-    expect(stdout).toContain('Usage: loci');
+    expect(stdout).toContain('Usage: xci');
   });
 
   // ------------------------------------------------------------------

@@ -194,7 +194,7 @@ export const configLoader: ConfigLoader = {
     if (layers[2] !== null) {
       if (isSecretTrackedByGit(cwd)) {
         process.stderr.write(
-          '[loci] WARNING: .loci/secrets.yml is tracked by git. Run: git rm --cached .loci/secrets.yml\n',
+          '[xci] WARNING: .loci/secrets.yml is tracked by git. Run: git rm --cached .loci/secrets.yml\n',
         );
       }
     }

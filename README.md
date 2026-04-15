@@ -1,51 +1,49 @@
-# loci
+# xci
 
 Local CI — cross-platform command alias runner with layered YAML config
 
-[![CI](https://github.com/your-org/loci/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/loci/actions/workflows/ci.yml)
+[![CI](https://github.com/your-org/xci/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/xci/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/xci)](https://www.npmjs.com/package/xci)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## What is loci?
+## What is xci?
 
-`loci` is a cross-platform command alias runner for Node.js. You define command aliases once in a versioned YAML file, then invoke them by name from the terminal on any OS — Windows, Linux, or macOS. `loci` resolves parameters from a four-layer configuration hierarchy and spawns each command directly (no shell intermediary), so aliases behave identically on every machine.
+`xci` is a cross-platform command alias runner for Node.js. You define command aliases once in a versioned YAML file, then invoke them by name from the terminal on any OS — Windows, Linux, or macOS. `xci` resolves parameters from a four-layer configuration hierarchy and spawns each command directly (no shell intermediary), so aliases behave identically on every machine.
 
 The core value: **one alias → always the correct command executed**, on any operating system, with the right parameters for that project and that machine, without ever exposing tokens or passwords in version control.
 
 ## Quickstart
 
-Install `loci` globally:
+Install `xci` globally:
 
 ```bash
 npm i -g xci
 ```
 
-> The npm package is named `xci`; the command you type is `loci`.
-
 Move to your project and scaffold the `.loci/` directory:
 
 ```bash
 cd your-project
-loci init
+xci init
 ```
 
 This creates `.loci/commands.yml` with a `hello` alias. Run it:
 
 ```bash
-loci hello
+xci hello
 ```
 
 You should see:
 
 ```
-hello from loci
+hello from xci
 ```
 
 That's it. Edit `.loci/commands.yml` to define your own aliases.
 
 ## Configuration
 
-`loci` merges up to four config layers in order. Later layers override earlier ones.
+`xci` merges up to four config layers in order. Later layers override earlier ones.
 
 | Layer    | File                           | Purpose                                         | Committed? |
 |----------|--------------------------------|-------------------------------------------------|------------|
@@ -78,7 +76,7 @@ deploy:
   cmd: ["docker", "push", "${registry}/${app_name}:latest"]
 ```
 
-When `loci deploy` runs, `${registry}` and `${app_name}` are replaced with values from the merged config before the process is spawned. If a placeholder has no value in any config layer, `loci` exits with an error before running anything.
+When `xci deploy` runs, `${registry}` and `${app_name}` are replaced with values from the merged config before the process is spawned. If a placeholder has no value in any config layer, `xci` exits with an error before running anything.
 
 All config values are also injected as environment variables into child processes, so subcommands can read them via `process.env.REGISTRY` without explicit interpolation.
 
@@ -101,7 +99,7 @@ lint:
   cmd: ["npx", "biome", "check", "."]
 ```
 
-You can also write `cmd` as a string; `loci` tokenizes it into an argv array:
+You can also write `cmd` as a string; `xci` tokenizes it into an argv array:
 
 ```yaml
 test:
@@ -176,11 +174,11 @@ open-docs:
     - docs\index.html
 ```
 
-If no default `cmd` is provided and `loci` runs on a platform with no matching override, the command fails with a clear error.
+If no default `cmd` is provided and `xci` runs on a platform with no matching override, the command fails with a clear error.
 
 ## Shell Behavior
 
-`loci` runs every command with `shell: false` by default. This means:
+`xci` runs every command with `shell: false` by default. This means:
 
 - Pipes (`|`), redirects (`>`), and shell expansions (`*`) are **not available** inside `cmd` entries.
 - Arguments are passed directly to the process as an argv array — no shell quoting or escaping issues.
@@ -190,7 +188,7 @@ This is intentional. Direct spawning is safer (no injection surface) and cross-p
 
 ### Wrap complex logic in a script
 
-When you need pipes, redirects, or shell-specific constructs, put the logic in a script file and call the script from `loci`:
+When you need pipes, redirects, or shell-specific constructs, put the logic in a script file and call the script from `xci`:
 
 ```yaml
 complex-build:
@@ -202,21 +200,21 @@ complex-build:
     - ./scripts/build.ps1
 ```
 
-Keep `loci` aliases thin. Let scripts handle shell complexity.
+Keep `xci` aliases thin. Let scripts handle shell complexity.
 
 ## Secrets
 
 `.loci/secrets.yml` works like any other config layer but is treated specially:
 
-- It is gitignored by `loci init` and must never be committed.
+- It is gitignored by `xci init` and must never be committed.
 - Values sourced from `secrets.yml` are redacted (`***`) in `--dry-run` and `--verbose` output.
-- If `secrets.yml` is accidentally tracked by git, `loci` prints a warning to stderr on every run:
+- If `secrets.yml` is accidentally tracked by git, `xci` prints a warning to stderr on every run:
 
   ```
-  [loci] WARNING: .loci/secrets.yml is tracked by git. Run: git rm --cached .loci/secrets.yml
+  [xci] WARNING: .loci/secrets.yml is tracked by git. Run: git rm --cached .loci/secrets.yml
   ```
 
-- loci never logs secret values, even in debug mode.
+- xci never logs secret values, even in debug mode.
 
 ### Example secrets.yml
 
@@ -230,21 +228,21 @@ deploy_key: super-secret-value
 
 | Command                            | Description                                           |
 |------------------------------------|-------------------------------------------------------|
-| `loci`                             | List all available aliases (same as `--list`)         |
-| `loci --list` / `loci -l`          | List all available aliases with their descriptions    |
-| `loci <alias>`                     | Run an alias                                          |
-| `loci <alias> --dry-run`           | Preview the resolved command without executing        |
-| `loci <alias> --verbose`           | Show config trace (which files loaded, key provenance) and run |
-| `loci <alias> -- --extra-args`     | Pass arguments through to the child process           |
-| `loci <alias> --help`              | Show help for a specific alias                        |
-| `loci init`                        | Scaffold `.loci/` directory in current project        |
-| `loci --version` / `loci -V`       | Show installed version                                |
-| `loci --help` / `loci -h`          | Show help                                             |
+| `xci`                              | List all available aliases (same as `--list`)         |
+| `xci --list` / `xci -l`            | List all available aliases with their descriptions    |
+| `xci <alias>`                      | Run an alias                                          |
+| `xci <alias> --dry-run`            | Preview the resolved command without executing        |
+| `xci <alias> --verbose`            | Show config trace (which files loaded, key provenance) and run |
+| `xci <alias> -- --extra-args`      | Pass arguments through to the child process           |
+| `xci <alias> --help`               | Show help for a specific alias                        |
+| `xci init`                         | Scaffold `.loci/` directory in current project        |
+| `xci --version` / `xci -V`         | Show installed version                                |
+| `xci --help` / `xci -h`            | Show help                                             |
 
 ### Dry run example
 
 ```bash
-loci deploy --dry-run
+xci deploy --dry-run
 ```
 
 Output shows the fully resolved command with secrets redacted:
@@ -257,7 +255,7 @@ Output shows the fully resolved command with secrets redacted:
 ### Verbose example
 
 ```bash
-loci deploy --verbose
+xci deploy --verbose
 ```
 
 Prints which config files were loaded, which layer each key came from, then runs the command.
