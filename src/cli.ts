@@ -10,6 +10,7 @@ import { CliError, exitCodeFor, LociError, UnknownAliasError, UnknownFlagError }
 import { LOCI_VERSION } from './version.js';
 import type { CommandDef, CommandMap, ExecutionPlan, ResolvedConfig } from './types.js';
 import { dimPrefix } from './executor/output.js';
+import { registerInitCommand } from './init/index.js';
 
 // Re-export CliError for backward-compat with existing tests
 export { CliError };
@@ -245,14 +246,24 @@ function handleError(err: unknown, _program?: Command): number {
 async function main(argv: readonly string[]): Promise<number> {
   const program = buildProgram();
 
+  // Register init command BEFORE findLociRoot so `loci init` works from any directory
+  registerInitCommand(program);
+
   // D-18: walk-up discovery
   const projectRoot = findLociRoot(process.cwd());
 
   if (projectRoot === null) {
-    // D-19: no .loci/ found — --version, --help, --list still work
+    // D-19: no .loci/ found — --version, --help, --list, and init still work
     let helpOrVersionDisplayed = false;
+    let subcommandRan = false;
     program.action(() => {
       process.stdout.write("No .loci/ directory found. Run 'loci init' to get started.\n");
+    });
+    // Track when a registered subcommand (e.g. init) runs successfully
+    program.hook('postAction', (_thisCommand, actionCommand) => {
+      if (actionCommand !== program) {
+        subcommandRan = true;
+      }
     });
     try {
       await program.parseAsync(argv as string[]);
@@ -267,8 +278,8 @@ async function main(argv: readonly string[]): Promise<number> {
         return handleError(err, program);
       }
     }
-    // Exit 0 only when --help or --version was shown; otherwise exit 1 (D-19 gap fix)
-    return helpOrVersionDisplayed ? 0 : 1;
+    // Exit 0 when --help/--version shown or a subcommand (init) ran successfully
+    return helpOrVersionDisplayed || subcommandRan ? 0 : 1;
   }
 
   // Load config and commands
