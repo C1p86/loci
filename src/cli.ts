@@ -88,8 +88,9 @@ function appendExtraArgs(plan: ExecutionPlan, extra: readonly string[]): Executi
       // Append to the LAST step in the chain
       if (plan.steps.length === 0) return plan;
       const lastIdx = plan.steps.length - 1;
-      const newSteps = [...plan.steps];
-      newSteps[lastIdx] = [...(plan.steps[lastIdx] as readonly string[]), ...extra];
+      const newSteps = plan.steps.map((s, i) =>
+        i === lastIdx ? [...s, ...extra] : s
+      );
       return { ...plan, steps: newSteps };
     }
     case 'parallel':
