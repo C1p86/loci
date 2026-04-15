@@ -73,12 +73,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Init Command
 
-- [ ] **INIT-01**: `loci init` scaffolda la cartella `.loci/` nella root del progetto corrente
-- [ ] **INIT-02**: `loci init` crea `.loci/config.yml` di esempio (committato) con commenti esplicativi
-- [ ] **INIT-03**: `loci init` crea `.loci/secrets.yml.example` e `.loci/local.yml.example` (committabili come template) ma NON i file reali — l'utente li copia se servono
-- [ ] **INIT-04**: `loci init` crea `.loci/commands.yml` di esempio con 2-3 alias dimostrativi (singolo, sequenza, parallelo)
-- [ ] **INIT-05**: `loci init` aggiunge `.loci/secrets.yml` e `.loci/local.yml` al `.gitignore` del progetto (crea il file se non esiste; non duplica se già presenti)
-- [ ] **INIT-06**: `loci init` è idempotente: non sovrascrive file esistenti, stampa un riepilogo di cosa ha creato e cosa ha saltato
+- [x] **INIT-01**: `loci init` scaffolda la cartella `.loci/` nella root del progetto corrente
+- [x] **INIT-02**: `loci init` crea `.loci/config.yml` di esempio (committato) con commenti esplicativi
+- [x] **INIT-03**: `loci init` crea `.loci/secrets.yml.example` e `.loci/local.yml.example` (committabili come template) ma NON i file reali — l'utente li copia se servono
+- [x] **INIT-04**: `loci init` crea `.loci/commands.yml` di esempio con 2-3 alias dimostrativi (singolo, sequenza, parallelo)
+- [x] **INIT-05**: `loci init` aggiunge `.loci/secrets.yml` e `.loci/local.yml` al `.gitignore` del progetto (crea il file se non esiste; non duplica se già presenti)
+- [x] **INIT-06**: `loci init` è idempotente: non sovrascrive file esistenti, stampa un riepilogo di cosa ha creato e cosa ha saltato
 
 ### Documentation & Distribution
 
@@ -182,12 +182,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLI-07 | Phase 4 | Complete |
 | CLI-08 | Phase 4 | Complete |
 | CLI-09 | Phase 4 | Complete |
-| INIT-01 | Phase 5 | Pending |
-| INIT-02 | Phase 5 | Pending |
-| INIT-03 | Phase 5 | Pending |
-| INIT-04 | Phase 5 | Pending |
-| INIT-05 | Phase 5 | Pending |
-| INIT-06 | Phase 5 | Pending |
+| INIT-01 | Phase 5 | Complete |
+| INIT-02 | Phase 5 | Complete |
+| INIT-03 | Phase 5 | Complete |
+| INIT-04 | Phase 5 | Complete |
+| INIT-05 | Phase 5 | Complete |
+| INIT-06 | Phase 5 | Complete |
 | DOC-01 | Phase 5 | Pending |
 | DOC-02 | Phase 5 | Pending |
 | DOC-03 | Phase 5 | Pending |

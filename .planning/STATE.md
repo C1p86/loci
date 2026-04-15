@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 5 context gathered
-last_updated: "2026-04-15T11:16:56.846Z"
-last_activity: 2026-04-14
+status: executing
+stopped_at: Completed 05-init-distribution-01-PLAN.md
+last_updated: "2026-04-15T11:42:23.672Z"
+last_activity: 2026-04-15
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 10
-  completed_plans: 10
-  percent: 100
+  total_plans: 13
+  completed_plans: 11
+  percent: 85
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Phase 04 — executor-cli
+**Current focus:** Phase 05 — init-distribution
 
 ## Current Position
 
-Phase: 5
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-14
+Phase: 05 (init-distribution) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-04-15
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -65,6 +65,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-executor-cli P01 | 20m | 2 tasks | 13 files |
 | Phase 04-executor-cli P02 | 5m | 2 tasks | 2 files |
 | Phase 04-executor-cli P03 | 2m | 2 tasks | 2 files |
+| Phase 05-init-distribution P01 | 3m | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,7 @@ Recent decisions affecting current work:
 - [Phase 04-executor-cli]: enablePositionalOptions() on root commander program is mandatory for passThroughOptions() to work on sub-commands (commander v14 pitfall)
 - [Phase 04-executor-cli]: Pass-through test uses script file not 'node -e' to avoid Node v22 treating '--foo' as its own option
 - [Phase 04-executor-cli]: configureOutput writeErr noop to suppress commander stderr double-output with exitOverride
+- [Phase 05-init-distribution]: registerInitCommand called before findLociRoot; postAction hook enables exit-0 from no-.loci/ dirs
 
 ### Pending Todos
 
@@ -107,6 +109,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-15T11:16:56.804Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-init-distribution/05-CONTEXT.md
+Last session: 2026-04-15T11:42:23.644Z
+Stopped at: Completed 05-init-distribution-01-PLAN.md
+Resume file: None
