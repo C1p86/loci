@@ -19,6 +19,21 @@ export const COMMANDS_YML = `\
 hello:
   description: Say hello — run with \`loci hello\`
   cmd: ["node", "-e", "console.log('hello from loci')"]
+
+# Sequential: runs steps in order, stops at first failure
+# check-and-build:
+#   description: Typecheck then build
+#   steps:
+#     - ["npx", "tsc", "--noEmit"]
+#     - ["npx", "tsup"]
+
+# Parallel: runs members concurrently, kills others on first failure
+# lint-all:
+#   description: Run all linters in parallel
+#   group:
+#     - ["npx", "biome", "check", "."]
+#     - ["npx", "tsc", "--noEmit"]
+#   failMode: fast
 `;
 
 export const SECRETS_EXAMPLE_YML = `\
