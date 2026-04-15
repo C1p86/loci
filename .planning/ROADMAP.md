@@ -77,14 +77,17 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 04-02-PLAN.md — CLI frontend (commander.js dynamic alias registration, walk-up discovery, --list/--dry-run/--verbose/pass-through, E2E tests)
 
 ### Phase 5: Init & Distribution
-**Goal**: `loci init` scaffolds a new project, documentation is complete, and the package is published to npm under the `loci` name
+**Goal**: `loci init` scaffolds a new project, documentation is complete, and the package is ready for npm publication under the name `xci`
 **Depends on**: Phase 4
 **Requirements**: INIT-01, INIT-02, INIT-03, INIT-04, INIT-05, INIT-06, DOC-01, DOC-02, DOC-03, DOC-04, DOC-05
 **Success Criteria** (what must be TRUE):
   1. Running `loci init` in a project directory creates `.loci/config.yml`, `.loci/commands.yml`, `.loci/secrets.yml.example`, and `.loci/local.yml.example`, and adds the real secrets/local files to `.gitignore` — subsequent runs skip existing files and print what was skipped
   2. A developer following only the README quickstart can install loci, run `loci init`, define one alias, and execute it successfully with no other guidance
-  3. `npm i -g loci` installs the published package and `loci --version` works immediately
-**Plans**: TBD
+  3. `npm i -g xci` installs the published package and `loci --version` works immediately
+**Plans**: 3 plans
+- [ ] 05-01-PLAN.md — Init command (src/init/ module with templates + scaffolding logic, CLI wiring, unit + E2E tests)
+- [ ] 05-02-PLAN.md — README documentation (quickstart, config reference, commands reference, platform overrides, shell:false)
+- [ ] 05-03-PLAN.md — LICENSE + npm publication prep (MIT license, package.json name to xci, publish dry-run, final checkpoint)
 
 ## Progress
 
@@ -97,4 +100,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 2. Config System | 1/1 | Complete   | 2026-04-13 |
 | 3. Commands & Resolver | 0/2 | Not started | - |
 | 4. Executor & CLI | 2/2 | Complete   | 2026-04-14 |
-| 5. Init & Distribution | 0/? | Not started | - |
+| 5. Init & Distribution | 0/3 | Not started | - |
