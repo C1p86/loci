@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Config System** - 4-layer YAML loader with deterministic merge, secrets redaction contract, gitignore safety check (completed 2026-04-13)
 - [ ] **Phase 3: Commands & Resolver** - commands.yml parser, alias composition with cycle detection, `${VAR}` interpolation
 - [x] **Phase 4: Executor & CLI** - cross-platform command execution, parallel groups, full commander.js frontend wired end-to-end (completed 2026-04-14)
-- [ ] **Phase 5: Init & Distribution** - `loci init` scaffolding, README, npm publish
+- [x] **Phase 5: Init & Distribution** - `loci init` scaffolding, README, npm publish (completed 2026-04-15)
 
 ## Phase Details
 
@@ -87,7 +87,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 - [x] 05-01-PLAN.md — Init command (src/init/ module with templates + scaffolding logic, CLI wiring, unit + E2E tests)
 - [x] 05-02-PLAN.md — README documentation (quickstart, config reference, commands reference, platform overrides, shell:false)
-- [ ] 05-03-PLAN.md — LICENSE + npm publication prep (MIT license, package.json name to xci, publish dry-run, final checkpoint)
+- [x] 05-03-PLAN.md — LICENSE + npm publication prep (MIT license, package.json name to xci, publish dry-run, final checkpoint)
 
 ## Progress
 
@@ -100,4 +100,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 2. Config System | 1/1 | Complete   | 2026-04-13 |
 | 3. Commands & Resolver | 0/2 | Not started | - |
 | 4. Executor & CLI | 2/2 | Complete   | 2026-04-14 |
-| 5. Init & Distribution | 2/3 | In Progress|  |
+| 5. Init & Distribution | 3/3 | Complete   | 2026-04-15 |

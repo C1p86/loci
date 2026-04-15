@@ -85,8 +85,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **DOC-01**: README con quickstart (install, `loci init`, primo alias, esecuzione), spiegazione dei 4 livelli di config, esempio di `commands.yml`
 - [x] **DOC-02**: README documenta esplicitamente che il default è `shell: false` (niente pipe/redirect nei comandi) e mostra il pattern "wrap in script file" per chi ne ha bisogno
 - [x] **DOC-03**: README documenta i blocchi `linux:`/`windows:`/`macos:` per varianti di comando per piattaforma
-- [ ] **DOC-04**: LICENSE file (MIT o simile) presente
-- [ ] **DOC-05**: Package pubblicato su npm pubblico con nome disponibile; verifica `npm view loci` prima del primo publish (fallback: scegliere un altro nome se occupato)
+- [x] **DOC-04**: LICENSE file (MIT o simile) presente
+- [x] **DOC-05**: Package pubblicato su npm pubblico con nome disponibile; verifica `npm view loci` prima del primo publish (fallback: scegliere un altro nome se occupato)
 
 ## v2 Requirements
 
@@ -191,8 +191,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOC-01 | Phase 5 | Complete |
 | DOC-02 | Phase 5 | Complete |
 | DOC-03 | Phase 5 | Complete |
-| DOC-04 | Phase 5 | Pending |
-| DOC-05 | Phase 5 | Pending |
+| DOC-04 | Phase 5 | Complete |
+| DOC-05 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 57 total (FND×6, CFG×10, CMD×9, INT×5, EXE×7, CLI×9, INIT×6, DOC×5)
