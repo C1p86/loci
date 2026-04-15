@@ -1,5 +1,5 @@
 {
-  "name": "loci",
+  "name": "xci",
   "version": "0.0.0",
   "description": "Local CI — cross-platform command alias runner with layered YAML config",
   "type": "module",
@@ -12,7 +12,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsup",
