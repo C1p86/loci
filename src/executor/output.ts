@@ -128,16 +128,17 @@ function redactArgv(argv: readonly string[], secretValues: ReadonlySet<string>):
 /**
  * Print a structured dry-run preview of the execution plan to stderr.
  * Secret values in argv are replaced with ***.
+ *
+ * @param secretValues - The actual string values of secrets (from buildSecretValues(config)),
+ *   NOT the config key names (config.secretKeys). Tokens matching these values are
+ *   replaced with *** in dry-run output.
  */
-export function printDryRun(plan: ExecutionPlan, secretKeys: ReadonlySet<string>): void {
-  // For dry-run we treat secretKeys as secret values (simplified: the caller
-  // should pass buildSecretValues(config) result as secretKeys parameter here
-  // when actual values are available; the type is ReadonlySet<string> either way).
+export function printDryRun(plan: ExecutionPlan, secretValues: ReadonlySet<string>): void {
   const prefix = dimPrefix('dry-run');
 
   switch (plan.kind) {
     case 'single': {
-      const redacted = redactArgv(plan.argv, secretKeys);
+      const redacted = redactArgv(plan.argv, secretValues);
       process.stderr.write(`${prefix} single: ${redacted.join(' ')}\n`);
       break;
     }
@@ -146,7 +147,7 @@ export function printDryRun(plan: ExecutionPlan, secretKeys: ReadonlySet<string>
       for (let i = 0; i < plan.steps.length; i++) {
         const step = plan.steps[i];
         if (step) {
-          const redacted = redactArgv(step, secretKeys);
+          const redacted = redactArgv(step, secretValues);
           process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}\n`);
         }
       }
@@ -157,7 +158,7 @@ export function printDryRun(plan: ExecutionPlan, secretKeys: ReadonlySet<string>
         `${prefix} parallel (failMode: ${plan.failMode}, ${plan.group.length} commands):\n`,
       );
       for (const entry of plan.group) {
-        const redacted = redactArgv(entry.argv, secretKeys);
+        const redacted = redactArgv(entry.argv, secretValues);
         process.stderr.write(`${prefix}   [${entry.alias}] ${redacted.join(' ')}\n`);
       }
       break;
