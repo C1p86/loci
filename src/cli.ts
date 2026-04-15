@@ -267,10 +267,11 @@ async function main(argv: readonly string[]): Promise<number> {
   // Register dynamic alias sub-commands
   registerAliases(program, commands, config, projectRoot);
 
-  // D-20: no-args shows alias list; D-21: --list option triggers alias list
-  program.action((options: { list?: boolean }) => {
+  // D-20: no-args shows alias list; D-21: --list option triggers alias list.
+  // Both `loci` (no args) and `loci --list` show the alias list.
+  // Commander routes here when no subcommand is matched.
+  program.action((_options: { list?: boolean }) => {
     printAliasList(commands);
-    void options; // either no args or --list → same output
   });
 
   try {
