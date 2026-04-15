@@ -38,9 +38,7 @@ export async function runParallel(
   const mergedEnv = { ...process.env, ...env };
 
   // For failMode 'fast', wrap each promise so that on failure it immediately aborts the rest.
-  const summaryResults: (SettledResult | null)[] = new Array(group.length).fill(null);
-
-  const rawPromises = group.map(({ alias, argv }, index) => {
+  const rawPromises = group.map(({ alias, argv }) => {
     const [cmd, ...args] = argv;
     if (!cmd) {
       return Promise.reject(new SpawnError('(empty command)', new Error('argv is empty')));
@@ -56,7 +54,6 @@ export async function runParallel(
     }).then((value) => {
       const isCanceled = value.isCanceled === true;
       const code = isCanceled ? 0 : (value.exitCode ?? 0);
-      summaryResults[index] = { exitCode: code, canceled: isCanceled };
 
       if (!isCanceled && code !== 0 && failMode === 'fast') {
         // Abort all remaining processes immediately
