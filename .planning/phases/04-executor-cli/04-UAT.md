@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 04-executor-cli
 source: [04-01-SUMMARY.md, 04-02-SUMMARY.md]
 started: 2026-04-15T09:00:00Z
@@ -76,9 +76,12 @@ blocked: 0
   reason: "User reported: Error message shows commander's 'too many arguments' before loci's 'Unknown flag' — confusing. Should show 'Unknown alias: nonexistent' cleanly."
   severity: cosmetic
   test: 10
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "Commander's exitOverride catches 'commander.excessArguments' and prints its own error before loci's handleError reformats it. Need to suppress commander's default output for this error type or intercept earlier."
+  artifacts:
+    - path: "src/cli.ts"
+      issue: "handleError receives commander error after commander already printed to stderr"
+  missing:
+    - "Suppress commander's built-in error output for excessArguments, show 'Unknown alias: <name>' instead"
   debug_session: ""
 
 - truth: "No .loci/ directory found exits with non-zero exit code"
@@ -86,7 +89,10 @@ blocked: 0
   reason: "User reported: Message 'No .loci/ directory found' shows correctly but exit code is 0 instead of non-zero"
   severity: major
   test: 11
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "src/cli.ts:239 — when projectRoot is null, the program.action callback writes the message but never sets process.exitCode. parseAsync completes with exit 0."
+  artifacts:
+    - path: "src/cli.ts"
+      issue: "Line 239-241: missing process.exitCode = 1 after writing 'No .loci/ directory found' message"
+  missing:
+    - "Set process.exitCode = 1 (or return non-zero from main) when no .loci/ found and no --version/--help flag"
   debug_session: ""
