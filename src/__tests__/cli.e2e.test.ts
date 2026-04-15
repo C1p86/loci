@@ -440,4 +440,103 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     const content = await readFile(CLI, 'utf8');
     expect(content).not.toContain('__LOCI_VERSION__');
   });
+
+  // ------------------------------------------------------------------
+  // CLI-KV: KEY=VALUE positional parameter overrides
+  // ------------------------------------------------------------------
+
+  describe('CLI-KV: KEY=VALUE positional parameter overrides', () => {
+    it('CLI-KV-01: KEY=VALUE overrides inject env var into child process', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.loci/commands.yml':
+            'deploy:\n  cmd: ["node", "-e", "process.stdout.write(process.env.REGISTRY)"]\n',
+          '.loci/config.yml': 'registry: default-registry\n',
+        }),
+      );
+      const { stdout, code } = runCliInDir(dir, ['deploy', 'registry=http://localhost:5000']);
+      expect(code).toBe(0);
+      expect(stdout).toContain('http://localhost:5000');
+    });
+
+    it('CLI-KV-02: KEY=VALUE overrides env var (reads via process.env)', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.loci/commands.yml':
+            'greet:\n  cmd: ["node", "-e", "process.stdout.write(process.env.GREETING)"]\n',
+          '.loci/config.yml': 'greeting: hello\n',
+        }),
+      );
+      const { stdout, code } = runCliInDir(dir, ['greet', 'greeting=world']);
+      expect(code).toBe(0);
+      expect(stdout).toContain('world');
+    });
+
+    it('CLI-KV-03: multiple KEY=VALUE args all override independently', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.loci/commands.yml':
+            'info:\n  cmd: ["node", "-e", "process.stdout.write(process.env.A + \':\' + process.env.B)"]\n',
+          '.loci/config.yml': 'a: original-a\nb: original-b\n',
+        }),
+      );
+      const { stdout, code } = runCliInDir(dir, ['info', 'a=new-a', 'b=new-b']);
+      expect(code).toBe(0);
+      expect(stdout).toContain('new-a:new-b');
+    });
+
+    it('CLI-KV-04: CLI overrides have higher precedence than local.yml', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.loci/commands.yml':
+            'show:\n  cmd: ["node", "-e", "process.stdout.write(process.env.MYVAR)"]\n',
+          '.loci/config.yml': 'myvar: from-config\n',
+          '.loci/local.yml': 'myvar: from-local\n',
+        }),
+      );
+      const { stdout, code } = runCliInDir(dir, ['show', 'myvar=from-cli']);
+      expect(code).toBe(0);
+      expect(stdout).toContain('from-cli');
+    });
+
+    it('CLI-KV-05: args after -- are pass-through, not treated as overrides', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.loci/commands.yml': 'showargs:\n  cmd: ["node", "print-args.mjs"]\n',
+          '.loci/config.yml': '',
+          'print-args.mjs': "process.stdout.write(JSON.stringify(process.argv.slice(2)) + '\\n');\n",
+        }),
+      );
+      const { stdout, code } = runCliInDir(dir, ['showargs', '--', 'baz=x']);
+      expect(code).toBe(0);
+      const args = JSON.parse(stdout.trim()) as string[];
+      expect(args).toContain('baz=x');
+    });
+
+    it('CLI-KV-06: non-KEY=VALUE args before -- are treated as pass-through, not overrides', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.loci/commands.yml': 'showargs:\n  cmd: ["node", "print-args.mjs"]\n',
+          '.loci/config.yml': '',
+          'print-args.mjs': "process.stdout.write(JSON.stringify(process.argv.slice(2)) + '\\n');\n",
+        }),
+      );
+      const { stdout, code } = runCliInDir(dir, ['showargs', 'not-an-override']);
+      expect(code).toBe(0);
+      const args = JSON.parse(stdout.trim()) as string[];
+      expect(args).toContain('not-an-override');
+    });
+
+    it('CLI-KV-07: --dry-run shows CLI override values unredacted', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.loci/commands.yml': 'deploy:\n  cmd: ["echo", "$' + '{registry}"]\n',
+          '.loci/config.yml': 'registry: default\n',
+        }),
+      );
+      const { stderr, code } = runCliInDir(dir, ['deploy', 'registry=http://localhost', '--dry-run']);
+      expect(code).toBe(0);
+      expect(stderr).toContain('http://localhost');
+    });
+  });
 });
