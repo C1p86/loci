@@ -1,0 +1,38 @@
+// src/init/templates.ts
+//
+// Static YAML template strings for `loci init` scaffold files.
+
+export const CONFIG_YML = `\
+# .loci/config.yml
+# Project-level parameters. Safe to commit.
+# These values are available as \${PARAM_NAME} in commands.yml.
+#
+# Example:
+# registry: https://my-registry.example.com
+# app_name: my-app
+`;
+
+export const COMMANDS_YML = `\
+# .loci/commands.yml
+# Define command aliases for this project.
+
+hello:
+  description: Say hello — run with \`loci hello\`
+  cmd: ["node", "-e", "console.log('hello from loci')"]
+`;
+
+export const SECRETS_EXAMPLE_YML = `\
+# .loci/secrets.yml.example
+# Copy this file to secrets.yml and fill in real values.
+# secrets.yml is gitignored and never committed.
+#
+# api_token: your-token-here
+`;
+
+export const LOCAL_EXAMPLE_YML = `\
+# .loci/local.yml.example
+# Copy this file to local.yml for per-machine overrides.
+# local.yml is gitignored and never committed.
+#
+# registry: http://localhost:5000
+`;
