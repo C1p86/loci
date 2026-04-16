@@ -25,7 +25,7 @@ describe('runSingle', () => {
 
   it('throws SpawnError when command does not exist', async () => {
     await expect(
-      runSingle(['__loci_nonexistent_command_xyz__'], process.cwd(), {}),
+      runSingle(['__xci_nonexistent_command_xyz__'], process.cwd(), {}),
     ).rejects.toThrow(SpawnError);
   });
 

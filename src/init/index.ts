@@ -1,6 +1,6 @@
 // src/init/index.ts
 //
-// `xci init` subcommand — scaffolds a .loci/ directory with example config files
+// `xci init` subcommand — scaffolds a .xci/ directory with example config files
 // and updates .gitignore to ignore secrets.yml and local.yml.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -21,7 +21,7 @@ export type SummaryItem = {
 /* Helpers                                                               */
 /* ------------------------------------------------------------------ */
 
-const GITIGNORE_ENTRIES = ['.loci/secrets.yml', '.loci/local.yml'];
+const GITIGNORE_ENTRIES = ['.xci/secrets.yml', '.xci/local.yml'];
 
 /**
  * Write `content` to `filePath` only if the file does not already exist.
@@ -45,17 +45,17 @@ function writeIfAbsent(
 
 /**
  * Ensure .gitignore in `projectDir` contains entries for
- * `.loci/secrets.yml` and `.loci/local.yml`.
+ * `.xci/secrets.yml` and `.xci/local.yml`.
  *
- * - If .gitignore does not exist: create it with the loci header + entries.
+ * - If .gitignore does not exist: create it with the xci header + entries.
  * - If .gitignore exists: read existing lines, append only missing entries
- *   with a `# loci` header; push 'updated' or 'skipped' accordingly.
+ *   with a `# xci` header; push 'updated' or 'skipped' accordingly.
  */
 function ensureGitignore(projectDir: string, results: SummaryItem[]): void {
   const gitignorePath = join(projectDir, '.gitignore');
 
   if (!existsSync(gitignorePath)) {
-    const content = `# loci\n${GITIGNORE_ENTRIES.join('\n')}\n`;
+    const content = `# xci\n${GITIGNORE_ENTRIES.join('\n')}\n`;
     writeFileSync(gitignorePath, content, 'utf8');
     results.push({ path: '.gitignore', action: 'created' });
     return;
@@ -72,7 +72,7 @@ function ensureGitignore(projectDir: string, results: SummaryItem[]): void {
     return;
   }
 
-  const appendContent = `\n# loci\n${missing.join('\n')}\n`;
+  const appendContent = `\n# xci\n${missing.join('\n')}\n`;
   writeFileSync(gitignorePath, existing + appendContent, 'utf8');
   results.push({ path: '.gitignore', action: 'updated' });
 }
@@ -87,8 +87,8 @@ function ensureGitignore(projectDir: string, results: SummaryItem[]): void {
  * Example output:
  *   xci init
  *
- *     created  .loci/config.yml
- *     created  .loci/commands.yml
+ *     created  .xci/config.yml
+ *     created  .xci/commands.yml
  *     skipped  .gitignore
  *
  *   Run `xci hello` to test your setup.
@@ -106,23 +106,23 @@ function printInitSummary(results: SummaryItem[]): void {
 /* ------------------------------------------------------------------ */
 
 /**
- * Scaffold a .loci/ directory in `cwd`.
+ * Scaffold a .xci/ directory in `cwd`.
  *
  * Idempotent: existing files are never overwritten.
  * Synchronous: all fs operations use sync APIs for simplicity and speed.
  */
 export function runInit(cwd: string): void {
-  const lociDir = join(cwd, '.loci');
+  const xciDir = join(cwd, '.xci');
 
-  // mkdirSync with recursive:true is idempotent — safe to call even if .loci/ exists (Pitfall 3)
-  mkdirSync(lociDir, { recursive: true });
+  // mkdirSync with recursive:true is idempotent — safe to call even if .xci/ exists (Pitfall 3)
+  mkdirSync(xciDir, { recursive: true });
 
   const results: SummaryItem[] = [];
 
-  writeIfAbsent(join(lociDir, 'config.yml'), CONFIG_YML, cwd, results);
-  writeIfAbsent(join(lociDir, 'commands.yml'), COMMANDS_YML, cwd, results);
-  writeIfAbsent(join(lociDir, 'secrets.yml.example'), SECRETS_EXAMPLE_YML, cwd, results);
-  writeIfAbsent(join(lociDir, 'local.yml.example'), LOCAL_EXAMPLE_YML, cwd, results);
+  writeIfAbsent(join(xciDir, 'config.yml'), CONFIG_YML, cwd, results);
+  writeIfAbsent(join(xciDir, 'commands.yml'), COMMANDS_YML, cwd, results);
+  writeIfAbsent(join(xciDir, 'secrets.yml.example'), SECRETS_EXAMPLE_YML, cwd, results);
+  writeIfAbsent(join(xciDir, 'local.yml.example'), LOCAL_EXAMPLE_YML, cwd, results);
 
   ensureGitignore(cwd, results);
 
@@ -131,13 +131,13 @@ export function runInit(cwd: string): void {
 
 /**
  * Register the `init` subcommand on `program`.
- * Must be called BEFORE findLociRoot() so `xci init` works in a directory
- * that does not yet have a .loci/ directory.
+ * Must be called BEFORE findXciRoot() so `xci init` works in a directory
+ * that does not yet have a .xci/ directory.
  */
 export function registerInitCommand(program: Command): void {
   program
     .command('init')
-    .description('Scaffold a .loci/ directory in the current project')
+    .description('Scaffold a .xci/ directory in the current project')
     .action(() => {
       runInit(process.cwd());
     });

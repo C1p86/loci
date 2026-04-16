@@ -4,7 +4,7 @@
 // Converts the flexible user-facing YAML shapes into the strict CommandDef union.
 
 import { CommandSchemaError } from '../errors.js';
-import type { CommandDef, CommandMap, PlatformOverrides } from '../types.js';
+import type { CaptureConfig, CaptureType, CommandDef, CommandMap, PlatformOverrides } from '../types.js';
 import { tokenize } from './tokenize.js';
 
 /**
@@ -74,6 +74,131 @@ function normalizeObject(
   obj: Record<string, unknown>,
   _filePath: string,
 ): CommandDef {
+  // Check for ini (file manipulation)
+  if (Object.hasOwn(obj, 'ini')) {
+    const raw = obj.ini;
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+      throw new CommandSchemaError(aliasName, 'ini must be an object with { file, set?, delete? }');
+    }
+    const ini = raw as Record<string, unknown>;
+    if (typeof ini.file !== 'string') {
+      throw new CommandSchemaError(aliasName, 'ini.file must be a string (path to INI file)');
+    }
+    const mode = ini.mode ?? 'overwrite';
+    if (mode !== 'overwrite' && mode !== 'merge') {
+      throw new CommandSchemaError(aliasName, 'ini.mode must be "overwrite" or "merge"');
+    }
+
+    // Validate set: Record<string, Record<string, string>>
+    let set: Record<string, Record<string, string>> | undefined;
+    if (ini.set !== undefined) {
+      if (typeof ini.set !== 'object' || ini.set === null || Array.isArray(ini.set)) {
+        throw new CommandSchemaError(aliasName, 'ini.set must be an object of { section: { key: value } }');
+      }
+      set = {};
+      for (const [section, keys] of Object.entries(ini.set as Record<string, unknown>)) {
+        if (typeof keys !== 'object' || keys === null || Array.isArray(keys)) {
+          throw new CommandSchemaError(aliasName, `ini.set["${section}"] must be an object of { key: value }`);
+        }
+        set[section] = {};
+        for (const [k, v] of Object.entries(keys as Record<string, unknown>)) {
+          if (typeof v !== 'string') {
+            throw new CommandSchemaError(aliasName, `ini.set["${section}"]["${k}"] must be a string`);
+          }
+          set[section][k] = v;
+        }
+      }
+    }
+
+    // Validate delete: Record<string, string[]>
+    let del: Record<string, string[]> | undefined;
+    if (ini.delete !== undefined) {
+      if (typeof ini.delete !== 'object' || ini.delete === null || Array.isArray(ini.delete)) {
+        throw new CommandSchemaError(aliasName, 'ini.delete must be an object of { section: [keys] }');
+      }
+      del = {};
+      for (const [section, keys] of Object.entries(ini.delete as Record<string, unknown>)) {
+        if (!Array.isArray(keys)) {
+          throw new CommandSchemaError(aliasName, `ini.delete["${section}"] must be an array of key names`);
+        }
+        del[section] = keys as string[];
+      }
+    }
+
+    if (!set && !del) {
+      throw new CommandSchemaError(aliasName, 'ini must have at least one of: set, delete');
+    }
+
+    const description = typeof obj.description === 'string' ? obj.description : undefined;
+
+    return {
+      kind: 'ini',
+      file: ini.file,
+      mode: mode as 'overwrite' | 'merge',
+      ...(set !== undefined ? { set } : {}),
+      ...(del !== undefined ? { delete: del } : {}),
+      ...(description !== undefined ? { description } : {}),
+    };
+  }
+
+  // Check for for_each (loop)
+  if (Object.hasOwn(obj, 'for_each')) {
+    const raw = obj.for_each;
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+      throw new CommandSchemaError(aliasName, 'for_each must be an object with { var, in, cmd|run }');
+    }
+    const fe = raw as Record<string, unknown>;
+    if (typeof fe.var !== 'string') {
+      throw new CommandSchemaError(aliasName, 'for_each.var must be a string (loop variable name)');
+    }
+    if (!Array.isArray(fe.in)) {
+      throw new CommandSchemaError(aliasName, 'for_each.in must be an array of values');
+    }
+    for (const v of fe.in) {
+      if (typeof v !== 'string') {
+        throw new CommandSchemaError(aliasName, 'for_each.in must contain only strings');
+      }
+    }
+    const mode = fe.mode ?? 'steps';
+    if (mode !== 'steps' && mode !== 'parallel') {
+      throw new CommandSchemaError(aliasName, 'for_each.mode must be "steps" or "parallel"');
+    }
+    if (!fe.cmd && !fe.run) {
+      throw new CommandSchemaError(aliasName, 'for_each must have cmd or run');
+    }
+    let cmd: readonly string[] | undefined;
+    if (fe.cmd !== undefined) {
+      if (typeof fe.cmd === 'string') {
+        cmd = tokenize(fe.cmd, aliasName);
+      } else if (Array.isArray(fe.cmd)) {
+        cmd = validateStringArray(aliasName, fe.cmd, 'for_each.cmd');
+      } else {
+        throw new CommandSchemaError(aliasName, 'for_each.cmd must be a string or array');
+      }
+    }
+    const run = typeof fe.run === 'string' ? fe.run : undefined;
+    const description = typeof obj.description === 'string' ? obj.description : undefined;
+
+    let failMode: 'fast' | 'complete' | undefined;
+    if (fe.failMode !== undefined) {
+      if (fe.failMode !== 'fast' && fe.failMode !== 'complete') {
+        throw new CommandSchemaError(aliasName, 'for_each.failMode must be "fast" or "complete"');
+      }
+      failMode = fe.failMode;
+    }
+
+    return {
+      kind: 'for_each',
+      var: fe.var,
+      in: fe.in as string[],
+      mode: mode as 'steps' | 'parallel',
+      ...(cmd !== undefined ? { cmd } : {}),
+      ...(run !== undefined ? { run } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(failMode !== undefined ? { failMode } : {}),
+    };
+  }
+
   // Check for steps (sequential)
   if (Object.hasOwn(obj, 'steps')) {
     const steps = validateStringArray(aliasName, obj.steps, 'steps');
@@ -143,11 +268,58 @@ function normalizeObject(
     throw new CommandSchemaError(aliasName, 'cmd must be a string or array of strings');
   }
 
+  // Optional capture: stdout → variable with optional validation
+  let capture: CaptureConfig | undefined;
+  if (Object.hasOwn(obj, 'capture')) {
+    const raw = obj.capture;
+    if (typeof raw === 'string') {
+      // Simple form: capture: my_var
+      capture = { var: raw };
+    } else if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) {
+      // Extended form: capture: { var, type, assert }
+      const captureObj = raw as Record<string, unknown>;
+      if (typeof captureObj.var !== 'string') {
+        throw new CommandSchemaError(aliasName, 'capture.var must be a string (variable name)');
+      }
+      const validTypes = ['string', 'int', 'float', 'json'];
+      let captureType: CaptureType | undefined;
+      if (captureObj.type !== undefined) {
+        if (typeof captureObj.type !== 'string' || !validTypes.includes(captureObj.type)) {
+          throw new CommandSchemaError(aliasName, `capture.type must be one of: ${validTypes.join(', ')}`);
+        }
+        captureType = captureObj.type as CaptureType;
+      }
+      let assert: string | readonly string[] | undefined;
+      if (captureObj.assert !== undefined) {
+        if (typeof captureObj.assert === 'string') {
+          assert = captureObj.assert;
+        } else if (Array.isArray(captureObj.assert)) {
+          for (const a of captureObj.assert) {
+            if (typeof a !== 'string') {
+              throw new CommandSchemaError(aliasName, 'capture.assert array must contain only strings');
+            }
+          }
+          assert = captureObj.assert as string[];
+        } else {
+          throw new CommandSchemaError(aliasName, 'capture.assert must be a string or array of strings');
+        }
+      }
+      capture = {
+        var: captureObj.var,
+        ...(captureType !== undefined ? { type: captureType } : {}),
+        ...(assert !== undefined ? { assert } : {}),
+      };
+    } else {
+      throw new CommandSchemaError(aliasName, 'capture must be a string or object with { var, type?, assert? }');
+    }
+  }
+
   return {
     kind: 'single',
     cmd,
     ...(description !== undefined ? { description } : {}),
     ...(platforms !== undefined ? { platforms } : {}),
+    ...(capture !== undefined ? { capture } : {}),
   };
 }
 

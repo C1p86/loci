@@ -33,12 +33,12 @@ function runCli(args: readonly string[]): { stdout: string; stderr: string; code
 /* ------------------------------------------------------------------ */
 
 /**
- * Create a temp directory with the given file map and a .loci/ subdirectory.
- * Keys are relative paths (e.g. ".loci/commands.yml"). Values are file content.
+ * Create a temp directory with the given file map and a .xci/ subdirectory.
+ * Keys are relative paths (e.g. ".xci/commands.yml"). Values are file content.
  */
 function createTempProject(files: Record<string, string>): string {
-  const dir = mkdtempSync(join(tmpdir(), 'loci-e2e-'));
-  mkdirSync(join(dir, '.loci'), { recursive: true });
+  const dir = mkdtempSync(join(tmpdir(), 'xci-e2e-'));
+  mkdirSync(join(dir, '.xci'), { recursive: true });
   for (const [name, content] of Object.entries(files)) {
     const filePath = join(dir, name);
     mkdirSync(dirname(filePath), { recursive: true });
@@ -116,25 +116,25 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   });
 
   // ------------------------------------------------------------------
-  // D-19: No .loci/ directory
+  // D-19: No .xci/ directory
   // ------------------------------------------------------------------
 
-  it('D-19: no .loci/ directory shows friendly message', () => {
-    const dir = trackDir(mkdtempSync(join(tmpdir(), 'loci-no-loci-')));
+  it('D-19: no .xci/ directory shows friendly message', () => {
+    const dir = trackDir(mkdtempSync(join(tmpdir(), 'xci-no-xci-')));
     const { stdout, code } = runCliInDir(dir, []);
     expect(code).not.toBe(0);
-    expect(stdout).toContain('No .loci/ directory found');
+    expect(stdout).toContain('No .xci/ directory found');
   });
 
-  it('D-19: --version works without .loci/ directory', () => {
-    const dir = trackDir(mkdtempSync(join(tmpdir(), 'loci-no-loci-')));
+  it('D-19: --version works without .xci/ directory', () => {
+    const dir = trackDir(mkdtempSync(join(tmpdir(), 'xci-no-xci-')));
     const { stdout, code } = runCliInDir(dir, ['--version']);
     expect(code).toBe(0);
     expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+/);
   });
 
-  it('D-19: --help works without .loci/ directory', () => {
-    const dir = trackDir(mkdtempSync(join(tmpdir(), 'loci-no-loci-')));
+  it('D-19: --help works without .xci/ directory', () => {
+    const dir = trackDir(mkdtempSync(join(tmpdir(), 'xci-no-xci-')));
     const { stdout, code } = runCliInDir(dir, ['--help']);
     expect(code).toBe(0);
     expect(stdout).toContain('Usage: xci');
@@ -147,8 +147,8 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('CLI-02, D-20: no args with aliases shows alias list', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml': 'build:\n  cmd: "echo build"\n  description: "Build project"\n',
-        '.loci/config.yml': '',
+        '.xci/commands.yml': 'build:\n  cmd: "echo build"\n  description: "Build project"\n',
+        '.xci/config.yml': '',
       }),
     );
     const { stdout, code } = runCliInDir(dir, []);
@@ -164,8 +164,8 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('CLI-03, D-21: --list shows alias list', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml': 'build:\n  cmd: "echo build"\n  description: "Build project"\n',
-        '.loci/config.yml': '',
+        '.xci/commands.yml': 'build:\n  cmd: "echo build"\n  description: "Build project"\n',
+        '.xci/config.yml': '',
       }),
     );
     const { stdout, code } = runCliInDir(dir, ['--list']);
@@ -176,8 +176,8 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('CLI-03: -l short flag also shows alias list', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml': 'build:\n  cmd: "echo build"\n  description: "Build project"\n',
-        '.loci/config.yml': '',
+        '.xci/commands.yml': 'build:\n  cmd: "echo build"\n  description: "Build project"\n',
+        '.xci/config.yml': '',
       }),
     );
     const { stdout, code } = runCliInDir(dir, ['-l']);
@@ -192,14 +192,14 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('CLI-01: alias execution runs the command and exits 0', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml':
-          "hello:\n  cmd: [\"node\", \"-e\", \"process.stdout.write('hello-loci')\"]\n",
-        '.loci/config.yml': '',
+        '.xci/commands.yml':
+          "hello:\n  cmd: [\"node\", \"-e\", \"process.stdout.write('hello-xci')\"]\n",
+        '.xci/config.yml': '',
       }),
     );
-    const { stdout, code } = runCliInDir(dir, ['hello']);
+    const { stdout, code } = runCliInDir(dir, ['hello', '--log']);
     expect(code).toBe(0);
-    expect(stdout).toContain('hello-loci');
+    expect(stdout).toContain('hello-xci');
   });
 
   // ------------------------------------------------------------------
@@ -209,8 +209,8 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('EXE-03: non-zero exit code is propagated', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml': 'fail:\n  cmd: ["node", "-e", "process.exit(42)"]\n',
-        '.loci/config.yml': '',
+        '.xci/commands.yml': 'fail:\n  cmd: ["node", "-e", "process.exit(42)"]\n',
+        '.xci/config.yml': '',
       }),
     );
     const { code } = runCliInDir(dir, ['fail']);
@@ -224,8 +224,8 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('CLI-06, D-27: --dry-run prints to stderr, does not execute', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml': 'greet:\n  cmd: ["echo", "hello"]\n',
-        '.loci/config.yml': '',
+        '.xci/commands.yml': 'greet:\n  cmd: ["echo", "hello"]\n',
+        '.xci/config.yml': '',
       }),
     );
     const { stdout, stderr, code } = runCliInDir(dir, ['greet', '--dry-run']);
@@ -244,8 +244,8 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('D-30: --dry-run output goes to stderr only (stdout is empty)', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml': 'greet:\n  cmd: ["echo", "hello"]\n',
-        '.loci/config.yml': '',
+        '.xci/commands.yml': 'greet:\n  cmd: ["echo", "hello"]\n',
+        '.xci/config.yml': '',
       }),
     );
     const { stdout } = runCliInDir(dir, ['greet', '--dry-run']);
@@ -259,15 +259,15 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('CLI-07, D-28: --verbose shows config trace on stderr and executes', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml':
+        '.xci/commands.yml':
           "greet:\n  cmd: [\"node\", \"-e\", \"process.stdout.write('hi')\"]\n",
-        '.loci/config.yml': '',
+        '.xci/config.yml': '',
       }),
     );
     const { stdout, stderr, code } = runCliInDir(dir, ['greet', '--verbose']);
     expect(code).toBe(0);
     expect(stderr).toContain('[verbose]');
-    expect(stderr).toContain('.loci/config.yml');
+    expect(stderr).toContain('.xci/config.yml');
     // Command was executed — stdout has the output
     expect(stdout).toContain('hi');
   });
@@ -279,9 +279,9 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('D-26: --verbose shows project root in stderr', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml':
+        '.xci/commands.yml':
           "greet:\n  cmd: [\"node\", \"-e\", \"process.stdout.write('hi')\"]\n",
-        '.loci/config.yml': '',
+        '.xci/config.yml': '',
       }),
     );
     const { stderr } = runCliInDir(dir, ['greet', '--verbose']);
@@ -296,9 +296,9 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('D-29: --verbose --dry-run shows both traces on stderr, no execution', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml':
+        '.xci/commands.yml':
           "greet:\n  cmd: [\"node\", \"-e\", \"process.stdout.write('hi')\"]\n",
-        '.loci/config.yml': '',
+        '.xci/config.yml': '',
       }),
     );
     const { stdout, stderr, code } = runCliInDir(dir, ['greet', '--verbose', '--dry-run']);
@@ -317,13 +317,13 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     // Use a script file to avoid node treating --foo as a node option when using `node -e`
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml': 'showargs:\n  cmd: ["node", "print-args.mjs"]\n',
-        '.loci/config.yml': '',
+        '.xci/commands.yml': 'showargs:\n  cmd: ["node", "print-args.mjs"]\n',
+        '.xci/config.yml': '',
         'print-args.mjs':
           "process.stdout.write(JSON.stringify(process.argv.slice(2)) + '\\n');\n",
       }),
     );
-    const { stdout, code } = runCliInDir(dir, ['showargs', '--', '--foo', 'bar']);
+    const { stdout, code } = runCliInDir(dir, ['showargs', '--log', '--', '--foo', 'bar']);
     expect(code).toBe(0);
     expect(stdout).toContain('--foo');
     expect(stdout).toContain('bar');
@@ -336,8 +336,8 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('CLI-04: --help shows usage', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml': 'build:\n  cmd: ["echo", "x"]\n',
-        '.loci/config.yml': '',
+        '.xci/commands.yml': 'build:\n  cmd: ["echo", "x"]\n',
+        '.xci/config.yml': '',
       }),
     );
     const { stdout, code } = runCliInDir(dir, ['--help']);
@@ -352,9 +352,9 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('CLI-04, D-22: per-alias --help shows description and command type', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml':
+        '.xci/commands.yml':
           'build:\n  cmd: ["echo", "x"]\n  description: "Builds it"\n',
-        '.loci/config.yml': '',
+        '.xci/config.yml': '',
       }),
     );
     const { stdout, code } = runCliInDir(dir, ['build', '--help']);
@@ -370,8 +370,8 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('D-24, CLI-09: unknown alias exits with code 50 and stderr contains error', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml': 'build:\n  cmd: ["echo", "x"]\n',
-        '.loci/config.yml': '',
+        '.xci/commands.yml': 'build:\n  cmd: ["echo", "x"]\n',
+        '.xci/config.yml': '',
       }),
     );
     const { stderr, code } = runCliInDir(dir, ['nonexistent']);
@@ -386,8 +386,8 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('CLI-09: YAML parse error in commands.yml exits with error code', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml': ':::bad yaml:::\n',
-        '.loci/config.yml': '',
+        '.xci/commands.yml': ':::bad yaml:::\n',
+        '.xci/config.yml': '',
       }),
     );
     const { stderr, code } = runCliInDir(dir, []);
@@ -397,13 +397,13 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   });
 
   // ------------------------------------------------------------------
-  // D-19 gap regression: no .loci/ exits non-zero
+  // D-19 gap regression: no .xci/ exits non-zero
   // ------------------------------------------------------------------
 
-  it('D-19: no .loci/ directory exits non-zero when no --version/--help', () => {
-    const dir = trackDir(mkdtempSync(join(tmpdir(), 'loci-no-loci-exit-')));
+  it('D-19: no .xci/ directory exits non-zero when no --version/--help', () => {
+    const dir = trackDir(mkdtempSync(join(tmpdir(), 'xci-no-xci-exit-')));
     const { stdout, code } = runCliInDir(dir, []);
-    expect(stdout).toContain('No .loci/ directory found');
+    expect(stdout).toContain('No .xci/ directory found');
     expect(code).not.toBe(0);
   });
 
@@ -414,7 +414,7 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('CLI-09 / Gap 1: unknown alias shows clean error without commander noise', () => {
     const dir = trackDir(
       createTempProject({
-        '.loci/commands.yml': 'greet:\n  cmd: [echo, hello]\n',
+        '.xci/commands.yml': 'greet:\n  cmd: [echo, hello]\n',
       }),
     );
     const { stderr, code } = runCliInDir(dir, ['nonexistent']);
@@ -435,10 +435,10 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     expect(content.slice(0, 19)).toBe('#!/usr/bin/env node');
   });
 
-  it('the bundle does not contain the __LOCI_VERSION__ literal (tsup define replaced it)', async () => {
+  it('the bundle does not contain the __XCI_VERSION__ literal (tsup define replaced it)', async () => {
     const { readFile } = await import('node:fs/promises');
     const content = await readFile(CLI, 'utf8');
-    expect(content).not.toContain('__LOCI_VERSION__');
+    expect(content).not.toContain('__XCI_VERSION__');
   });
 
   // ------------------------------------------------------------------
@@ -449,12 +449,12 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     it('CLI-KV-01: KEY=VALUE overrides inject env var into child process', () => {
       const dir = trackDir(
         createTempProject({
-          '.loci/commands.yml':
+          '.xci/commands.yml':
             'deploy:\n  cmd: ["node", "-e", "process.stdout.write(process.env.REGISTRY)"]\n',
-          '.loci/config.yml': 'registry: default-registry\n',
+          '.xci/config.yml': 'registry: default-registry\n',
         }),
       );
-      const { stdout, code } = runCliInDir(dir, ['deploy', 'registry=http://localhost:5000']);
+      const { stdout, code } = runCliInDir(dir, ['deploy', 'registry=http://localhost:5000', '--log']);
       expect(code).toBe(0);
       expect(stdout).toContain('http://localhost:5000');
     });
@@ -462,12 +462,12 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     it('CLI-KV-02: KEY=VALUE overrides env var (reads via process.env)', () => {
       const dir = trackDir(
         createTempProject({
-          '.loci/commands.yml':
+          '.xci/commands.yml':
             'greet:\n  cmd: ["node", "-e", "process.stdout.write(process.env.GREETING)"]\n',
-          '.loci/config.yml': 'greeting: hello\n',
+          '.xci/config.yml': 'greeting: hello\n',
         }),
       );
-      const { stdout, code } = runCliInDir(dir, ['greet', 'greeting=world']);
+      const { stdout, code } = runCliInDir(dir, ['greet', 'greeting=world', '--log']);
       expect(code).toBe(0);
       expect(stdout).toContain('world');
     });
@@ -475,12 +475,12 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     it('CLI-KV-03: multiple KEY=VALUE args all override independently', () => {
       const dir = trackDir(
         createTempProject({
-          '.loci/commands.yml':
+          '.xci/commands.yml':
             'info:\n  cmd: ["node", "-e", "process.stdout.write(process.env.A + \':\' + process.env.B)"]\n',
-          '.loci/config.yml': 'a: original-a\nb: original-b\n',
+          '.xci/config.yml': 'a: original-a\nb: original-b\n',
         }),
       );
-      const { stdout, code } = runCliInDir(dir, ['info', 'a=new-a', 'b=new-b']);
+      const { stdout, code } = runCliInDir(dir, ['info', 'a=new-a', 'b=new-b', '--log']);
       expect(code).toBe(0);
       expect(stdout).toContain('new-a:new-b');
     });
@@ -488,13 +488,13 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     it('CLI-KV-04: CLI overrides have higher precedence than local.yml', () => {
       const dir = trackDir(
         createTempProject({
-          '.loci/commands.yml':
+          '.xci/commands.yml':
             'show:\n  cmd: ["node", "-e", "process.stdout.write(process.env.MYVAR)"]\n',
-          '.loci/config.yml': 'myvar: from-config\n',
-          '.loci/local.yml': 'myvar: from-local\n',
+          '.xci/config.yml': 'myvar: from-config\n',
+          '.xci/local.yml': 'myvar: from-local\n',
         }),
       );
-      const { stdout, code } = runCliInDir(dir, ['show', 'myvar=from-cli']);
+      const { stdout, code } = runCliInDir(dir, ['show', 'myvar=from-cli', '--log']);
       expect(code).toBe(0);
       expect(stdout).toContain('from-cli');
     });
@@ -502,12 +502,12 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     it('CLI-KV-05: args after -- are pass-through, not treated as overrides', () => {
       const dir = trackDir(
         createTempProject({
-          '.loci/commands.yml': 'showargs:\n  cmd: ["node", "print-args.mjs"]\n',
-          '.loci/config.yml': '',
+          '.xci/commands.yml': 'showargs:\n  cmd: ["node", "print-args.mjs"]\n',
+          '.xci/config.yml': '',
           'print-args.mjs': "process.stdout.write(JSON.stringify(process.argv.slice(2)) + '\\n');\n",
         }),
       );
-      const { stdout, code } = runCliInDir(dir, ['showargs', '--', 'baz=x']);
+      const { stdout, code } = runCliInDir(dir, ['showargs', '--log', '--', 'baz=x']);
       expect(code).toBe(0);
       const args = JSON.parse(stdout.trim()) as string[];
       expect(args).toContain('baz=x');
@@ -516,12 +516,12 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     it('CLI-KV-06: non-KEY=VALUE args before -- are treated as pass-through, not overrides', () => {
       const dir = trackDir(
         createTempProject({
-          '.loci/commands.yml': 'showargs:\n  cmd: ["node", "print-args.mjs"]\n',
-          '.loci/config.yml': '',
+          '.xci/commands.yml': 'showargs:\n  cmd: ["node", "print-args.mjs"]\n',
+          '.xci/config.yml': '',
           'print-args.mjs': "process.stdout.write(JSON.stringify(process.argv.slice(2)) + '\\n');\n",
         }),
       );
-      const { stdout, code } = runCliInDir(dir, ['showargs', 'not-an-override']);
+      const { stdout, code } = runCliInDir(dir, ['showargs', 'not-an-override', '--log']);
       expect(code).toBe(0);
       const args = JSON.parse(stdout.trim()) as string[];
       expect(args).toContain('not-an-override');
@@ -530,13 +530,245 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     it('CLI-KV-07: --dry-run shows CLI override values unredacted', () => {
       const dir = trackDir(
         createTempProject({
-          '.loci/commands.yml': 'deploy:\n  cmd: ["echo", "$' + '{registry}"]\n',
-          '.loci/config.yml': 'registry: default\n',
+          '.xci/commands.yml': 'deploy:\n  cmd: ["echo", "$' + '{registry}"]\n',
+          '.xci/config.yml': 'registry: default\n',
         }),
       );
       const { stderr, code } = runCliInDir(dir, ['deploy', 'registry=http://localhost', '--dry-run']);
       expect(code).toBe(0);
       expect(stderr).toContain('http://localhost');
+    });
+  });
+
+  // ------------------------------------------------------------------
+  // XCI_PROJECT_PATH: always-available env var
+  // ------------------------------------------------------------------
+
+  it('XCI_PROJECT_PATH is injected as env var pointing to project root', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml':
+          'show-root:\n  cmd: ["node", "-e", "process.stdout.write(process.env.XCI_PROJECT_PATH)"]\n',
+        '.xci/config.yml': '',
+      }),
+    );
+    const { stdout, code } = runCliInDir(dir, ['show-root', '--log']);
+    expect(code).toBe(0);
+    expect(stdout).toBe(dir);
+  });
+
+  it('${xci.project.path} is usable in command interpolation', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml':
+          'show-interp:\n  cmd: ["node", "-e", "process.stdout.write(\'${xci.project.path}\')"]\n',
+        '.xci/config.yml': '',
+      }),
+    );
+    const { stdout, code } = runCliInDir(dir, ['show-interp', '--log']);
+    expect(code).toBe(0);
+    expect(stdout).toBe(dir);
+  });
+
+  it('${xci.project.path} works in --dry-run without errors', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml':
+          'show-interp:\n  cmd: ["echo", "${xci.project.path}"]\n',
+        '.xci/config.yml': '',
+      }),
+    );
+    const { stderr, code } = runCliInDir(dir, ['show-interp', '--dry-run']);
+    expect(code).toBe(0);
+    expect(stderr).toContain(dir);
+  });
+
+  // ------------------------------------------------------------------
+  // capture: stdout → variable for subsequent steps
+  // ------------------------------------------------------------------
+
+  describe('capture: stdout → variable', () => {
+    it('captures stdout and passes as env var to next step', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': [
+            'get-value:',
+            '  cmd: ["node", "-e", "process.stdout.write(\'captured-text\')"]',
+            '  capture: my_val',
+            'pipeline:',
+            '  steps:',
+            '    - get-value',
+            '    - use-value',
+            'use-value:',
+            '  cmd: ["node", "-e", "process.stdout.write(process.env.MY_VAL)"]',
+          ].join('\n'),
+          '.xci/config.yml': '',
+        }),
+      );
+      const { stdout, code } = runCliInDir(dir, ['pipeline', '--log']);
+      expect(code).toBe(0);
+      expect(stdout).toContain('captured-text');
+    });
+
+    it('capture shows [capture] trace on stderr', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': [
+            'get-id:',
+            '  cmd: ["node", "-e", "process.stdout.write(\'abc123\')"]',
+            '  capture: build_id',
+            'pipe:',
+            '  steps:',
+            '    - get-id',
+          ].join('\n'),
+          '.xci/config.yml': '',
+        }),
+      );
+      const { stderr, code } = runCliInDir(dir, ['pipe']);
+      expect(code).toBe(0);
+      expect(stderr).toContain('capture: build_id');
+      expect(stderr).toContain('value: abc123');
+      expect(stderr).toContain('PASS');
+    });
+
+    it('captured value is trimmed (no trailing newline)', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': [
+            'get-val:',
+            '  cmd: ["node", "-e", "console.log(\'trimmed\')"]',
+            '  capture: val',
+            'pipe:',
+            '  steps:',
+            '    - get-val',
+            '    - show-val',
+            'show-val:',
+            '  cmd: ["node", "-e", "process.stdout.write(\'[\' + process.env.VAL + \']\')"]',
+          ].join('\n'),
+          '.xci/config.yml': '',
+        }),
+      );
+      const { stdout, code } = runCliInDir(dir, ['pipe', '--log']);
+      expect(code).toBe(0);
+      expect(stdout).toContain('[trimmed]');
+    });
+
+    it('capture with type int validates and passes', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': [
+            'get-count:',
+            '  cmd: ["node", "-e", "process.stdout.write(\'42\')"]',
+            '  capture:',
+            '    var: count',
+            '    type: int',
+            '    assert: "> 0"',
+            'pipe:',
+            '  steps:',
+            '    - get-count',
+            '    - show-count',
+            'show-count:',
+            '  cmd: ["node", "-e", "process.stdout.write(process.env.COUNT)"]',
+          ].join('\n'),
+          '.xci/config.yml': '',
+        }),
+      );
+      const { stdout, code } = runCliInDir(dir, ['pipe', '--log']);
+      expect(code).toBe(0);
+      expect(stdout).toContain('42');
+    });
+
+    it('capture with type int fails validation on non-integer', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': [
+            'get-val:',
+            '  cmd: ["node", "-e", "process.stdout.write(\'not-a-number\')"]',
+            '  capture:',
+            '    var: count',
+            '    type: int',
+            'pipe:',
+            '  steps:',
+            '    - get-val',
+          ].join('\n'),
+          '.xci/config.yml': '',
+        }),
+      );
+      const { stderr, code } = runCliInDir(dir, ['pipe']);
+      expect(code).not.toBe(0);
+      expect(stderr).toContain('FAIL:');
+      expect(stderr).toContain('expected int');
+    });
+
+    it('capture assert "not empty" fails on empty output', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': [
+            'get-empty:',
+            '  cmd: ["node", "-e", ""]',
+            '  capture:',
+            '    var: val',
+            '    assert: "not empty"',
+            'pipe:',
+            '  steps:',
+            '    - get-empty',
+          ].join('\n'),
+          '.xci/config.yml': '',
+        }),
+      );
+      const { stderr, code } = runCliInDir(dir, ['pipe']);
+      expect(code).not.toBe(0);
+      expect(stderr).toContain('FAIL:');
+    });
+
+    it('capture with multiple assertions passes when all match', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': [
+            'get-num:',
+            '  cmd: ["node", "-e", "process.stdout.write(\'50\')"]',
+            '  capture:',
+            '    var: num',
+            '    type: int',
+            '    assert:',
+            '      - ">= 0"',
+            '      - "<= 100"',
+            'pipe:',
+            '  steps:',
+            '    - get-num',
+            '    - show-num',
+            'show-num:',
+            '  cmd: ["node", "-e", "process.stdout.write(process.env.NUM)"]',
+          ].join('\n'),
+          '.xci/config.yml': '',
+        }),
+      );
+      const { stdout, code } = runCliInDir(dir, ['pipe', '--log']);
+      expect(code).toBe(0);
+      expect(stdout).toContain('50');
+    });
+
+    it('capture shows type in log output', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': [
+            'get-id:',
+            '  cmd: ["node", "-e", "process.stdout.write(\'7\')"]',
+            '  capture:',
+            '    var: build_id',
+            '    type: int',
+            'pipe:',
+            '  steps:',
+            '    - get-id',
+          ].join('\n'),
+          '.xci/config.yml': '',
+        }),
+      );
+      const { stderr, code } = runCliInDir(dir, ['pipe']);
+      expect(code).toBe(0);
+      expect(stderr).toContain('capture: build_id');
+      expect(stderr).toContain('value: 7');
+      expect(stderr).toContain('PASS');
     });
   });
 });

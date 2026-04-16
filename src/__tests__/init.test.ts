@@ -1,6 +1,6 @@
 // src/__tests__/init.test.ts
 //
-// Unit and E2E tests for the `loci init` subcommand.
+// Unit and E2E tests for the `xci init` subcommand.
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -18,7 +18,7 @@ const CLI = resolve(process.cwd(), 'dist/cli.mjs');
 let tmpDir: string;
 
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), 'loci-init-'));
+  tmpDir = mkdtempSync(join(tmpdir(), 'xci-init-'));
 });
 
 afterEach(() => {
@@ -30,68 +30,68 @@ afterEach(() => {
 /* ------------------------------------------------------------------ */
 
 describe('runInit() — unit tests', () => {
-  it('creates .loci directory and 4 expected files', () => {
+  it('creates .xci directory and 4 expected files', () => {
     runInit(tmpDir);
 
-    expect(existsSync(join(tmpDir, '.loci', 'config.yml'))).toBe(true);
-    expect(existsSync(join(tmpDir, '.loci', 'commands.yml'))).toBe(true);
-    expect(existsSync(join(tmpDir, '.loci', 'secrets.yml.example'))).toBe(true);
-    expect(existsSync(join(tmpDir, '.loci', 'local.yml.example'))).toBe(true);
+    expect(existsSync(join(tmpDir, '.xci', 'config.yml'))).toBe(true);
+    expect(existsSync(join(tmpDir, '.xci', 'commands.yml'))).toBe(true);
+    expect(existsSync(join(tmpDir, '.xci', 'secrets.yml.example'))).toBe(true);
+    expect(existsSync(join(tmpDir, '.xci', 'local.yml.example'))).toBe(true);
   });
 
-  it('creates .gitignore with loci entries when no .gitignore exists', () => {
+  it('creates .gitignore with xci entries when no .gitignore exists', () => {
     runInit(tmpDir);
 
     const gitignorePath = join(tmpDir, '.gitignore');
     expect(existsSync(gitignorePath)).toBe(true);
 
     const content = readFileSync(gitignorePath, 'utf8');
-    expect(content).toContain('# loci');
-    expect(content).toContain('.loci/secrets.yml');
-    expect(content).toContain('.loci/local.yml');
+    expect(content).toContain('# xci');
+    expect(content).toContain('.xci/secrets.yml');
+    expect(content).toContain('.xci/local.yml');
   });
 
   it('is idempotent — does not overwrite existing files', () => {
-    // Pre-create .loci/config.yml with custom content
-    mkdirSync(join(tmpDir, '.loci'), { recursive: true });
-    writeFileSync(join(tmpDir, '.loci', 'config.yml'), 'custom content', 'utf8');
+    // Pre-create .xci/config.yml with custom content
+    mkdirSync(join(tmpDir, '.xci'), { recursive: true });
+    writeFileSync(join(tmpDir, '.xci', 'config.yml'), 'custom content', 'utf8');
 
     runInit(tmpDir);
 
-    const content = readFileSync(join(tmpDir, '.loci', 'config.yml'), 'utf8');
+    const content = readFileSync(join(tmpDir, '.xci', 'config.yml'), 'utf8');
     expect(content).toBe('custom content');
   });
 
   it('skips .gitignore entries that are already present', () => {
     writeFileSync(
       join(tmpDir, '.gitignore'),
-      '.loci/secrets.yml\n.loci/local.yml\n',
+      '.xci/secrets.yml\n.xci/local.yml\n',
       'utf8',
     );
 
     runInit(tmpDir);
 
     const content = readFileSync(join(tmpDir, '.gitignore'), 'utf8');
-    const secretsLines = content.split('\n').filter((l) => l.trim() === '.loci/secrets.yml');
+    const secretsLines = content.split('\n').filter((l) => l.trim() === '.xci/secrets.yml');
     expect(secretsLines.length).toBe(1);
   });
 
-  it('appends loci entries to existing .gitignore that lacks them', () => {
+  it('appends xci entries to existing .gitignore that lacks them', () => {
     writeFileSync(join(tmpDir, '.gitignore'), 'node_modules\n', 'utf8');
 
     runInit(tmpDir);
 
     const content = readFileSync(join(tmpDir, '.gitignore'), 'utf8');
     expect(content).toContain('node_modules');
-    expect(content).toContain('.loci/secrets.yml');
-    expect(content).toContain('.loci/local.yml');
+    expect(content).toContain('.xci/secrets.yml');
+    expect(content).toContain('.xci/local.yml');
   });
 
-  it('works even when .loci/ directory does not yet exist', () => {
-    // tmpDir has NO .loci subdirectory — verify it works
-    expect(existsSync(join(tmpDir, '.loci'))).toBe(false);
+  it('works even when .xci/ directory does not yet exist', () => {
+    // tmpDir has NO .xci subdirectory — verify it works
+    expect(existsSync(join(tmpDir, '.xci'))).toBe(false);
     runInit(tmpDir);
-    expect(existsSync(join(tmpDir, '.loci'))).toBe(true);
+    expect(existsSync(join(tmpDir, '.xci'))).toBe(true);
   });
 });
 
@@ -108,13 +108,13 @@ describe('xci init — E2E via dist/cli.mjs', () => {
     }
   });
 
-  it('xci init creates .loci/ and exits 0', () => {
+  it('xci init creates .xci/ and exits 0', () => {
     const result = spawnSync(process.execPath, [CLI, 'init'], {
       cwd: tmpDir,
       encoding: 'utf8',
     });
     expect(result.status).toBe(0);
-    expect(existsSync(join(tmpDir, '.loci', 'commands.yml'))).toBe(true);
+    expect(existsSync(join(tmpDir, '.xci', 'commands.yml'))).toBe(true);
   });
 
   it('xci init is idempotent — second run exits 0 and shows skipped', () => {

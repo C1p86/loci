@@ -3,7 +3,8 @@
 // All output formatting for the executor and CLI (D-01 to D-10, D-27, D-28, D-30).
 
 import { redactSecrets } from '../resolver/envvars.js';
-import type { ExecutionPlan, ResolvedConfig } from '../types.js';
+import type { CaptureConfig, CommandDef, ExecutionPlan, ResolvedConfig } from '../types.js';
+import type { CaptureValidationResult } from './capture.js';
 
 /* ------------------------------------------------------------------ */
 /* ANSI constants                                                        */
@@ -92,8 +93,32 @@ export function dimPrefix(label: string): string {
 /**
  * Print a step header to stderr before each sequential step.
  */
-export function printStepHeader(stepName: string): void {
-  process.stderr.write(`\u25b6 ${stepName}\n`);
+export function printStepHeader(stepName: string, stepNum?: number, totalSteps?: number): void {
+  const counter = stepNum !== undefined && totalSteps !== undefined
+    ? ` [${stepNum}/${totalSteps}]` : '';
+  process.stderr.write(`\u25b6 ${stepName}${counter}\n`);
+}
+
+/**
+ * Print a step result summary to stderr after each sequential/parallel step.
+ */
+export function printStepResult(stepName: string, exitCode: number, durationMs?: number): void {
+  const useColor = shouldUseColor();
+  const ok = exitCode === 0;
+  const icon = ok
+    ? (useColor ? '\x1b[32m\u2713\x1b[0m' : '\u2713')
+    : (useColor ? '\x1b[31m\u2717\x1b[0m' : '\u2717');
+  const status = ok
+    ? (useColor ? '\x1b[32mOK\x1b[0m' : 'OK')
+    : (useColor ? `\x1b[31mFAILED (exit ${exitCode})\x1b[0m` : `FAILED (exit ${exitCode})`);
+  const duration = durationMs !== undefined ? ` ${formatDuration(durationMs)}` : '';
+  process.stderr.write(`${icon} ${stepName} ${status}${duration}\n`);
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const s = (ms / 1000).toFixed(1);
+  return `${s}s`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -133,7 +158,12 @@ function redactArgv(argv: readonly string[], secretValues: ReadonlySet<string>):
  *   NOT the config key names (config.secretKeys). Tokens matching these values are
  *   replaced with *** in dry-run output.
  */
-export function printDryRun(plan: ExecutionPlan, secretValues: ReadonlySet<string>): void {
+export function printDryRun(
+  plan: ExecutionPlan,
+  secretValues: ReadonlySet<string>,
+  envVars?: Record<string, string>,
+  secretKeys?: ReadonlySet<string>,
+): void {
   const prefix = dimPrefix('dry-run');
 
   switch (plan.kind) {
@@ -147,8 +177,9 @@ export function printDryRun(plan: ExecutionPlan, secretValues: ReadonlySet<strin
       for (let i = 0; i < plan.steps.length; i++) {
         const step = plan.steps[i];
         if (step) {
-          const redacted = redactArgv(step, secretValues);
-          process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}\n`);
+          const redacted = redactArgv(step.argv, secretValues);
+          const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
+          process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}\n`);
         }
       }
       break;
@@ -162,6 +193,32 @@ export function printDryRun(plan: ExecutionPlan, secretValues: ReadonlySet<strin
         process.stderr.write(`${prefix}   [${entry.alias}] ${redacted.join(' ')}\n`);
       }
       break;
+    }
+    case 'ini': {
+      process.stderr.write(`${prefix} ini ${plan.mode}: ${plan.file}\n`);
+      if (plan.set) {
+        for (const [section, keys] of Object.entries(plan.set)) {
+          for (const [k, v] of Object.entries(keys)) {
+            const masked = secretValues.has(v) ? '**********' : v;
+            process.stderr.write(`${prefix}   [${section}] ${k}=${masked}\n`);
+          }
+        }
+      }
+      break;
+    }
+  }
+
+  // Print imported variables with secrets masked
+  if (envVars) {
+    process.stderr.write(`${prefix}\n${prefix} variables:\n`);
+    const sortedKeys = Object.keys(envVars).sort();
+    for (const key of sortedKeys) {
+      // Skip UPPER_UNDERSCORE duplicates — show only dot-notation or original keys
+      if (key.includes('.') || !sortedKeys.some((k) => k.includes('.') && k.toUpperCase().replace(/[.\-]/g, '_') === key)) {
+        const isSecret = secretKeys?.has(key) ?? false;
+        const value = isSecret ? '**********' : envVars[key];
+        process.stderr.write(`${prefix}   ${key} = ${value}\n`);
+      }
     }
   }
 }
@@ -193,6 +250,133 @@ export function printVerboseTrace(
   for (const [key, value] of Object.entries(redacted)) {
     process.stderr.write(`${prefix} env: ${key}=${value}\n`);
   }
+}
+
+/**
+ * Print the raw (uninterpolated) command definition and the resolved (interpolated) plan.
+ * Shows placeholders before and values after resolution.
+ */
+export function printVerboseCommand(
+  aliasDef: CommandDef,
+  plan: ExecutionPlan,
+  secretValues: ReadonlySet<string>,
+): void {
+  const prefix = dimPrefix('verbose');
+
+  // Raw command (with ${placeholders})
+  switch (aliasDef.kind) {
+    case 'single':
+      process.stderr.write(`${prefix} raw cmd: ${aliasDef.cmd.join(' ')}\n`);
+      break;
+    case 'sequential':
+      process.stderr.write(`${prefix} raw steps:\n`);
+      for (const step of aliasDef.steps) {
+        process.stderr.write(`${prefix}   - ${step}\n`);
+      }
+      break;
+    case 'parallel':
+      process.stderr.write(`${prefix} raw parallel:\n`);
+      for (const entry of aliasDef.group) {
+        process.stderr.write(`${prefix}   - ${entry}\n`);
+      }
+      break;
+  }
+
+  // Resolved command (interpolated, secrets redacted)
+  switch (plan.kind) {
+    case 'single': {
+      const redacted = redactArgv(plan.argv, secretValues);
+      process.stderr.write(`${prefix} resolved: ${redacted.join(' ')}\n`);
+      break;
+    }
+    case 'sequential':
+      process.stderr.write(`${prefix} resolved steps:\n`);
+      for (let i = 0; i < plan.steps.length; i++) {
+        const step = plan.steps[i];
+        if (step) {
+          const redacted = redactArgv(step.argv, secretValues);
+          const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
+          process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}\n`);
+        }
+      }
+      break;
+    case 'parallel':
+      process.stderr.write(`${prefix} resolved parallel:\n`);
+      for (const entry of plan.group) {
+        const redacted = redactArgv(entry.argv, secretValues);
+        process.stderr.write(`${prefix}   [${entry.alias}] ${redacted.join(' ')}\n`);
+      }
+      break;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Step command preview (shown before each step)                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Print raw → resolved preview for a single step before execution.
+ * If raw and resolved are the same, only prints one line.
+ * Secrets in resolved argv are redacted.
+ */
+export function printStepPreview(
+  rawArgv: readonly string[] | undefined,
+  resolvedArgv: readonly string[],
+  secretValues?: ReadonlySet<string>,
+): void {
+  const useColor = shouldUseColor();
+  const dim = useColor ? DIM : '';
+  const reset = useColor ? RESET : '';
+
+  const rawStr = rawArgv ? rawArgv.join(' ') : undefined;
+  const resArgv = secretValues ? redactArgv(resolvedArgv, secretValues) : resolvedArgv;
+  const resStr = resArgv.join(' ');
+
+  if (rawStr && rawStr !== resStr) {
+    process.stderr.write(`${dim}  raw: ${rawStr}${reset}\n`);
+    process.stderr.write(`${dim}  run: ${resStr}${reset}\n`);
+  } else {
+    process.stderr.write(`${dim}  run: ${resStr}${reset}\n`);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Capture result output                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Print a formatted capture result block to stderr.
+ * Shows the variable name, value, validation status, and (in verbose) type + assert config.
+ */
+export function printCaptureResult(
+  cap: CaptureConfig,
+  validation: CaptureValidationResult,
+  verbose = false,
+): void {
+  const useColor = shouldUseColor();
+  const dim = useColor ? DIM : '';
+  const reset = useColor ? RESET : '';
+  const green = useColor ? '\x1b[32m' : '';
+  const red = useColor ? '\x1b[31m' : '';
+
+  process.stderr.write(`${dim}  ┌─ capture: ${cap.var} ─────────────────${reset}\n`);
+  process.stderr.write(`${dim}  │${reset} value: ${validation.coerced}\n`);
+
+  if (verbose) {
+    process.stderr.write(`${dim}  │${reset} type:  ${cap.type ?? 'string'}\n`);
+    if (cap.assert) {
+      const asserts = typeof cap.assert === 'string' ? [cap.assert] : cap.assert;
+      process.stderr.write(`${dim}  │${reset} assert: ${asserts.join(', ')}\n`);
+    }
+  }
+
+  if (validation.valid) {
+    process.stderr.write(`${dim}  │${reset} ${green}PASS${reset}\n`);
+  } else {
+    process.stderr.write(`${dim}  │${reset} ${red}FAIL: ${validation.error}${reset}\n`);
+  }
+
+  process.stderr.write(`${dim}  └──────────────────────────────────${reset}\n`);
 }
 
 /* ------------------------------------------------------------------ */

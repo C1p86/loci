@@ -1,0 +1,6 @@
+# .loci/commands.yml
+# Define command aliases for this project.
+
+hello:
+  description: Say hello — run with `loci hello`
+  cmd: ["node", "-e", "console.log('hello from loci')"]

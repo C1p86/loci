@@ -1,6 +1,6 @@
 // src/errors.ts
 //
-// Full LociError hierarchy (D-01, D-03).
+// Full XciError hierarchy (D-01, D-03).
 // Phases 2-5 import and throw; they never add to this file unless a genuinely
 // new failure mode emerges.
 
@@ -17,9 +17,9 @@ export const ExitCode = {
 } as const;
 export type ExitCode = (typeof ExitCode)[keyof typeof ExitCode];
 
-export type LociErrorCategory = 'config' | 'command' | 'interpolation' | 'executor' | 'cli';
+export type XciErrorCategory = 'config' | 'command' | 'interpolation' | 'executor' | 'cli';
 
-export interface LociErrorOptions {
+export interface XciErrorOptions {
   /** Machine ID, e.g. "CFG_YAML_PARSE". Must be unique across the entire hierarchy. */
   code: string;
   suggestion?: string;
@@ -28,15 +28,15 @@ export interface LociErrorOptions {
 }
 
 /**
- * Abstract base for all loci errors. Never throw this directly — always throw
+ * Abstract base for all xci errors. Never throw this directly — always throw
  * a concrete subclass (e.g. YamlParseError, CircularAliasError).
  */
-export abstract class LociError extends Error {
+export abstract class XciError extends Error {
   public readonly code: string;
-  public abstract readonly category: LociErrorCategory;
+  public abstract readonly category: XciErrorCategory;
   public readonly suggestion?: string;
 
-  constructor(message: string, options: LociErrorOptions) {
+  constructor(message: string, options: XciErrorOptions) {
     // Pass Error.cause through the standard ES2022 channel.
     super(message, options.cause !== undefined ? { cause: options.cause } : undefined);
     this.name = new.target.name;
@@ -49,23 +49,23 @@ export abstract class LociError extends Error {
 
 /* ---------- Area base classes ---------- */
 
-export abstract class ConfigError extends LociError {
+export abstract class ConfigError extends XciError {
   public readonly category = 'config' as const;
 }
 
-export abstract class CommandError extends LociError {
+export abstract class CommandError extends XciError {
   public readonly category = 'command' as const;
 }
 
-export abstract class InterpolationError extends LociError {
+export abstract class InterpolationError extends XciError {
   public readonly category = 'interpolation' as const;
 }
 
-export abstract class ExecutorError extends LociError {
+export abstract class ExecutorError extends XciError {
   public readonly category = 'executor' as const;
 }
 
-export abstract class CliError extends LociError {
+export abstract class CliError extends XciError {
   public readonly category = 'cli' as const;
 }
 
@@ -73,8 +73,21 @@ export abstract class CliError extends LociError {
 
 // ConfigError subclasses (for Phase 2)
 export class YamlParseError extends ConfigError {
-  constructor(filePath: string, line: number | undefined, cause: unknown) {
-    super(`Invalid YAML in ${filePath}${line !== undefined ? ` at line ${line}` : ''}`, {
+  constructor(filePath: string, line: number | undefined, cause: unknown, rawContent?: string) {
+    const lineInfo = line !== undefined ? ` at line ${line}` : '';
+    let snippet = '';
+    // Show the offending line unless it's a secrets file
+    const isSecret = /secrets/i.test(filePath);
+    if (line !== undefined && rawContent && !isSecret) {
+      const lines = rawContent.split('\n');
+      const lineText = lines[line - 1];
+      if (lineText !== undefined) {
+        snippet = `\n  ${line} | ${lineText}`;
+      }
+    } else if (line !== undefined && isSecret) {
+      snippet = '\n  (line content hidden — secrets file)';
+    }
+    super(`Invalid YAML in ${filePath}${lineInfo}${snippet}`, {
       code: 'CFG_YAML_PARSE',
       cause,
       suggestion: 'Check the file for unmatched quotes or indentation errors',
@@ -133,7 +146,7 @@ export class UndefinedPlaceholderError extends InterpolationError {
   constructor(placeholder: string, aliasName: string) {
     super(`Undefined placeholder \${${placeholder}} in alias "${aliasName}"`, {
       code: 'INT_UNDEFINED_PLACEHOLDER',
-      suggestion: `Add ${placeholder} to one of your .loci config files`,
+      suggestion: `Add ${placeholder} to one of your .xci config files`,
     });
   }
 }
@@ -185,10 +198,10 @@ export class NotImplementedError extends CliError {
 /* ---------- Category → exit code mapping (single source of truth) ---------- */
 
 /**
- * Exhaustive switch on LociErrorCategory — adding a new category without
+ * Exhaustive switch on XciErrorCategory — adding a new category without
  * updating this function causes a TypeScript compile error.
  */
-export function exitCodeFor(error: LociError): ExitCode {
+export function exitCodeFor(error: XciError): ExitCode {
   switch (error.category) {
     case 'config':
       return ExitCode.CONFIG_ERROR;

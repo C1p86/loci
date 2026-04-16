@@ -11,7 +11,7 @@ import {
   ExitCode,
   exitCodeFor,
   InterpolationError,
-  LociError,
+  XciError,
   NotImplementedError,
   SecretsTrackedError,
   ShellInjectionError,
@@ -23,14 +23,14 @@ import {
 } from '../errors.js';
 
 /**
- * Factory returning a fresh instance of every concrete LociError subclass.
+ * Factory returning a fresh instance of every concrete XciError subclass.
  * Used by code-uniqueness and exit-code-mapping tests to avoid drift.
  */
-function oneOfEachConcrete(): readonly LociError[] {
+function oneOfEachConcrete(): readonly XciError[] {
   return [
-    new YamlParseError('.loci/config.yml', 7, new Error('bad token')),
-    new ConfigReadError('.loci/config.yml', new Error('EACCES')),
-    new SecretsTrackedError('.loci/secrets.yml'),
+    new YamlParseError('.xci/config.yml', 7, new Error('bad token')),
+    new ConfigReadError('.xci/config.yml', new Error('EACCES')),
+    new SecretsTrackedError('.xci/secrets.yml'),
     new CircularAliasError(['a', 'b', 'a']),
     new UnknownAliasError('missing'),
     new CommandSchemaError('ci', 'expected array, got string'),
@@ -42,52 +42,52 @@ function oneOfEachConcrete(): readonly LociError[] {
   ];
 }
 
-describe('LociError hierarchy — instanceof chains', () => {
-  it('YamlParseError → ConfigError → LociError → Error', () => {
-    const err = new YamlParseError('.loci/config.yml', 7, new Error('bad token'));
+describe('XciError hierarchy — instanceof chains', () => {
+  it('YamlParseError → ConfigError → XciError → Error', () => {
+    const err = new YamlParseError('.xci/config.yml', 7, new Error('bad token'));
     expect(err).toBeInstanceOf(YamlParseError);
     expect(err).toBeInstanceOf(ConfigError);
-    expect(err).toBeInstanceOf(LociError);
+    expect(err).toBeInstanceOf(XciError);
     expect(err).toBeInstanceOf(Error);
   });
 
-  it('CircularAliasError → CommandError → LociError → Error', () => {
+  it('CircularAliasError → CommandError → XciError → Error', () => {
     const err = new CircularAliasError(['a', 'b', 'a']);
     expect(err).toBeInstanceOf(CircularAliasError);
     expect(err).toBeInstanceOf(CommandError);
-    expect(err).toBeInstanceOf(LociError);
+    expect(err).toBeInstanceOf(XciError);
     expect(err).toBeInstanceOf(Error);
   });
 
-  it('UndefinedPlaceholderError → InterpolationError → LociError → Error', () => {
+  it('UndefinedPlaceholderError → InterpolationError → XciError → Error', () => {
     const err = new UndefinedPlaceholderError('DEPLOY_HOST', 'deploy');
     expect(err).toBeInstanceOf(UndefinedPlaceholderError);
     expect(err).toBeInstanceOf(InterpolationError);
-    expect(err).toBeInstanceOf(LociError);
+    expect(err).toBeInstanceOf(XciError);
     expect(err).toBeInstanceOf(Error);
   });
 
-  it('ShellInjectionError and SpawnError → ExecutorError → LociError → Error', () => {
+  it('ShellInjectionError and SpawnError → ExecutorError → XciError → Error', () => {
     const shell = new ShellInjectionError('$(rm -rf /)');
     expect(shell).toBeInstanceOf(ExecutorError);
-    expect(shell).toBeInstanceOf(LociError);
+    expect(shell).toBeInstanceOf(XciError);
     const spawn = new SpawnError('/usr/bin/foo', new Error('ENOENT'));
     expect(spawn).toBeInstanceOf(ExecutorError);
-    expect(spawn).toBeInstanceOf(LociError);
+    expect(spawn).toBeInstanceOf(XciError);
   });
 
-  it('UnknownFlagError and NotImplementedError → CliError → LociError → Error', () => {
+  it('UnknownFlagError and NotImplementedError → CliError → XciError → Error', () => {
     const flag = new UnknownFlagError('--bogus');
     expect(flag).toBeInstanceOf(CliError);
-    expect(flag).toBeInstanceOf(LociError);
+    expect(flag).toBeInstanceOf(XciError);
     const notImpl = new NotImplementedError('ConfigLoader (Phase 2)');
     expect(notImpl).toBeInstanceOf(CliError);
-    expect(notImpl).toBeInstanceOf(LociError);
+    expect(notImpl).toBeInstanceOf(XciError);
   });
 });
 
-describe('LociError — runtime name (new.target.name)', () => {
-  it('sets name to the concrete subclass, not LociError or Error', () => {
+describe('XciError — runtime name (new.target.name)', () => {
+  it('sets name to the concrete subclass, not XciError or Error', () => {
     const err = new CircularAliasError(['a', 'b', 'a']);
     expect(err.name).toBe('CircularAliasError');
   });
@@ -95,24 +95,24 @@ describe('LociError — runtime name (new.target.name)', () => {
   it('preserves the name across all concrete subclasses', () => {
     const instances = oneOfEachConcrete();
     for (const err of instances) {
-      // name should match the constructor name, never fall back to 'Error' or 'LociError'
+      // name should match the constructor name, never fall back to 'Error' or 'XciError'
       expect(err.name).toBe(err.constructor.name);
       expect(err.name).not.toBe('Error');
-      expect(err.name).not.toBe('LociError');
+      expect(err.name).not.toBe('XciError');
     }
   });
 });
 
-describe('LociError — Error.cause propagation (ES2022)', () => {
+describe('XciError — Error.cause propagation (ES2022)', () => {
   it('YamlParseError propagates the cause argument', () => {
     const inner = new Error('root parse failure');
-    const err = new YamlParseError('.loci/config.yml', 1, inner);
+    const err = new YamlParseError('.xci/config.yml', 1, inner);
     expect(err.cause).toBe(inner);
   });
 
   it('ConfigReadError propagates the cause argument', () => {
     const inner = new Error('EACCES');
-    const err = new ConfigReadError('.loci/config.yml', inner);
+    const err = new ConfigReadError('.xci/config.yml', inner);
     expect(err.cause).toBe(inner);
   });
 
@@ -128,7 +128,7 @@ describe('LociError — Error.cause propagation (ES2022)', () => {
   });
 });
 
-describe('LociError — structured error shape (D-04)', () => {
+describe('XciError — structured error shape (D-04)', () => {
   it('every concrete subclass has a non-empty string `code`', () => {
     const instances = oneOfEachConcrete();
     for (const err of instances) {
@@ -195,9 +195,9 @@ describe('ShellInjectionError — secrets-safe by construction', () => {
 
 describe('SecretsTrackedError — suggestion uses the filename, not secret contents', () => {
   it('includes the file path in the suggestion (safe to display)', () => {
-    const err = new SecretsTrackedError('.loci/secrets.yml');
+    const err = new SecretsTrackedError('.xci/secrets.yml');
     expect(err.suggestion).toBeDefined();
-    expect(err.suggestion).toContain('.loci/secrets.yml');
+    expect(err.suggestion).toContain('.xci/secrets.yml');
     expect(err.suggestion).toContain('git rm --cached');
   });
 });

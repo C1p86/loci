@@ -173,8 +173,8 @@ describe('printDryRun', () => {
       {
         kind: 'sequential',
         steps: [
-          ['npm', 'run', 'build'],
-          ['npm', 'test'],
+          { argv: ['npm', 'run', 'build'] },
+          { argv: ['npm', 'test'] },
         ],
       },
       new Set(),

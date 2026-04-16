@@ -21,10 +21,10 @@ export default defineConfig({
     // Shebang must be the literal first line for Unix exec() to recognize the interpreter.
     // The createRequire polyfill lets esbuild's `__require` shim resolve Node builtins like
     // `require('events')` when bundling CJS deps (commander) into an ESM output.
-    js: "#!/usr/bin/env node\nimport { createRequire as __loci_createRequire } from 'node:module';\nconst require = __loci_createRequire(import.meta.url);",
+    js: "#!/usr/bin/env node\nimport { createRequire as __xci_createRequire } from 'node:module';\nconst require = __xci_createRequire(import.meta.url);",
   },
   define: {
-    __LOCI_VERSION__: JSON.stringify(pkg.version),
+    __XCI_VERSION__: JSON.stringify(pkg.version),
   },
   platform: 'node',
 });

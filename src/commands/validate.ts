@@ -20,7 +20,10 @@ function getAliasRefs(def: CommandDef, commands: CommandMap): readonly string[] 
   if (def.kind === 'parallel') {
     return def.group.filter((entry) => commands.has(entry));
   }
-  // single: no alias refs
+  if (def.kind === 'for_each' && def.run && commands.has(def.run)) {
+    return [def.run];
+  }
+  // single or for_each with inline cmd: no alias refs
   return [];
 }
 

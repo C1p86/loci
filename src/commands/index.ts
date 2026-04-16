@@ -1,14 +1,14 @@
 // src/commands/index.ts
 //
 // commands.yml loader — Phase 3 implementation.
-// Reads .loci/commands.yml, normalizes all alias shapes, validates the graph,
+// Reads .xci/commands.yml, normalizes all alias shapes, validates the graph,
 // and returns a typed CommandMap ready for the resolver.
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse, YAMLParseError as YamlLibError } from 'yaml';
-import { YamlParseError } from '../errors.js';
-import type { CommandMap, CommandsLoader } from '../types.js';
+import { CommandSchemaError, YamlParseError } from '../errors.js';
+import type { CommandDef, CommandMap, CommandsLoader } from '../types.js';
 import { normalizeCommands } from './normalize.js';
 import { validateGraph } from './validate.js';
 
@@ -17,14 +17,12 @@ import { validateGraph } from './validate.js';
 // ---------------------------------------------------------------------------
 
 /**
- * Read and parse .loci/commands.yml in the given working directory.
+ * Read and parse a single YAML commands file.
  *
  * Returns null if the file does not exist (ENOENT).
  * Throws YamlParseError for malformed YAML or non-mapping root.
  */
-function readCommandsYaml(cwd: string): Record<string, unknown> | null {
-  const filePath = join(cwd, '.loci', 'commands.yml');
-
+function readCommandsFile(filePath: string): Record<string, unknown> | null {
   let raw: string;
   try {
     raw = readFileSync(filePath, 'utf8');
@@ -44,7 +42,7 @@ function readCommandsYaml(cwd: string): Record<string, unknown> | null {
     parsed = parse(raw);
   } catch (err: unknown) {
     if (err instanceof YamlLibError) {
-      throw new YamlParseError(filePath, err.linePos?.[0]?.line, err);
+      throw new YamlParseError(filePath, err.linePos?.[0]?.line, err, raw);
     }
     throw err;
   }
@@ -66,16 +64,127 @@ function readCommandsYaml(cwd: string): Record<string, unknown> | null {
   return parsed as Record<string, unknown>;
 }
 
+/**
+ * Recursively list all .yml/.yaml files in a directory tree, sorted alphabetically
+ * by their full path.
+ */
+function listYamlFilesRecursive(dirPath: string): string[] {
+  const results: string[] = [];
+  let entries: string[];
+  try {
+    entries = readdirSync(dirPath);
+  } catch {
+    return [];
+  }
+  for (const entry of entries.sort()) {
+    const full = join(dirPath, entry);
+    try {
+      if (statSync(full).isDirectory()) {
+        results.push(...listYamlFilesRecursive(full));
+      } else if (entry.endsWith('.yml') || entry.endsWith('.yaml')) {
+        results.push(full);
+      }
+    } catch {
+      // skip unreadable entries
+    }
+  }
+  return results;
+}
+
+/**
+ * Merge a source CommandMap into a target, throwing on duplicate aliases.
+ * sourceFile is used for error messages.
+ */
+function mergeCommands(target: Map<string, CommandDef>, source: CommandMap, sourceFile: string): void {
+  for (const [alias, def] of source) {
+    if (target.has(alias)) {
+      throw new CommandSchemaError(alias, `duplicate alias defined in ${sourceFile}`);
+    }
+    target.set(alias, def);
+  }
+}
+
+/**
+ * Merge source into target, silently overriding duplicates (used for machine → project merge).
+ */
+function mergeCommandsSilent(target: Map<string, CommandDef>, source: CommandMap): void {
+  for (const [alias, def] of source) {
+    target.set(alias, def);
+  }
+}
+
+/**
+ * Load all commands from a directory structure (commands.yml + commands/ recursive).
+ */
+function loadCommandsFromDir(baseDir: string): Map<string, CommandDef> {
+  const mainFile = join(baseDir, 'commands.yml');
+  const commandsDir = join(baseDir, 'commands');
+  const commands = new Map<string, CommandDef>();
+
+  const mainRaw = readCommandsFile(mainFile);
+  if (mainRaw) {
+    for (const [k, v] of normalizeCommands(mainRaw, mainFile)) {
+      commands.set(k, v);
+    }
+  }
+
+  let dirExists = false;
+  try { dirExists = statSync(commandsDir).isDirectory(); } catch { /* */ }
+  if (dirExists) {
+    for (const filePath of listYamlFilesRecursive(commandsDir)) {
+      const raw = readCommandsFile(filePath);
+      if (raw === null) continue;
+      const fileCommands = normalizeCommands(raw, filePath);
+      mergeCommands(commands, fileCommands, filePath);
+    }
+  }
+
+  return commands;
+}
+
 // ---------------------------------------------------------------------------
 // CommandsLoader export
 // ---------------------------------------------------------------------------
 
 export const commandsLoader: CommandsLoader = {
   async load(cwd: string): Promise<CommandMap> {
-    const filePath = join(cwd, '.loci', 'commands.yml');
-    const raw = readCommandsYaml(cwd);
-    if (raw === null) return new Map();
-    const commands = normalizeCommands(raw, filePath);
+    const machineDir = process.env['XCI_MACHINE_CONFIGS'];
+    const projectDir = join(cwd, '.xci');
+
+    // Read project name from config.yml for project-aware machine loading
+    let projectName: string | undefined;
+    const configPath = join(projectDir, 'config.yml');
+    try {
+      const raw = readFileSync(configPath, 'utf8');
+      const parsed = parse(raw);
+      if (parsed && typeof parsed === 'object' && 'project' in parsed && typeof parsed.project === 'string') {
+        projectName = parsed.project;
+      }
+    } catch { /* ignore */ }
+
+    // Start with machine commands from root (lower priority)
+    let machineIsDir = false;
+    try { machineIsDir = !!machineDir && statSync(machineDir).isDirectory(); } catch { /* */ }
+    const commands: Map<string, CommandDef> = machineIsDir
+      ? loadCommandsFromDir(machineDir!)
+      : new Map();
+
+    // Merge machine project-specific commands (override root on duplicates)
+    if (machineIsDir && projectName) {
+      const machineProjectDir = join(machineDir!, projectName);
+      let projDirExists = false;
+      try { projDirExists = statSync(machineProjectDir).isDirectory(); } catch { /* */ }
+      if (projDirExists) {
+        const machineProjectCmds = loadCommandsFromDir(machineProjectDir);
+        mergeCommandsSilent(commands, machineProjectCmds);
+      }
+    }
+
+    // Merge project commands (override machine on duplicates)
+    const projectCommands = loadCommandsFromDir(projectDir);
+    mergeCommandsSilent(commands, projectCommands);
+
+    if (commands.size === 0) return commands;
     validateGraph(commands);
     return commands;
   },

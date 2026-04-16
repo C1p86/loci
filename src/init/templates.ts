@@ -3,7 +3,7 @@
 // Static YAML template strings for `xci init` scaffold files.
 
 export const CONFIG_YML = `\
-# .loci/config.yml
+# .xci/config.yml
 # Project-level parameters. Safe to commit.
 # These values are available as \${PARAM_NAME} in commands.yml.
 #
@@ -13,7 +13,7 @@ export const CONFIG_YML = `\
 `;
 
 export const COMMANDS_YML = `\
-# .loci/commands.yml
+# .xci/commands.yml
 # Define command aliases for this project.
 
 hello:
@@ -37,7 +37,7 @@ hello:
 `;
 
 export const SECRETS_EXAMPLE_YML = `\
-# .loci/secrets.yml.example
+# .xci/secrets.yml.example
 # Copy this file to secrets.yml and fill in real values.
 # secrets.yml is gitignored and never committed.
 #
@@ -45,7 +45,7 @@ export const SECRETS_EXAMPLE_YML = `\
 `;
 
 export const LOCAL_EXAMPLE_YML = `\
-# .loci/local.yml.example
+# .xci/local.yml.example
 # Copy this file to local.yml for per-machine overrides.
 # local.yml is gitignored and never committed.
 #

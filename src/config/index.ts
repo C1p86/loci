@@ -3,7 +3,7 @@
 // 4-layer YAML config loader (Phase 2 implementation).
 
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse, YAMLParseError as YamlLibError } from 'yaml';
 import { ConfigReadError, YamlParseError } from '../errors.js';
@@ -12,6 +12,44 @@ import type { ConfigLayer, ConfigLoader, ResolvedConfig } from '../types.js';
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Recursively list all .yml/.yaml files in a directory tree, sorted alphabetically
+ * by their full path. Returns absolute paths.
+ */
+function listYamlFilesRecursive(dirPath: string): string[] {
+  const results: string[] = [];
+  let entries: string[];
+  try {
+    entries = readdirSync(dirPath);
+  } catch {
+    return [];
+  }
+  for (const entry of entries.sort()) {
+    const full = join(dirPath, entry);
+    try {
+      if (statSync(full).isDirectory()) {
+        results.push(...listYamlFilesRecursive(full));
+      } else if (entry.endsWith('.yml') || entry.endsWith('.yaml')) {
+        results.push(full);
+      }
+    } catch {
+      // skip unreadable entries
+    }
+  }
+  return results;
+}
+
+/**
+ * Check whether a path is an existing directory.
+ */
+function isDirectory(p: string): boolean {
+  try {
+    return statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
 
 function isEnoent(err: unknown): boolean {
   return (
@@ -98,7 +136,7 @@ function readLayer(
   } catch (err: unknown) {
     if (err instanceof YamlLibError) {
       const line = err.linePos?.[0]?.line;
-      throw new YamlParseError(filePath, line, err);
+      throw new YamlParseError(filePath, line, err, raw);
     }
     throw err;
   }
@@ -128,6 +166,7 @@ function readLayer(
  */
 function mergeLayers(
   layers: ReadonlyArray<{ values: Record<string, string>; layer: ConfigLayer } | null>,
+  projectRoot?: string,
 ): ResolvedConfig {
   const values: Record<string, string> = {};
   const provenance: Record<string, ConfigLayer> = {};
@@ -140,6 +179,12 @@ function mergeLayers(
     }
   }
 
+  // Inject builtins before interpolation so ${XCI_PROJECT_PATH} works in config files
+  if (projectRoot) {
+    values['xci.project.path'] = projectRoot;
+    values['XCI_PROJECT_PATH'] = projectRoot;
+  }
+
   // Build secretKeys from final provenance (A1: final-provenance semantics).
   // A key overridden by local is NOT secret-tagged even if it was in secrets.yml.
   const secretKeys = new Set<string>();
@@ -149,21 +194,78 @@ function mergeLayers(
     }
   }
 
+  // Interpolate ${key} references across config values (after merge, before freeze)
+  const interpolated = interpolateValues(values);
+
   return {
-    values: Object.freeze(values),
+    values: Object.freeze(interpolated),
     provenance: Object.freeze(provenance),
     secretKeys: Object.freeze(secretKeys),
   };
 }
 
+// ---------------------------------------------------------------------------
+// Config value interpolation
+// ---------------------------------------------------------------------------
+
+const PLACEHOLDER_RE = /\$\$\{[^}]+\}|\$\{([^}]+)\}/g;
+
 /**
- * Check whether .loci/secrets.yml is tracked by git in the given working directory.
+ * Resolve ${key} placeholders in config values using other config values.
+ * Supports transitive references (a → b → c). Detects circular references.
+ * Escape with $${key} to produce a literal ${key}.
+ */
+function interpolateValues(values: Record<string, string>): Record<string, string> {
+  const resolved: Record<string, string> = {};
+  const resolving = new Set<string>(); // cycle detection
+
+  function resolve(key: string): string {
+    if (Object.hasOwn(resolved, key)) return resolved[key];
+    if (resolving.has(key)) {
+      throw new YamlParseError(
+        '<config>',
+        undefined,
+        new Error(`Circular interpolation: "${key}" references itself through ${[...resolving].join(' → ')}`),
+      );
+    }
+    const raw = values[key];
+    if (raw === undefined) return '';
+    // No placeholders → fast path
+    if (!raw.includes('${')) {
+      resolved[key] = raw;
+      return raw;
+    }
+    resolving.add(key);
+    const result = raw.replace(PLACEHOLDER_RE, (match, refKey?: string) => {
+      if (refKey === undefined) {
+        // $${ ... } → literal ${ ... }
+        return match.slice(1);
+      }
+      if (!Object.hasOwn(values, refKey)) {
+        // Unknown key — leave as-is (will be caught later at command resolution if needed)
+        return match;
+      }
+      return resolve(refKey);
+    });
+    resolving.delete(key);
+    resolved[key] = result;
+    return result;
+  }
+
+  for (const key of Object.keys(values)) {
+    resolve(key);
+  }
+  return resolved;
+}
+
+/**
+ * Check whether .xci/secrets.yml is tracked by git in the given working directory.
  * Returns true if tracked (warning required), false if not tracked or git not available.
  * Per D-05 and CFG-09: best-effort check, non-blocking.
  */
 function isSecretTrackedByGit(cwd: string): boolean {
   try {
-    execSync('git ls-files --error-unmatch .loci/secrets.yml', { stdio: 'pipe', cwd });
+    execSync('git ls-files --error-unmatch .xci/secrets.yml', { stdio: 'pipe', cwd });
     return true; // exit 0 = file IS tracked
   } catch (err: unknown) {
     // ENOENT = git not installed; any other error (exit 1 = not tracked, exit 128 = not a repo) → false
@@ -178,27 +280,86 @@ function isSecretTrackedByGit(cwd: string): boolean {
 
 export const configLoader: ConfigLoader = {
   async load(cwd: string): Promise<ResolvedConfig> {
-    const machinePath = process.env['LOCI_MACHINE_CONFIG'];
-    const projectPath = join(cwd, '.loci', 'config.yml');
-    const secretsPath = join(cwd, '.loci', 'secrets.yml');
-    const localPath = join(cwd, '.loci', 'local.yml');
+    const machineDir = process.env['XCI_MACHINE_CONFIGS'];
+    const projectPath = join(cwd, '.xci', 'config.yml');
+    const secretsPath = join(cwd, '.xci', 'secrets.yml');
+    const secretsDir = join(cwd, '.xci', 'secrets');
+    const localPath = join(cwd, '.xci', 'local.yml');
+
+    // Read project name from config.yml for project-aware machine loading
+    let projectName: string | undefined;
+    const projectResult = readLayer(projectPath, 'project');
+    if (projectResult) {
+      projectName = projectResult.values['project'];
+    }
+
+    // Machine config + secrets: load from root + <project>/ subdirectory of XCI_MACHINE_CONFIGS
+    const machineConfigLayers: Array<{ values: Record<string, string>; layer: ConfigLayer } | null> = [];
+    const machineSecretLayers: Array<{ values: Record<string, string>; layer: ConfigLayer } | null> = [];
+    if (machineDir) {
+      if (!isDirectory(machineDir)) {
+        process.stderr.write(`[xci] WARNING: XCI_MACHINE_CONFIGS="${machineDir}" is not a directory\n`);
+      } else {
+        const machineDirs = [machineDir];
+        if (projectName) {
+          const projDir = join(machineDir, projectName);
+          if (isDirectory(projDir)) {
+            machineDirs.push(projDir);
+          } else {
+            process.stderr.write(`[xci] NOTE: machine project dir not found: ${projDir}\n`);
+          }
+        } else {
+          process.stderr.write(`[xci] NOTE: "project" not set in config.yml — skipping project-specific machine config\n`);
+        }
+        let machineFilesLoaded = 0;
+        for (const dir of machineDirs) {
+          // Machine config.yml
+          const mcFile = readLayer(join(dir, 'config.yml'), 'machine');
+          if (mcFile) { machineConfigLayers.push(mcFile); machineFilesLoaded++; }
+          // Machine secrets
+          const msFile = readLayer(join(dir, 'secrets.yml'), 'secrets');
+          if (msFile) { machineSecretLayers.push(msFile); machineFilesLoaded++; }
+          const msDir = join(dir, 'secrets');
+          if (isDirectory(msDir)) {
+            for (const f of listYamlFilesRecursive(msDir)) {
+              machineSecretLayers.push(readLayer(f, 'secrets'));
+              machineFilesLoaded++;
+            }
+          }
+        }
+        if (machineFilesLoaded === 0) {
+          process.stderr.write(`[xci] NOTE: XCI_MACHINE_CONFIGS="${machineDir}" — no config/secrets files found\n`);
+        }
+      }
+    }
+
+    // Project secrets: .xci/secrets.yml + .xci/secrets/ (recursive)
+    const projectSecretLayers: Array<{ values: Record<string, string>; layer: ConfigLayer } | null> = [];
+    const secretsResult = readLayer(secretsPath, 'secrets');
+    if (secretsResult) projectSecretLayers.push(secretsResult);
+    if (isDirectory(secretsDir)) {
+      for (const f of listYamlFilesRecursive(secretsDir)) {
+        projectSecretLayers.push(readLayer(f, 'secrets'));
+      }
+    }
 
     const layers = [
-      readLayer(machinePath, 'machine'),
+      ...machineConfigLayers,    // machine config (lowest priority)
       readLayer(projectPath, 'project'),
-      readLayer(secretsPath, 'secrets'),
+      ...machineSecretLayers,    // machine secrets
+      ...projectSecretLayers,    // project secrets
       readLayer(localPath, 'local'),
     ];
 
     // CFG-09: warn (not throw) if secrets.yml is git-tracked
-    if (layers[2] !== null) {
+    if (secretsResult !== null) {
       if (isSecretTrackedByGit(cwd)) {
         process.stderr.write(
-          '[xci] WARNING: .loci/secrets.yml is tracked by git. Run: git rm --cached .loci/secrets.yml\n',
+          '[xci] WARNING: .xci/secrets.yml is tracked by git. Run: git rm --cached .xci/secrets.yml\n',
         );
       }
     }
 
-    return mergeLayers(layers);
+    return mergeLayers(layers, cwd);
   },
 };

@@ -14,12 +14,12 @@ import { configLoader } from '../index.js';
 // Test helpers
 // ---------------------------------------------------------------------------
 
-/** Create a temp dir with a .loci/ subdirectory and write given files into it. */
+/** Create a temp dir with a .xci/ subdirectory and write given files into it. */
 async function setupFixture(files: Record<string, string>): Promise<string> {
-  const cwd = await mkdtemp(join(tmpdir(), 'loci-test-'));
-  await mkdir(join(cwd, '.loci'));
+  const cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
+  await mkdir(join(cwd, '.xci'));
   for (const [name, content] of Object.entries(files)) {
-    await writeFile(join(cwd, '.loci', name), content, 'utf8');
+    await writeFile(join(cwd, '.xci', name), content, 'utf8');
   }
   return cwd;
 }
@@ -37,17 +37,18 @@ describe('configLoader.load', () => {
     let cwd: string;
 
     beforeEach(async () => {
-      cwd = await mkdtemp(join(tmpdir(), 'loci-test-'));
+      cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
     });
 
     afterEach(async () => {
       await cleanup(cwd);
     });
 
-    it('returns empty config when no files exist', async () => {
+    it('returns empty config when no files exist (only builtins)', async () => {
       const result = await configLoader.load(cwd);
-      expect(result.values).toEqual({});
-      expect(result.provenance).toEqual({});
+      // Builtins are always injected
+      expect(result.values['xci.project.path']).toBe(cwd);
+      expect(result.values['XCI_PROJECT_PATH']).toBe(cwd);
       expect(result.secretKeys.size).toBe(0);
     });
   });
@@ -57,15 +58,15 @@ describe('configLoader.load', () => {
     let savedMachineConfig: string | undefined;
 
     beforeEach(async () => {
-      savedMachineConfig = process.env['LOCI_MACHINE_CONFIG'];
+      savedMachineConfig = process.env['XCI_MACHINE_CONFIGS'];
     });
 
     afterEach(async () => {
       await cleanup(cwd);
       if (savedMachineConfig === undefined) {
-        delete process.env['LOCI_MACHINE_CONFIG'];
+        delete process.env['XCI_MACHINE_CONFIGS'];
       } else {
-        process.env['LOCI_MACHINE_CONFIG'] = savedMachineConfig;
+        process.env['XCI_MACHINE_CONFIGS'] = savedMachineConfig;
       }
     });
 
@@ -80,17 +81,66 @@ describe('configLoader.load', () => {
       expect(result.provenance['deploy.user']).toBe('project');
     });
 
-    it('loads machine config via LOCI_MACHINE_CONFIG', async () => {
-      cwd = await mkdtemp(join(tmpdir(), 'loci-test-'));
-      await mkdir(join(cwd, '.loci'));
-      // Write machine config to a separate file (not in .loci)
-      const machineFile = join(cwd, 'machine-config.yml');
-      await writeFile(machineFile, 'machine:\n  env: "production"', 'utf8');
-      process.env['LOCI_MACHINE_CONFIG'] = machineFile;
+    it('loads machine secrets from XCI_MACHINE_CONFIGS/secrets.yml', async () => {
+      cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
+      await mkdir(join(cwd, '.xci'));
+      const machineDir = join(cwd, 'machine-conf.d');
+      await mkdir(machineDir);
+      await writeFile(join(machineDir, 'secrets.yml'), 'api:\n  key: "machine-secret"', 'utf8');
+      process.env['XCI_MACHINE_CONFIGS'] = machineDir;
 
       const result = await configLoader.load(cwd);
-      expect(result.values['machine.env']).toBe('production');
-      expect(result.provenance['machine.env']).toBe('machine');
+      expect(result.values['api.key']).toBe('machine-secret');
+      expect(result.secretKeys.has('api.key')).toBe(true);
+    });
+
+    it('loads machine secrets from XCI_MACHINE_CONFIGS/secrets/ directory', async () => {
+      cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
+      await mkdir(join(cwd, '.xci'));
+      const machineDir = join(cwd, 'machine-conf.d');
+      await mkdir(join(machineDir, 'secrets'), { recursive: true });
+      await writeFile(join(machineDir, 'secrets', 'aws.yml'), 'aws:\n  token: "abc"', 'utf8');
+      process.env['XCI_MACHINE_CONFIGS'] = machineDir;
+
+      const result = await configLoader.load(cwd);
+      expect(result.values['aws.token']).toBe('abc');
+      expect(result.secretKeys.has('aws.token')).toBe(true);
+    });
+
+    it('project secrets override machine secrets', async () => {
+      cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
+      await mkdir(join(cwd, '.xci'));
+      const machineDir = join(cwd, 'machine-conf.d');
+      await mkdir(machineDir);
+      await writeFile(join(machineDir, 'secrets.yml'), 'api:\n  key: "machine-val"', 'utf8');
+      await writeFile(join(cwd, '.xci', 'secrets.yml'), 'api:\n  key: "project-val"', 'utf8');
+      process.env['XCI_MACHINE_CONFIGS'] = machineDir;
+
+      const result = await configLoader.load(cwd);
+      expect(result.values['api.key']).toBe('project-val');
+    });
+
+    it('loads secrets from .xci/secrets/ directory', async () => {
+      cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
+      await mkdir(join(cwd, '.xci', 'secrets'), { recursive: true });
+      await writeFile(join(cwd, '.xci', 'secrets', 'aws.yml'), 'aws:\n  token: "proj-secret"', 'utf8');
+
+      const result = await configLoader.load(cwd);
+      expect(result.values['aws.token']).toBe('proj-secret');
+      expect(result.secretKeys.has('aws.token')).toBe(true);
+    });
+
+    it('loads secrets from nested .xci/secrets/ subdirectories', async () => {
+      cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
+      await mkdir(join(cwd, '.xci', 'secrets', 'cloud'), { recursive: true });
+      await writeFile(join(cwd, '.xci', 'secrets', 'cloud', 'gcp.yml'), 'gcp:\n  key: "gcp-val"', 'utf8');
+      await writeFile(join(cwd, '.xci', 'secrets', 'db.yml'), 'db:\n  pass: "db-val"', 'utf8');
+
+      const result = await configLoader.load(cwd);
+      expect(result.values['gcp.key']).toBe('gcp-val');
+      expect(result.values['db.pass']).toBe('db-val');
+      expect(result.secretKeys.has('gcp.key')).toBe(true);
+      expect(result.secretKeys.has('db.pass')).toBe(true);
     });
 
     it('loads secrets.yml and tags secretKeys', async () => {
@@ -118,30 +168,31 @@ describe('configLoader.load', () => {
     let savedMachineConfig: string | undefined;
 
     beforeEach(async () => {
-      savedMachineConfig = process.env['LOCI_MACHINE_CONFIG'];
+      savedMachineConfig = process.env['XCI_MACHINE_CONFIGS'];
     });
 
     afterEach(async () => {
       await cleanup(cwd);
       if (savedMachineConfig === undefined) {
-        delete process.env['LOCI_MACHINE_CONFIG'];
+        delete process.env['XCI_MACHINE_CONFIGS'];
       } else {
-        process.env['LOCI_MACHINE_CONFIG'] = savedMachineConfig;
+        process.env['XCI_MACHINE_CONFIGS'] = savedMachineConfig;
       }
     });
 
     it('local overrides secrets overrides project overrides machine', async () => {
-      cwd = await mkdtemp(join(tmpdir(), 'loci-test-'));
-      await mkdir(join(cwd, '.loci'));
+      cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
+      await mkdir(join(cwd, '.xci'));
 
-      // Machine config in a separate file
-      const machineFile = join(cwd, 'machine-config.yml');
-      await writeFile(machineFile, 'app:\n  name: "M"', 'utf8');
-      process.env['LOCI_MACHINE_CONFIG'] = machineFile;
+      // Machine config in a directory
+      const machineDir = join(cwd, 'machine-conf.d');
+      await mkdir(machineDir);
+      await writeFile(join(machineDir, 'secrets.yml'), 'app:\n  name: "M"', 'utf8');
+      process.env['XCI_MACHINE_CONFIGS'] = machineDir;
 
-      await writeFile(join(cwd, '.loci', 'config.yml'), 'app:\n  name: "P"', 'utf8');
-      await writeFile(join(cwd, '.loci', 'secrets.yml'), 'app:\n  name: "S"', 'utf8');
-      await writeFile(join(cwd, '.loci', 'local.yml'), 'app:\n  name: "L"', 'utf8');
+      await writeFile(join(cwd, '.xci', 'config.yml'), 'app:\n  name: "P"', 'utf8');
+      await writeFile(join(cwd, '.xci', 'secrets.yml'), 'app:\n  name: "S"', 'utf8');
+      await writeFile(join(cwd, '.xci', 'local.yml'), 'app:\n  name: "L"', 'utf8');
 
       const result = await configLoader.load(cwd);
       expect(result.values['app.name']).toBe('L');
@@ -149,22 +200,23 @@ describe('configLoader.load', () => {
     });
 
     it('preserves non-overridden keys from earlier layers (leaf-level merge per D-02)', async () => {
-      cwd = await mkdtemp(join(tmpdir(), 'loci-test-'));
-      await mkdir(join(cwd, '.loci'));
+      cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
+      await mkdir(join(cwd, '.xci'));
 
-      // Machine defines 'a', project defines 'b', local defines 'c'
-      const machineFile = join(cwd, 'machine-config.yml');
-      await writeFile(machineFile, 'a: "1"', 'utf8');
-      process.env['LOCI_MACHINE_CONFIG'] = machineFile;
+      // Machine secrets define 'a', project config defines 'b', local defines 'c'
+      const machineDir = join(cwd, 'machine-conf.d');
+      await mkdir(machineDir);
+      await writeFile(join(machineDir, 'secrets.yml'), 'a: "1"', 'utf8');
+      process.env['XCI_MACHINE_CONFIGS'] = machineDir;
 
-      await writeFile(join(cwd, '.loci', 'config.yml'), 'b: "2"', 'utf8');
-      await writeFile(join(cwd, '.loci', 'local.yml'), 'c: "3"', 'utf8');
+      await writeFile(join(cwd, '.xci', 'config.yml'), 'b: "2"', 'utf8');
+      await writeFile(join(cwd, '.xci', 'local.yml'), 'c: "3"', 'utf8');
 
       const result = await configLoader.load(cwd);
       expect(result.values['a']).toBe('1');
       expect(result.values['b']).toBe('2');
       expect(result.values['c']).toBe('3');
-      expect(result.provenance['a']).toBe('machine');
+      expect(result.provenance['a']).toBe('secrets');
       expect(result.provenance['b']).toBe('project');
       expect(result.provenance['c']).toBe('local');
     });
@@ -199,6 +251,78 @@ describe('configLoader.load', () => {
     });
   });
 
+  describe('config value interpolation', () => {
+    let cwd: string;
+
+    afterEach(async () => {
+      await cleanup(cwd);
+    });
+
+    it('resolves ${key} references between config values', async () => {
+      cwd = await setupFixture({
+        'config.yml': 'host: "myserver.com"\nport: "8080"\nurl: "${host}:${port}"',
+      });
+      const result = await configLoader.load(cwd);
+      expect(result.values['url']).toBe('myserver.com:8080');
+    });
+
+    it('resolves transitive references (a → b → c)', async () => {
+      cwd = await setupFixture({
+        'config.yml': 'base: "https://api.example.com"\npath: "${base}/v1"\nendpoint: "${path}/users"',
+      });
+      const result = await configLoader.load(cwd);
+      expect(result.values['endpoint']).toBe('https://api.example.com/v1/users');
+    });
+
+    it('leaves unknown keys as literal ${key}', async () => {
+      cwd = await setupFixture({
+        'config.yml': 'msg: "hello ${unknown}"',
+      });
+      const result = await configLoader.load(cwd);
+      expect(result.values['msg']).toBe('hello ${unknown}');
+    });
+
+    it('supports $${} escape to produce literal ${}', async () => {
+      cwd = await setupFixture({
+        'config.yml': 'escaped: "$${not_a_var}"',
+      });
+      const result = await configLoader.load(cwd);
+      expect(result.values['escaped']).toBe('${not_a_var}');
+    });
+
+    it('throws on circular references', async () => {
+      cwd = await setupFixture({
+        'config.yml': 'a: "${b}"\nb: "${a}"',
+      });
+      await expect(configLoader.load(cwd)).rejects.toBeInstanceOf(YamlParseError);
+    });
+
+    it('throws on self-referencing value', async () => {
+      cwd = await setupFixture({
+        'config.yml': 'x: "${x}"',
+      });
+      await expect(configLoader.load(cwd)).rejects.toBeInstanceOf(YamlParseError);
+    });
+
+    it('interpolates across layers (local references project key)', async () => {
+      cwd = await setupFixture({
+        'config.yml': 'host: "prod.example.com"\nport: "443"',
+        'local.yml': 'host: "localhost"\nurl: "${host}:${port}"',
+      });
+      const result = await configLoader.load(cwd);
+      // host is overridden by local, port comes from project
+      expect(result.values['url']).toBe('localhost:443');
+    });
+
+    it('values without placeholders are unchanged', async () => {
+      cwd = await setupFixture({
+        'config.yml': 'plain: "no placeholders here"',
+      });
+      const result = await configLoader.load(cwd);
+      expect(result.values['plain']).toBe('no placeholders here');
+    });
+  });
+
   describe('empty and comment-only files', () => {
     let cwd: string;
 
@@ -206,20 +330,21 @@ describe('configLoader.load', () => {
       await cleanup(cwd);
     });
 
-    it('empty file is treated as empty layer', async () => {
+    it('empty file is treated as empty layer (only builtins)', async () => {
       cwd = await setupFixture({ 'config.yml': '' });
       const result = await configLoader.load(cwd);
-      expect(result.values).toEqual({});
       expect(result.provenance).toEqual({});
+      // Only builtins present — no user-defined values
+      expect(result.values['xci.project.path']).toBeDefined();
     });
 
-    it('comments-only file is treated as empty layer', async () => {
+    it('comments-only file is treated as empty layer (only builtins)', async () => {
       cwd = await setupFixture({
         'config.yml': '# just a comment\n# another comment',
       });
       const result = await configLoader.load(cwd);
-      expect(result.values).toEqual({});
       expect(result.provenance).toEqual({});
+      expect(result.values['xci.project.path']).toBeDefined();
     });
   });
 
@@ -252,7 +377,7 @@ describe('configLoader.load', () => {
     let cwd: string;
 
     beforeEach(async () => {
-      cwd = await mkdtemp(join(tmpdir(), 'loci-test-'));
+      cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
     });
 
     afterEach(async () => {
@@ -441,9 +566,9 @@ describe('configLoader.load', () => {
     it('emits stderr warning when secrets.yml is git-tracked', async () => {
       const { execSync } = await import('node:child_process');
 
-      cwd = await mkdtemp(join(tmpdir(), 'loci-test-'));
-      await mkdir(join(cwd, '.loci'));
-      await writeFile(join(cwd, '.loci', 'secrets.yml'), 'api:\n  token: "s3cr3t"', 'utf8');
+      cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
+      await mkdir(join(cwd, '.xci'));
+      await writeFile(join(cwd, '.xci', 'secrets.yml'), 'api:\n  token: "s3cr3t"', 'utf8');
 
       // Initialize a git repo and commit secrets.yml
       const gitEnv = {
@@ -454,7 +579,7 @@ describe('configLoader.load', () => {
         PATH: process.env['PATH'] ?? '',
       };
       execSync('git init', { cwd, env: gitEnv, stdio: 'pipe' });
-      execSync('git add .loci/secrets.yml', { cwd, env: gitEnv, stdio: 'pipe' });
+      execSync('git add .xci/secrets.yml', { cwd, env: gitEnv, stdio: 'pipe' });
       execSync('git commit -m "test"', { cwd, env: gitEnv, stdio: 'pipe' });
 
       const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
@@ -472,9 +597,9 @@ describe('configLoader.load', () => {
     it('does not warn when secrets.yml is NOT git-tracked', async () => {
       const { execSync } = await import('node:child_process');
 
-      cwd = await mkdtemp(join(tmpdir(), 'loci-test-'));
-      await mkdir(join(cwd, '.loci'));
-      await writeFile(join(cwd, '.loci', 'secrets.yml'), 'api:\n  token: "s3cr3t"', 'utf8');
+      cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
+      await mkdir(join(cwd, '.xci'));
+      await writeFile(join(cwd, '.xci', 'secrets.yml'), 'api:\n  token: "s3cr3t"', 'utf8');
 
       const gitEnv = {
         GIT_AUTHOR_NAME: 'Test',

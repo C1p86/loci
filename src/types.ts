@@ -40,6 +40,15 @@ export interface PlatformOverrides {
   readonly macos?: readonly string[];
 }
 
+/** Capture configuration: simple (just variable name) or extended (with validation). */
+export type CaptureType = 'string' | 'int' | 'float' | 'json';
+
+export interface CaptureConfig {
+  readonly var: string;
+  readonly type?: CaptureType;             // default: 'string'
+  readonly assert?: string | readonly string[];  // e.g. "> 0", "not empty", [">=1", "<=100"]
+}
+
 /** Union type matching the commands.yml schema after parse + validation. */
 export type CommandDef =
   | {
@@ -47,6 +56,7 @@ export type CommandDef =
       readonly cmd: readonly string[];
       readonly description?: string;
       readonly platforms?: PlatformOverrides;
+      readonly capture?: CaptureConfig; // capture stdout into a named variable with optional validation
     }
   | {
       readonly kind: 'sequential';
@@ -58,6 +68,24 @@ export type CommandDef =
       readonly group: readonly CommandRef[];
       readonly description?: string;
       readonly failMode?: 'fast' | 'complete'; // D-15: validated at load time
+    }
+  | {
+      readonly kind: 'for_each';
+      readonly var: string;                    // loop variable name
+      readonly in: readonly string[];          // values to iterate over
+      readonly mode: 'steps' | 'parallel';     // sequential or parallel execution
+      readonly cmd?: readonly string[];        // inline command (uses ${var})
+      readonly run?: string;                   // alias reference
+      readonly description?: string;
+      readonly failMode?: 'fast' | 'complete'; // for parallel mode
+    }
+  | {
+      readonly kind: 'ini';
+      readonly file: string;                   // path to INI file (supports ${var})
+      readonly mode?: 'overwrite' | 'merge';   // default: overwrite
+      readonly set?: Readonly<Record<string, Readonly<Record<string, string>>>>; // section → key → value
+      readonly delete?: Readonly<Record<string, readonly string[]>>;             // section → keys to delete
+      readonly description?: string;
     };
 
 export type CommandMap = ReadonlyMap<string, CommandDef>;
@@ -70,9 +98,15 @@ export interface CommandsLoader {
  * Resolver contract (Phase 3)
  * ------------------------------------------------------------ */
 
+export interface SequentialStep {
+  readonly argv: readonly string[];          // interpolated argv (best-effort at plan time)
+  readonly rawArgv?: readonly string[];      // pre-interpolation tokens (for deferred interpolation with captured vars)
+  readonly capture?: CaptureConfig;
+}
+
 export type ExecutionPlan =
-  | { readonly kind: 'single'; readonly argv: readonly string[] }
-  | { readonly kind: 'sequential'; readonly steps: readonly (readonly string[])[] }
+  | { readonly kind: 'single'; readonly argv: readonly string[]; readonly capture?: CaptureConfig }
+  | { readonly kind: 'sequential'; readonly steps: readonly SequentialStep[] }
   | {
       readonly kind: 'parallel';
       readonly group: readonly {
@@ -80,6 +114,13 @@ export type ExecutionPlan =
         readonly argv: readonly string[];
       }[];
       readonly failMode: 'fast' | 'complete'; // resolved with default 'fast'
+    }
+  | {
+      readonly kind: 'ini';
+      readonly file: string;
+      readonly mode: 'overwrite' | 'merge';
+      readonly set?: Readonly<Record<string, Readonly<Record<string, string>>>>;
+      readonly delete?: Readonly<Record<string, readonly string[]>>;
     };
 
 export interface Resolver {
@@ -97,6 +138,9 @@ export interface ExecutionResult {
 export interface ExecutorOptions {
   readonly cwd: string;
   readonly env: Record<string, string>;
+  readonly logFile?: string;     // path to log file (always written)
+  readonly showOutput?: boolean; // pipe output to terminal (default: false)
+  readonly tailLines?: number;   // show last N lines of output after each command (--short-log N)
 }
 
 export interface Executor {

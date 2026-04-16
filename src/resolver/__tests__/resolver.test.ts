@@ -303,14 +303,14 @@ describe('resolver.resolve - sequential', () => {
     });
     const config = makeConfig();
     const plan = resolver.resolve('ci', commands, config);
-    expect(plan).toEqual({
-      kind: 'sequential',
-      steps: [
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind === 'sequential') {
+      expect(plan.steps.map((s) => s.argv)).toEqual([
         ['npm', 'run', 'lint'],
         ['npm', 'run', 'test'],
         ['npm', 'run', 'build'],
-      ],
-    });
+      ]);
+    }
   });
 
   it('resolves a sequential alias with alias refs', () => {
@@ -321,13 +321,13 @@ describe('resolver.resolve - sequential', () => {
     });
     const config = makeConfig();
     const plan = resolver.resolve('ci', commands, config);
-    expect(plan).toEqual({
-      kind: 'sequential',
-      steps: [
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind === 'sequential') {
+      expect(plan.steps.map((s) => s.argv)).toEqual([
         ['npm', 'run', 'lint'],
         ['npm', 'run', 'test'],
-      ],
-    });
+      ]);
+    }
   });
 
   it('resolves mixed inline and alias ref steps', () => {
@@ -337,13 +337,13 @@ describe('resolver.resolve - sequential', () => {
     });
     const config = makeConfig();
     const plan = resolver.resolve('ci', commands, config);
-    expect(plan).toEqual({
-      kind: 'sequential',
-      steps: [
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind === 'sequential') {
+      expect(plan.steps.map((s) => s.argv)).toEqual([
         ['npm', 'run', 'lint'],
         ['npm', 'run', 'build'],
-      ],
-    });
+      ]);
+    }
   });
 
   it('expands nested sequential alias steps inline', () => {
@@ -355,14 +355,14 @@ describe('resolver.resolve - sequential', () => {
     });
     const config = makeConfig();
     const plan = resolver.resolve('ci', commands, config);
-    expect(plan).toEqual({
-      kind: 'sequential',
-      steps: [
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind === 'sequential') {
+      expect(plan.steps.map((s) => s.argv)).toEqual([
         ['npm', 'run', 'lint'],
         ['npm', 'run', 'test'],
         ['npm', 'run', 'build'],
-      ],
-    });
+      ]);
+    }
   });
 });
 

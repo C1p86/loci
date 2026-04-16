@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createRequire } from 'node:module';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, statSync, createWriteStream, createReadStream } from 'fs';
+import { existsSync, readFileSync, statSync, mkdirSync, rmSync, writeFileSync, readdirSync, createWriteStream, appendFileSync, createReadStream } from 'fs';
 import path2, { resolve, join, dirname, relative } from 'path';
 import { execFile, execSync, spawn, spawnSync, ChildProcess } from 'child_process';
 import { fileURLToPath } from 'url';
@@ -8,7 +8,7 @@ import { StringDecoder } from 'string_decoder';
 import { debuglog, promisify, callbackify, aborted, inspect, stripVTControlCharacters } from 'util';
 import process4, { hrtime, execPath, execArgv, platform } from 'process';
 import tty from 'tty';
-import { scheduler, setTimeout, setImmediate } from 'timers/promises';
+import { scheduler, setTimeout as setTimeout$1, setImmediate } from 'timers/promises';
 import { constants } from 'os';
 import { on, EventEmitter, setMaxListeners, once, addAbortListener } from 'events';
 import { serialize } from 'v8';
@@ -628,8 +628,8 @@ var require_help = __commonJS({
           helper.visibleCommands(cmd),
           (sub) => sub.helpGroup() || "Commands:"
         );
-        commandGroups.forEach((commands, group) => {
-          const commandList = commands.map((sub) => {
+        commandGroups.forEach((commands2, group) => {
+          const commandList = commands2.map((sub) => {
             return callFormatItem(
               helper.styleSubcommandTerm(helper.subcommandTerm(sub)),
               helper.styleSubcommandDescription(helper.subcommandDescription(sub))
@@ -1263,7 +1263,7 @@ var require_command = __commonJS({
         this._outputConfiguration = {
           writeOut: (str) => process10.stdout.write(str),
           writeErr: (str) => process10.stderr.write(str),
-          outputError: (str, write) => write(str),
+          outputError: (str, write2) => write2(str),
           getOutHelpWidth: () => process10.stdout.isTTY ? process10.stdout.columns : void 0,
           getErrHelpWidth: () => process10.stderr.isTTY ? process10.stderr.columns : void 0,
           getOutHasColors: () => useColor() ?? (process10.stdout.isTTY && process10.stdout.hasColors?.()),
@@ -3243,11 +3243,11 @@ Expecting one of '${allowedValues.join("', '")}'`);
           hasColors2 = this._outputConfiguration.getOutHasColors();
           helpWidth = this._outputConfiguration.getOutHelpWidth();
         }
-        const write = (str) => {
+        const write2 = (str) => {
           if (!hasColors2) str = this._outputConfiguration.stripColor(str);
           return baseWrite(str);
         };
-        return { error, write, hasColors: hasColors2, helpWidth };
+        return { error, write: write2, hasColors: hasColors2, helpWidth };
       }
       /**
        * Output help information for this command.
@@ -4925,7 +4925,7 @@ var require_stringify = __commonJS({
         props.push(doc.directives.tagString(tag));
       return props.join(" ");
     }
-    function stringify(item, ctx, onComment, onChompKeep) {
+    function stringify2(item, ctx, onComment, onChompKeep) {
       if (identity3.isPair(item))
         return item.toString(ctx, onComment, onChompKeep);
       if (identity3.isAlias(item)) {
@@ -4954,7 +4954,7 @@ var require_stringify = __commonJS({
 ${ctx.indent}${str}`;
     }
     exports$1.createStringifyContext = createStringifyContext;
-    exports$1.stringify = stringify;
+    exports$1.stringify = stringify2;
   }
 });
 
@@ -4963,7 +4963,7 @@ var require_stringifyPair = __commonJS({
   "node_modules/yaml/dist/stringify/stringifyPair.js"(exports$1) {
     var identity3 = require_identity();
     var Scalar = require_Scalar();
-    var stringify = require_stringify();
+    var stringify2 = require_stringify();
     var stringifyComment = require_stringifyComment();
     function stringifyPair({ key, value }, ctx, onComment, onChompKeep) {
       const { allNullValues, doc, indent, indentStep, options: { commentString, indentSeq, simpleKeys } } = ctx;
@@ -4985,7 +4985,7 @@ var require_stringifyPair = __commonJS({
       });
       let keyCommentDone = false;
       let chompKeep = false;
-      let str = stringify.stringify(key, ctx, () => keyCommentDone = true, () => chompKeep = true);
+      let str = stringify2.stringify(key, ctx, () => keyCommentDone = true, () => chompKeep = true);
       if (!explicitKey && !ctx.inFlow && str.length > 1024) {
         if (simpleKeys)
           throw new Error("With simple keys, single line scalar must not span more than 1024 characters");
@@ -5037,7 +5037,7 @@ ${indent}:`;
         ctx.indent = ctx.indent.substring(2);
       }
       let valueCommentDone = false;
-      const valueStr = stringify.stringify(value, ctx, () => valueCommentDone = true, () => chompKeep = true);
+      const valueStr = stringify2.stringify(value, ctx, () => valueCommentDone = true, () => chompKeep = true);
       let ws = " ";
       if (keyComment || vsb || vcb) {
         ws = vsb ? "\n" : "";
@@ -5172,7 +5172,7 @@ var require_addPairToJSMap = __commonJS({
   "node_modules/yaml/dist/nodes/addPairToJSMap.js"(exports$1) {
     var log = require_log();
     var merge = require_merge();
-    var stringify = require_stringify();
+    var stringify2 = require_stringify();
     var identity3 = require_identity();
     var toJS = require_toJS();
     function addPairToJSMap(ctx, map, { key, value }) {
@@ -5208,7 +5208,7 @@ var require_addPairToJSMap = __commonJS({
       if (typeof jsKey !== "object")
         return String(jsKey);
       if (identity3.isNode(key) && ctx?.doc) {
-        const strCtx = stringify.createStringifyContext(ctx.doc, {});
+        const strCtx = stringify2.createStringifyContext(ctx.doc, {});
         strCtx.anchors = /* @__PURE__ */ new Set();
         for (const node of ctx.anchors.keys())
           strCtx.anchors.add(node.anchor);
@@ -5273,12 +5273,12 @@ var require_Pair = __commonJS({
 var require_stringifyCollection = __commonJS({
   "node_modules/yaml/dist/stringify/stringifyCollection.js"(exports$1) {
     var identity3 = require_identity();
-    var stringify = require_stringify();
+    var stringify2 = require_stringify();
     var stringifyComment = require_stringifyComment();
     function stringifyCollection(collection, ctx, options) {
       const flow = ctx.inFlow ?? collection.flow;
-      const stringify2 = flow ? stringifyFlowCollection : stringifyBlockCollection;
-      return stringify2(collection, ctx, options);
+      const stringify3 = flow ? stringifyFlowCollection : stringifyBlockCollection;
+      return stringify3(collection, ctx, options);
     }
     function stringifyBlockCollection({ comment, items }, ctx, { blockItemPrefix, flowChars, itemIndent, onChompKeep, onComment }) {
       const { indent, options: { commentString } } = ctx;
@@ -5303,7 +5303,7 @@ var require_stringifyCollection = __commonJS({
           }
         }
         chompKeep = false;
-        let str2 = stringify.stringify(item, itemCtx, () => comment2 = null, () => chompKeep = true);
+        let str2 = stringify2.stringify(item, itemCtx, () => comment2 = null, () => chompKeep = true);
         if (comment2)
           str2 += stringifyComment.lineComment(str2, itemIndent, commentString(comment2));
         if (chompKeep && comment2)
@@ -5370,7 +5370,7 @@ ${indent}${line}` : "\n";
         }
         if (comment)
           reqNewline = true;
-        let str = stringify.stringify(item, itemCtx, () => comment = null);
+        let str = stringify2.stringify(item, itemCtx, () => comment = null);
         reqNewline || (reqNewline = lines.length > linesAtValue || str.includes("\n"));
         if (i2 < items.length - 1) {
           str += ",";
@@ -6707,7 +6707,7 @@ var require_Schema = __commonJS({
 var require_stringifyDocument = __commonJS({
   "node_modules/yaml/dist/stringify/stringifyDocument.js"(exports$1) {
     var identity3 = require_identity();
-    var stringify = require_stringify();
+    var stringify2 = require_stringify();
     var stringifyComment = require_stringifyComment();
     function stringifyDocument(doc, options) {
       const lines = [];
@@ -6722,7 +6722,7 @@ var require_stringifyDocument = __commonJS({
       }
       if (hasDirectives)
         lines.push("---");
-      const ctx = stringify.createStringifyContext(doc, options);
+      const ctx = stringify2.createStringifyContext(doc, options);
       const { commentString } = ctx.options;
       if (doc.commentBefore) {
         if (lines.length !== 1)
@@ -6744,7 +6744,7 @@ var require_stringifyDocument = __commonJS({
           contentComment = doc.contents.comment;
         }
         const onChompKeep = contentComment ? void 0 : () => chompKeep = true;
-        let body = stringify.stringify(doc.contents, ctx, () => contentComment = null, onChompKeep);
+        let body = stringify2.stringify(doc.contents, ctx, () => contentComment = null, onChompKeep);
         if (contentComment)
           body += stringifyComment.lineComment(body, "", commentString(contentComment));
         if ((body[0] === "|" || body[0] === ">") && lines[lines.length - 1] === "---") {
@@ -6752,7 +6752,7 @@ var require_stringifyDocument = __commonJS({
         } else
           lines.push(body);
       } else {
-        lines.push(stringify.stringify(doc.contents, ctx));
+        lines.push(stringify2.stringify(doc.contents, ctx));
       }
       if (doc.directives?.docEnd) {
         if (doc.comment) {
@@ -8864,7 +8864,7 @@ var require_cst_scalar = __commonJS({
 // node_modules/yaml/dist/parse/cst-stringify.js
 var require_cst_stringify = __commonJS({
   "node_modules/yaml/dist/parse/cst-stringify.js"(exports$1) {
-    var stringify = (cst) => "type" in cst ? stringifyToken(cst) : stringifyItem(cst);
+    var stringify2 = (cst) => "type" in cst ? stringifyToken(cst) : stringifyItem(cst);
     function stringifyToken(token) {
       switch (token.type) {
         case "block-scalar": {
@@ -8917,7 +8917,7 @@ var require_cst_stringify = __commonJS({
         res += stringifyToken(value);
       return res;
     }
-    exports$1.stringify = stringify;
+    exports$1.stringify = stringify2;
   }
 });
 
@@ -10605,7 +10605,7 @@ var require_public_api = __commonJS({
       }
       return doc;
     }
-    function parse3(src, reviver, options) {
+    function parse4(src, reviver, options) {
       let _reviver = void 0;
       if (typeof reviver === "function") {
         _reviver = reviver;
@@ -10624,7 +10624,7 @@ var require_public_api = __commonJS({
       }
       return doc.toJS(Object.assign({ reviver: _reviver }, options));
     }
-    function stringify(value, replacer, options) {
+    function stringify2(value, replacer, options) {
       let _replacer = null;
       if (typeof replacer === "function" || Array.isArray(replacer)) {
         _replacer = replacer;
@@ -10646,10 +10646,10 @@ var require_public_api = __commonJS({
         return value.toString(options);
       return new Document.Document(value, _replacer, options).toString(options);
     }
-    exports$1.parse = parse3;
+    exports$1.parse = parse4;
     exports$1.parseAllDocuments = parseAllDocuments;
     exports$1.parseDocument = parseDocument;
-    exports$1.stringify = stringify;
+    exports$1.stringify = stringify2;
   }
 });
 
@@ -11094,7 +11094,7 @@ var require_parse = __commonJS({
       }
       return parsed;
     }
-    function parse3(command, args, options) {
+    function parse4(command, args, options) {
       if (args && !Array.isArray(args)) {
         options = args;
         args = null;
@@ -11113,7 +11113,7 @@ var require_parse = __commonJS({
       };
       return options.shell ? parsed : parseNonShell(parsed);
     }
-    module.exports = parse3;
+    module.exports = parse4;
   }
 });
 
@@ -11170,16 +11170,16 @@ var require_enoent = __commonJS({
 var require_cross_spawn = __commonJS({
   "node_modules/cross-spawn/index.js"(exports$1, module) {
     var cp = __require("child_process");
-    var parse3 = require_parse();
+    var parse4 = require_parse();
     var enoent = require_enoent();
     function spawn2(command, args, options) {
-      const parsed = parse3(command, args, options);
+      const parsed = parse4(command, args, options);
       const spawned = cp.spawn(parsed.command, parsed.args, parsed.options);
       enoent.hookChildProcess(spawned, parsed);
       return spawned;
     }
     function spawnSync2(command, args, options) {
-      const parsed = parse3(command, args, options);
+      const parsed = parse4(command, args, options);
       const result = cp.spawnSync(parsed.command, parsed.args, parsed.options);
       result.error = result.error || enoent.verifyENOENTSync(result.status, parsed);
       return result;
@@ -11187,7 +11187,7 @@ var require_cross_spawn = __commonJS({
     module.exports = spawn2;
     module.exports.spawn = spawn2;
     module.exports.sync = spawnSync2;
-    module.exports._parse = parse3;
+    module.exports._parse = parse4;
     module.exports._enoent = enoent;
   }
 });
@@ -11220,7 +11220,7 @@ var ExitCode = {
   EXECUTOR_ERROR: 40,
   CLI_ERROR: 50
 };
-var LociError = class extends Error {
+var XciError = class extends Error {
   code;
   suggestion;
   constructor(message, options) {
@@ -11232,24 +11232,37 @@ var LociError = class extends Error {
     }
   }
 };
-var ConfigError = class extends LociError {
+var ConfigError = class extends XciError {
   category = "config";
 };
-var CommandError = class extends LociError {
+var CommandError = class extends XciError {
   category = "command";
 };
-var InterpolationError = class extends LociError {
+var InterpolationError = class extends XciError {
   category = "interpolation";
 };
-var ExecutorError = class extends LociError {
+var ExecutorError = class extends XciError {
   category = "executor";
 };
-var CliError = class extends LociError {
+var CliError = class extends XciError {
   category = "cli";
 };
 var YamlParseError = class extends ConfigError {
-  constructor(filePath, line, cause) {
-    super(`Invalid YAML in ${filePath}${line !== void 0 ? ` at line ${line}` : ""}`, {
+  constructor(filePath, line, cause, rawContent) {
+    const lineInfo = line !== void 0 ? ` at line ${line}` : "";
+    let snippet = "";
+    const isSecret = /secrets/i.test(filePath);
+    if (line !== void 0 && rawContent && !isSecret) {
+      const lines = rawContent.split("\n");
+      const lineText = lines[line - 1];
+      if (lineText !== void 0) {
+        snippet = `
+  ${line} | ${lineText}`;
+      }
+    } else if (line !== void 0 && isSecret) {
+      snippet = "\n  (line content hidden \u2014 secrets file)";
+    }
+    super(`Invalid YAML in ${filePath}${lineInfo}${snippet}`, {
       code: "CFG_YAML_PARSE",
       cause,
       suggestion: "Check the file for unmatched quotes or indentation errors"
@@ -11292,7 +11305,7 @@ var UndefinedPlaceholderError = class extends InterpolationError {
   constructor(placeholder, aliasName) {
     super(`Undefined placeholder \${${placeholder}} in alias "${aliasName}"`, {
       code: "INT_UNDEFINED_PLACEHOLDER",
-      suggestion: `Add ${placeholder} to one of your .loci config files`
+      suggestion: `Add ${placeholder} to one of your .xci config files`
     });
   }
 };
@@ -11329,6 +11342,34 @@ function exitCodeFor(error) {
 }
 
 // src/config/index.ts
+function listYamlFilesRecursive(dirPath) {
+  const results = [];
+  let entries;
+  try {
+    entries = readdirSync(dirPath);
+  } catch {
+    return [];
+  }
+  for (const entry of entries.sort()) {
+    const full = join(dirPath, entry);
+    try {
+      if (statSync(full).isDirectory()) {
+        results.push(...listYamlFilesRecursive(full));
+      } else if (entry.endsWith(".yml") || entry.endsWith(".yaml")) {
+        results.push(full);
+      }
+    } catch {
+    }
+  }
+  return results;
+}
+function isDirectory(p) {
+  try {
+    return statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
 function isEnoent(err) {
   return typeof err === "object" && err !== null && err.code === "ENOENT";
 }
@@ -11383,7 +11424,7 @@ function readLayer(filePath, layer) {
   } catch (err) {
     if (err instanceof import_yaml.YAMLParseError) {
       const line = err.linePos?.[0]?.line;
-      throw new YamlParseError(filePath, line, err);
+      throw new YamlParseError(filePath, line, err, raw);
     }
     throw err;
   }
@@ -11400,7 +11441,7 @@ function readLayer(filePath, layer) {
   const values = flattenToStrings(parsed, filePath);
   return { values, layer };
 }
-function mergeLayers(layers) {
+function mergeLayers(layers, projectRoot) {
   const values = {};
   const provenance = {};
   for (const entry of layers) {
@@ -11410,21 +11451,64 @@ function mergeLayers(layers) {
       provenance[key] = entry.layer;
     }
   }
+  if (projectRoot) {
+    values["xci.project.path"] = projectRoot;
+    values["XCI_PROJECT_PATH"] = projectRoot;
+  }
   const secretKeys = /* @__PURE__ */ new Set();
   for (const [key, layer] of Object.entries(provenance)) {
     if (layer === "secrets") {
       secretKeys.add(key);
     }
   }
+  const interpolated = interpolateValues(values);
   return {
-    values: Object.freeze(values),
+    values: Object.freeze(interpolated),
     provenance: Object.freeze(provenance),
     secretKeys: Object.freeze(secretKeys)
   };
 }
+var PLACEHOLDER_RE = /\$\$\{[^}]+\}|\$\{([^}]+)\}/g;
+function interpolateValues(values) {
+  const resolved = {};
+  const resolving = /* @__PURE__ */ new Set();
+  function resolve2(key) {
+    if (Object.hasOwn(resolved, key)) return resolved[key];
+    if (resolving.has(key)) {
+      throw new YamlParseError(
+        "<config>",
+        void 0,
+        new Error(`Circular interpolation: "${key}" references itself through ${[...resolving].join(" \u2192 ")}`)
+      );
+    }
+    const raw = values[key];
+    if (raw === void 0) return "";
+    if (!raw.includes("${")) {
+      resolved[key] = raw;
+      return raw;
+    }
+    resolving.add(key);
+    const result = raw.replace(PLACEHOLDER_RE, (match, refKey) => {
+      if (refKey === void 0) {
+        return match.slice(1);
+      }
+      if (!Object.hasOwn(values, refKey)) {
+        return match;
+      }
+      return resolve2(refKey);
+    });
+    resolving.delete(key);
+    resolved[key] = result;
+    return result;
+  }
+  for (const key of Object.keys(values)) {
+    resolve2(key);
+  }
+  return resolved;
+}
 function isSecretTrackedByGit(cwd) {
   try {
-    execSync("git ls-files --error-unmatch .loci/secrets.yml", { stdio: "pipe", cwd });
+    execSync("git ls-files --error-unmatch .xci/secrets.yml", { stdio: "pipe", cwd });
     return true;
   } catch (err) {
     if (isEnoent(err)) return false;
@@ -11433,24 +11517,88 @@ function isSecretTrackedByGit(cwd) {
 }
 var configLoader = {
   async load(cwd) {
-    const machinePath = process.env["LOCI_MACHINE_CONFIG"];
-    const projectPath = join(cwd, ".loci", "config.yml");
-    const secretsPath = join(cwd, ".loci", "secrets.yml");
-    const localPath = join(cwd, ".loci", "local.yml");
+    const machineDir = process.env["XCI_MACHINE_CONFIGS"];
+    const projectPath = join(cwd, ".xci", "config.yml");
+    const secretsPath = join(cwd, ".xci", "secrets.yml");
+    const secretsDir = join(cwd, ".xci", "secrets");
+    const localPath = join(cwd, ".xci", "local.yml");
+    let projectName;
+    const projectResult = readLayer(projectPath, "project");
+    if (projectResult) {
+      projectName = projectResult.values["project"];
+    }
+    const machineConfigLayers = [];
+    const machineSecretLayers = [];
+    if (machineDir) {
+      if (!isDirectory(machineDir)) {
+        process.stderr.write(`[xci] WARNING: XCI_MACHINE_CONFIGS="${machineDir}" is not a directory
+`);
+      } else {
+        const machineDirs = [machineDir];
+        if (projectName) {
+          const projDir = join(machineDir, projectName);
+          if (isDirectory(projDir)) {
+            machineDirs.push(projDir);
+          } else {
+            process.stderr.write(`[xci] NOTE: machine project dir not found: ${projDir}
+`);
+          }
+        } else {
+          process.stderr.write(`[xci] NOTE: "project" not set in config.yml \u2014 skipping project-specific machine config
+`);
+        }
+        let machineFilesLoaded = 0;
+        for (const dir of machineDirs) {
+          const mcFile = readLayer(join(dir, "config.yml"), "machine");
+          if (mcFile) {
+            machineConfigLayers.push(mcFile);
+            machineFilesLoaded++;
+          }
+          const msFile = readLayer(join(dir, "secrets.yml"), "secrets");
+          if (msFile) {
+            machineSecretLayers.push(msFile);
+            machineFilesLoaded++;
+          }
+          const msDir = join(dir, "secrets");
+          if (isDirectory(msDir)) {
+            for (const f of listYamlFilesRecursive(msDir)) {
+              machineSecretLayers.push(readLayer(f, "secrets"));
+              machineFilesLoaded++;
+            }
+          }
+        }
+        if (machineFilesLoaded === 0) {
+          process.stderr.write(`[xci] NOTE: XCI_MACHINE_CONFIGS="${machineDir}" \u2014 no config/secrets files found
+`);
+        }
+      }
+    }
+    const projectSecretLayers = [];
+    const secretsResult = readLayer(secretsPath, "secrets");
+    if (secretsResult) projectSecretLayers.push(secretsResult);
+    if (isDirectory(secretsDir)) {
+      for (const f of listYamlFilesRecursive(secretsDir)) {
+        projectSecretLayers.push(readLayer(f, "secrets"));
+      }
+    }
     const layers = [
-      readLayer(machinePath, "machine"),
+      ...machineConfigLayers,
+      // machine config (lowest priority)
       readLayer(projectPath, "project"),
-      readLayer(secretsPath, "secrets"),
+      ...machineSecretLayers,
+      // machine secrets
+      ...projectSecretLayers,
+      // project secrets
       readLayer(localPath, "local")
     ];
-    if (layers[2] !== null) {
+    if (secretsResult !== null) {
       if (isSecretTrackedByGit(cwd)) {
         process.stderr.write(
-          "[xci] WARNING: .loci/secrets.yml is tracked by git. Run: git rm --cached .loci/secrets.yml\n"
+          "[xci] WARNING: .xci/secrets.yml is tracked by git. Run: git rm --cached .xci/secrets.yml\n"
         );
       }
     }
-    return mergeLayers(layers);
+    return mergeLayers(layers, cwd);
   }
 };
 
@@ -11531,6 +11679,118 @@ function normalizePlatformBlock(aliasName, platformKey, block) {
   );
 }
 function normalizeObject(aliasName, obj, _filePath) {
+  if (Object.hasOwn(obj, "ini")) {
+    const raw = obj.ini;
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      throw new CommandSchemaError(aliasName, "ini must be an object with { file, set?, delete? }");
+    }
+    const ini = raw;
+    if (typeof ini.file !== "string") {
+      throw new CommandSchemaError(aliasName, "ini.file must be a string (path to INI file)");
+    }
+    const mode = ini.mode ?? "overwrite";
+    if (mode !== "overwrite" && mode !== "merge") {
+      throw new CommandSchemaError(aliasName, 'ini.mode must be "overwrite" or "merge"');
+    }
+    let set;
+    if (ini.set !== void 0) {
+      if (typeof ini.set !== "object" || ini.set === null || Array.isArray(ini.set)) {
+        throw new CommandSchemaError(aliasName, "ini.set must be an object of { section: { key: value } }");
+      }
+      set = {};
+      for (const [section, keys] of Object.entries(ini.set)) {
+        if (typeof keys !== "object" || keys === null || Array.isArray(keys)) {
+          throw new CommandSchemaError(aliasName, `ini.set["${section}"] must be an object of { key: value }`);
+        }
+        set[section] = {};
+        for (const [k, v] of Object.entries(keys)) {
+          if (typeof v !== "string") {
+            throw new CommandSchemaError(aliasName, `ini.set["${section}"]["${k}"] must be a string`);
+          }
+          set[section][k] = v;
+        }
+      }
+    }
+    let del;
+    if (ini.delete !== void 0) {
+      if (typeof ini.delete !== "object" || ini.delete === null || Array.isArray(ini.delete)) {
+        throw new CommandSchemaError(aliasName, "ini.delete must be an object of { section: [keys] }");
+      }
+      del = {};
+      for (const [section, keys] of Object.entries(ini.delete)) {
+        if (!Array.isArray(keys)) {
+          throw new CommandSchemaError(aliasName, `ini.delete["${section}"] must be an array of key names`);
+        }
+        del[section] = keys;
+      }
+    }
+    if (!set && !del) {
+      throw new CommandSchemaError(aliasName, "ini must have at least one of: set, delete");
+    }
+    const description2 = typeof obj.description === "string" ? obj.description : void 0;
+    return {
+      kind: "ini",
+      file: ini.file,
+      mode,
+      ...set !== void 0 ? { set } : {},
+      ...del !== void 0 ? { delete: del } : {},
+      ...description2 !== void 0 ? { description: description2 } : {}
+    };
+  }
+  if (Object.hasOwn(obj, "for_each")) {
+    const raw = obj.for_each;
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      throw new CommandSchemaError(aliasName, "for_each must be an object with { var, in, cmd|run }");
+    }
+    const fe = raw;
+    if (typeof fe.var !== "string") {
+      throw new CommandSchemaError(aliasName, "for_each.var must be a string (loop variable name)");
+    }
+    if (!Array.isArray(fe.in)) {
+      throw new CommandSchemaError(aliasName, "for_each.in must be an array of values");
+    }
+    for (const v of fe.in) {
+      if (typeof v !== "string") {
+        throw new CommandSchemaError(aliasName, "for_each.in must contain only strings");
+      }
+    }
+    const mode = fe.mode ?? "steps";
+    if (mode !== "steps" && mode !== "parallel") {
+      throw new CommandSchemaError(aliasName, 'for_each.mode must be "steps" or "parallel"');
+    }
+    if (!fe.cmd && !fe.run) {
+      throw new CommandSchemaError(aliasName, "for_each must have cmd or run");
+    }
+    let cmd2;
+    if (fe.cmd !== void 0) {
+      if (typeof fe.cmd === "string") {
+        cmd2 = tokenize(fe.cmd, aliasName);
+      } else if (Array.isArray(fe.cmd)) {
+        cmd2 = validateStringArray(aliasName, fe.cmd, "for_each.cmd");
+      } else {
+        throw new CommandSchemaError(aliasName, "for_each.cmd must be a string or array");
+      }
+    }
+    const run = typeof fe.run === "string" ? fe.run : void 0;
+    const description2 = typeof obj.description === "string" ? obj.description : void 0;
+    let failMode;
+    if (fe.failMode !== void 0) {
+      if (fe.failMode !== "fast" && fe.failMode !== "complete") {
+        throw new CommandSchemaError(aliasName, 'for_each.failMode must be "fast" or "complete"');
+      }
+      failMode = fe.failMode;
+    }
+    return {
+      kind: "for_each",
+      var: fe.var,
+      in: fe.in,
+      mode,
+      ...cmd2 !== void 0 ? { cmd: cmd2 } : {},
+      ...run !== void 0 ? { run } : {},
+      ...description2 !== void 0 ? { description: description2 } : {},
+      ...failMode !== void 0 ? { failMode } : {}
+    };
+  }
   if (Object.hasOwn(obj, "steps")) {
     const steps = validateStringArray(aliasName, obj.steps, "steps");
     const description2 = typeof obj.description === "string" ? obj.description : void 0;
@@ -11583,11 +11843,54 @@ function normalizeObject(aliasName, obj, _filePath) {
   } else {
     throw new CommandSchemaError(aliasName, "cmd must be a string or array of strings");
   }
+  let capture;
+  if (Object.hasOwn(obj, "capture")) {
+    const raw = obj.capture;
+    if (typeof raw === "string") {
+      capture = { var: raw };
+    } else if (typeof raw === "object" && raw !== null && !Array.isArray(raw)) {
+      const captureObj = raw;
+      if (typeof captureObj.var !== "string") {
+        throw new CommandSchemaError(aliasName, "capture.var must be a string (variable name)");
+      }
+      const validTypes = ["string", "int", "float", "json"];
+      let captureType;
+      if (captureObj.type !== void 0) {
+        if (typeof captureObj.type !== "string" || !validTypes.includes(captureObj.type)) {
+          throw new CommandSchemaError(aliasName, `capture.type must be one of: ${validTypes.join(", ")}`);
+        }
+        captureType = captureObj.type;
+      }
+      let assert;
+      if (captureObj.assert !== void 0) {
+        if (typeof captureObj.assert === "string") {
+          assert = captureObj.assert;
+        } else if (Array.isArray(captureObj.assert)) {
+          for (const a2 of captureObj.assert) {
+            if (typeof a2 !== "string") {
+              throw new CommandSchemaError(aliasName, "capture.assert array must contain only strings");
+            }
+          }
+          assert = captureObj.assert;
+        } else {
+          throw new CommandSchemaError(aliasName, "capture.assert must be a string or array of strings");
+        }
+      }
+      capture = {
+        var: captureObj.var,
+        ...captureType !== void 0 ? { type: captureType } : {},
+        ...assert !== void 0 ? { assert } : {}
+      };
+    } else {
+      throw new CommandSchemaError(aliasName, "capture must be a string or object with { var, type?, assert? }");
+    }
+  }
   return {
     kind: "single",
     cmd,
     ...description !== void 0 ? { description } : {},
-    ...platforms !== void 0 ? { platforms } : {}
+    ...platforms !== void 0 ? { platforms } : {},
+    ...capture !== void 0 ? { capture } : {}
   };
 }
 function normalizeAlias(aliasName, raw, filePath) {
@@ -11604,28 +11907,31 @@ function normalizeAlias(aliasName, raw, filePath) {
   throw new CommandSchemaError(aliasName, "must be a string, array, or object");
 }
 function normalizeCommands(raw, filePath) {
-  const commands = /* @__PURE__ */ new Map();
+  const commands2 = /* @__PURE__ */ new Map();
   for (const [aliasName, value] of Object.entries(raw)) {
-    commands.set(aliasName, normalizeAlias(aliasName, value));
+    commands2.set(aliasName, normalizeAlias(aliasName, value));
   }
-  return commands;
+  return commands2;
 }
 
 // src/commands/validate.ts
-function getAliasRefs(def, commands) {
+function getAliasRefs(def, commands2) {
   if (def.kind === "sequential") {
-    return def.steps.filter((step) => commands.has(step));
+    return def.steps.filter((step) => commands2.has(step));
   }
   if (def.kind === "parallel") {
-    return def.group.filter((entry) => commands.has(entry));
+    return def.group.filter((entry) => commands2.has(entry));
+  }
+  if (def.kind === "for_each" && def.run && commands2.has(def.run)) {
+    return [def.run];
   }
   return [];
 }
-function validateGraph(commands) {
-  const color = /* @__PURE__ */ new Map();
+function validateGraph(commands2) {
+  const color2 = /* @__PURE__ */ new Map();
   const path6 = [];
-  for (const alias of commands.keys()) {
-    color.set(alias, "white");
+  for (const alias of commands2.keys()) {
+    color2.set(alias, "white");
   }
   function dfs(alias, depth) {
     if (depth > 10) {
@@ -11634,16 +11940,16 @@ function validateGraph(commands) {
         `alias nesting exceeds maximum depth of 10: ${path6.join(" -> ")}`
       );
     }
-    color.set(alias, "gray");
+    color2.set(alias, "gray");
     path6.push(alias);
-    const def = commands.get(alias);
+    const def = commands2.get(alias);
     if (def === void 0) {
       path6.pop();
-      color.set(alias, "black");
+      color2.set(alias, "black");
       return;
     }
-    for (const ref of getAliasRefs(def, commands)) {
-      const refColor = color.get(ref) ?? "white";
+    for (const ref of getAliasRefs(def, commands2)) {
+      const refColor = color2.get(ref) ?? "white";
       if (refColor === "gray") {
         const cycleStart = path6.indexOf(ref);
         const cyclePath = [...path6.slice(cycleStart), ref];
@@ -11654,18 +11960,17 @@ function validateGraph(commands) {
       }
     }
     path6.pop();
-    color.set(alias, "black");
+    color2.set(alias, "black");
   }
-  for (const alias of commands.keys()) {
-    if ((color.get(alias) ?? "white") === "white") {
+  for (const alias of commands2.keys()) {
+    if ((color2.get(alias) ?? "white") === "white") {
       dfs(alias, 0);
     }
   }
 }
 
 // src/commands/index.ts
-function readCommandsYaml(cwd) {
-  const filePath = join(cwd, ".loci", "commands.yml");
+function readCommandsFile(filePath) {
   let raw;
   try {
     raw = readFileSync(filePath, "utf8");
@@ -11680,7 +11985,7 @@ function readCommandsYaml(cwd) {
     parsed = (0, import_yaml2.parse)(raw);
   } catch (err) {
     if (err instanceof import_yaml2.YAMLParseError) {
-      throw new YamlParseError(filePath, err.linePos?.[0]?.line, err);
+      throw new YamlParseError(filePath, err.linePos?.[0]?.line, err, raw);
     }
     throw err;
   }
@@ -11696,32 +12001,183 @@ function readCommandsYaml(cwd) {
   }
   return parsed;
 }
+function listYamlFilesRecursive2(dirPath) {
+  const results = [];
+  let entries;
+  try {
+    entries = readdirSync(dirPath);
+  } catch {
+    return [];
+  }
+  for (const entry of entries.sort()) {
+    const full = join(dirPath, entry);
+    try {
+      if (statSync(full).isDirectory()) {
+        results.push(...listYamlFilesRecursive2(full));
+      } else if (entry.endsWith(".yml") || entry.endsWith(".yaml")) {
+        results.push(full);
+      }
+    } catch {
+    }
+  }
+  return results;
+}
+function mergeCommands(target, source, sourceFile) {
+  for (const [alias, def] of source) {
+    if (target.has(alias)) {
+      throw new CommandSchemaError(alias, `duplicate alias defined in ${sourceFile}`);
+    }
+    target.set(alias, def);
+  }
+}
+function mergeCommandsSilent(target, source) {
+  for (const [alias, def] of source) {
+    target.set(alias, def);
+  }
+}
+function loadCommandsFromDir(baseDir) {
+  const mainFile = join(baseDir, "commands.yml");
+  const commandsDir = join(baseDir, "commands");
+  const commands2 = /* @__PURE__ */ new Map();
+  const mainRaw = readCommandsFile(mainFile);
+  if (mainRaw) {
+    for (const [k, v] of normalizeCommands(mainRaw)) {
+      commands2.set(k, v);
+    }
+  }
+  let dirExists = false;
+  try {
+    dirExists = statSync(commandsDir).isDirectory();
+  } catch {
+  }
+  if (dirExists) {
+    for (const filePath of listYamlFilesRecursive2(commandsDir)) {
+      const raw = readCommandsFile(filePath);
+      if (raw === null) continue;
+      const fileCommands = normalizeCommands(raw);
+      mergeCommands(commands2, fileCommands, filePath);
+    }
+  }
+  return commands2;
+}
 var commandsLoader = {
   async load(cwd) {
-    join(cwd, ".loci", "commands.yml");
-    const raw = readCommandsYaml(cwd);
-    if (raw === null) return /* @__PURE__ */ new Map();
-    const commands = normalizeCommands(raw);
-    validateGraph(commands);
-    return commands;
+    const machineDir = process.env["XCI_MACHINE_CONFIGS"];
+    const projectDir = join(cwd, ".xci");
+    let projectName;
+    const configPath = join(projectDir, "config.yml");
+    try {
+      const raw = readFileSync(configPath, "utf8");
+      const parsed = (0, import_yaml2.parse)(raw);
+      if (parsed && typeof parsed === "object" && "project" in parsed && typeof parsed.project === "string") {
+        projectName = parsed.project;
+      }
+    } catch {
+    }
+    let machineIsDir = false;
+    try {
+      machineIsDir = !!machineDir && statSync(machineDir).isDirectory();
+    } catch {
+    }
+    const commands2 = machineIsDir ? loadCommandsFromDir(machineDir) : /* @__PURE__ */ new Map();
+    if (machineIsDir && projectName) {
+      const machineProjectDir = join(machineDir, projectName);
+      let projDirExists = false;
+      try {
+        projDirExists = statSync(machineProjectDir).isDirectory();
+      } catch {
+      }
+      if (projDirExists) {
+        const machineProjectCmds = loadCommandsFromDir(machineProjectDir);
+        mergeCommandsSilent(commands2, machineProjectCmds);
+      }
+    }
+    const projectCommands = loadCommandsFromDir(projectDir);
+    mergeCommandsSilent(commands2, projectCommands);
+    if (commands2.size === 0) return commands2;
+    validateGraph(commands2);
+    return commands2;
   }
 };
 
 // src/resolver/interpolate.ts
-var PLACEHOLDER_RE = /\$\$\{[^}]+\}|\$\{([^}]+)\}/g;
+var PLACEHOLDER_RE2 = /\$\$\{[^}]+\}|\$\{([^}]+)\}/g;
+function resolveJsonPath(key, values) {
+  const bracketIdx = key.indexOf("[");
+  key.indexOf(".");
+  const splitPoints = [];
+  if (bracketIdx > 0) splitPoints.push(bracketIdx);
+  for (let i2 = 0; i2 < key.length; i2++) {
+    if (key[i2] === "." && i2 > 0) splitPoints.push(i2);
+  }
+  for (const sp of splitPoints) {
+    const base = key.slice(0, sp);
+    if (!Object.hasOwn(values, base)) continue;
+    const jsonStr = values[base];
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      continue;
+    }
+    const pathStr = key.slice(sp);
+    const result = navigateJson(parsed, pathStr);
+    if (result !== void 0) {
+      return typeof result === "string" ? result : JSON.stringify(result);
+    }
+  }
+  return void 0;
+}
+function navigateJson(value, path6) {
+  let current = value;
+  const segmentRe = /\[(\d+)\]|\.([^.[]+)/g;
+  let m;
+  while ((m = segmentRe.exec(path6)) !== null) {
+    if (current === null || current === void 0) return void 0;
+    if (m[1] !== void 0) {
+      if (!Array.isArray(current)) return void 0;
+      const idx = Number(m[1]);
+      current = current[idx];
+    } else if (m[2] !== void 0) {
+      if (typeof current !== "object" || Array.isArray(current)) return void 0;
+      current = current[m[2]];
+    }
+  }
+  return current;
+}
 function interpolateToken(token, aliasName, values) {
-  return token.replace(PLACEHOLDER_RE, (match, key) => {
+  return token.replace(PLACEHOLDER_RE2, (match, key) => {
     if (key === void 0) {
       return match.slice(1);
     }
-    if (!Object.hasOwn(values, key)) {
-      throw new UndefinedPlaceholderError(key, aliasName);
+    if (Object.hasOwn(values, key)) {
+      return String(values[key]);
     }
-    return String(values[key]);
+    const jsonResult = resolveJsonPath(key, values);
+    if (jsonResult !== void 0) {
+      return jsonResult;
+    }
+    throw new UndefinedPlaceholderError(key, aliasName);
   });
 }
 function interpolateArgv(argv, aliasName, values) {
   return argv.map((token) => interpolateToken(token, aliasName, values));
+}
+function interpolateTokenLenient(token, values) {
+  return token.replace(PLACEHOLDER_RE2, (match, key) => {
+    if (key === void 0) {
+      return match.slice(1);
+    }
+    if (Object.hasOwn(values, key)) {
+      return String(values[key]);
+    }
+    const jsonResult = resolveJsonPath(key, values);
+    if (jsonResult !== void 0) return jsonResult;
+    return match;
+  });
+}
+function interpolateArgvLenient(argv, values) {
+  return argv.map((token) => interpolateTokenLenient(token, values));
 }
 
 // src/resolver/platform.ts
@@ -11772,25 +12228,62 @@ function redactSecrets(envVars, secretKeys) {
 }
 
 // src/resolver/index.ts
-function resolveToArgvArrays(aliasName, commands, config, depth, chain) {
-  const plan = resolveAlias(aliasName, commands, config, depth, chain);
-  switch (plan.kind) {
-    case "single":
-      return [plan.argv];
-    case "sequential":
-      return plan.steps;
-    case "parallel":
-      return plan.group.map((entry) => entry.argv);
-  }
-}
-function resolveAlias(aliasName, commands, config, depth, chain) {
+function resolveToStepsLenient(aliasName, commands2, config, depth, chain) {
   if (depth > 10) {
     throw new CommandSchemaError(
       chain[0] ?? aliasName,
       `alias nesting exceeds maximum depth of 10: ${chain.join(" -> ")}`
     );
   }
-  const def = commands.get(aliasName);
+  const def = commands2.get(aliasName);
+  if (def === void 0) {
+    throw new UnknownAliasError(aliasName);
+  }
+  switch (def.kind) {
+    case "single": {
+      const rawCmd = selectPlatformCmd(def, aliasName);
+      const argv = interpolateArgvLenient(rawCmd, config.values);
+      return [{
+        argv,
+        rawArgv: rawCmd,
+        ...def.capture ? { capture: def.capture } : {}
+      }];
+    }
+    case "sequential": {
+      const allSteps = [];
+      for (const step of def.steps) {
+        if (commands2.has(step)) {
+          const subSteps = resolveToStepsLenient(step, commands2, config, depth + 1, [...chain, step]);
+          for (const s of subSteps) allSteps.push(s);
+        } else {
+          const tokens = tokenize(step, aliasName);
+          const argv = interpolateArgvLenient(tokens, config.values);
+          allSteps.push({ argv, rawArgv: tokens });
+        }
+      }
+      return allSteps;
+    }
+    case "parallel":
+      return def.group.map((entry) => {
+        if (commands2.has(entry)) {
+          const sub = resolveToStepsLenient(entry, commands2, config, depth + 1, [...chain, entry]);
+          if (sub.length === 1) return sub[0];
+          return sub[0];
+        }
+        const tokens = tokenize(entry, aliasName);
+        const argv = interpolateArgvLenient(tokens, config.values);
+        return { argv, rawArgv: tokens };
+      });
+  }
+}
+function resolveAlias(aliasName, commands2, config, depth, chain) {
+  if (depth > 10) {
+    throw new CommandSchemaError(
+      chain[0] ?? aliasName,
+      `alias nesting exceeds maximum depth of 10: ${chain.join(" -> ")}`
+    );
+  }
+  const def = commands2.get(aliasName);
   if (def === void 0) {
     throw new UnknownAliasError(aliasName);
   }
@@ -11798,20 +12291,18 @@ function resolveAlias(aliasName, commands, config, depth, chain) {
     case "single": {
       const cmd = selectPlatformCmd(def, aliasName);
       const argv = interpolateArgv(cmd, aliasName, config.values);
-      return { kind: "single", argv };
+      return { kind: "single", argv, ...def.capture ? { capture: def.capture } : {} };
     }
     case "sequential": {
       const allSteps = [];
       for (const step of def.steps) {
-        if (commands.has(step)) {
-          const subSteps = resolveToArgvArrays(step, commands, config, depth + 1, [...chain, step]);
-          for (const s of subSteps) {
-            allSteps.push(s);
-          }
+        if (commands2.has(step)) {
+          const subSteps = resolveToStepsLenient(step, commands2, config, depth + 1, [...chain, step]);
+          for (const s of subSteps) allSteps.push(s);
         } else {
           const tokens = tokenize(step, aliasName);
-          const argv = interpolateArgv(tokens, aliasName, config.values);
-          allSteps.push(argv);
+          const argv = interpolateArgvLenient(tokens, config.values);
+          allSteps.push({ argv, rawArgv: tokens });
         }
       }
       return { kind: "sequential", steps: allSteps };
@@ -11819,8 +12310,8 @@ function resolveAlias(aliasName, commands, config, depth, chain) {
     case "parallel": {
       const group = [];
       for (const entry of def.group) {
-        if (commands.has(entry)) {
-          const subPlan = resolveAlias(entry, commands, config, depth + 1, [...chain, entry]);
+        if (commands2.has(entry)) {
+          const subPlan = resolveAlias(entry, commands2, config, depth + 1, [...chain, entry]);
           if (subPlan.kind !== "single") {
             throw new CommandSchemaError(
               aliasName,
@@ -11836,13 +12327,557 @@ function resolveAlias(aliasName, commands, config, depth, chain) {
       }
       return { kind: "parallel", group, failMode: def.failMode ?? "fast" };
     }
+    case "for_each": {
+      if (def.mode === "parallel") {
+        const group = [];
+        for (const value of def.in) {
+          const loopConfig = {
+            ...config,
+            values: { ...config.values, [def.var]: value }
+          };
+          if (def.run && commands2.has(def.run)) {
+            const subPlan = resolveAlias(def.run, commands2, loopConfig, depth + 1, [...chain, def.run]);
+            if (subPlan.kind !== "single") {
+              throw new CommandSchemaError(aliasName, `for_each.run "${def.run}" must resolve to a single command`);
+            }
+            group.push({ alias: `${def.run}[${value}]`, argv: subPlan.argv });
+          } else if (def.cmd) {
+            const argv = interpolateArgv(def.cmd, aliasName, loopConfig.values);
+            group.push({ alias: `${aliasName}[${value}]`, argv });
+          }
+        }
+        return { kind: "parallel", group, failMode: def.failMode ?? "fast" };
+      }
+      const allSteps = [];
+      for (const value of def.in) {
+        const loopValues = { ...config.values, [def.var]: value };
+        if (def.run && commands2.has(def.run)) {
+          const loopConfig = { ...config, values: loopValues };
+          const subSteps = resolveToStepsLenient(def.run, commands2, loopConfig, depth + 1, [...chain, def.run]);
+          for (const s of subSteps) allSteps.push(s);
+        } else if (def.cmd) {
+          const argv = interpolateArgvLenient(def.cmd, loopValues);
+          allSteps.push({ argv, rawArgv: def.cmd });
+        }
+      }
+      return { kind: "sequential", steps: allSteps };
+    }
+    case "ini": {
+      const file = interpolateArgv([def.file], aliasName, config.values)[0];
+      let set;
+      if (def.set) {
+        set = {};
+        for (const [section, keys] of Object.entries(def.set)) {
+          set[section] = {};
+          for (const [k, v] of Object.entries(keys)) {
+            set[section][k] = interpolateArgv([v], aliasName, config.values)[0];
+          }
+        }
+      }
+      return {
+        kind: "ini",
+        file,
+        mode: def.mode ?? "overwrite",
+        ...set ? { set } : {},
+        ...def.delete ? { delete: def.delete } : {}
+      };
+    }
   }
 }
 var resolver = {
-  resolve(aliasName, commands, config) {
-    return resolveAlias(aliasName, commands, config, 0, [aliasName]);
+  resolve(aliasName, commands2, config) {
+    return resolveAlias(aliasName, commands2, config, 0, [aliasName]);
   }
 };
+
+// src/executor/capture.ts
+function validateCapture(raw, config) {
+  const trimmed = raw.trim();
+  const typeName = config.type ?? "string";
+  let numericValue;
+  switch (typeName) {
+    case "string":
+      break;
+    case "int": {
+      const n2 = Number(trimmed);
+      if (trimmed === "" || !Number.isFinite(n2) || !Number.isInteger(n2)) {
+        return { valid: false, error: `expected int, got "${trimmed}"`, coerced: trimmed };
+      }
+      numericValue = n2;
+      break;
+    }
+    case "float": {
+      const n2 = Number(trimmed);
+      if (trimmed === "" || !Number.isFinite(n2)) {
+        return { valid: false, error: `expected float, got "${trimmed}"`, coerced: trimmed };
+      }
+      numericValue = n2;
+      break;
+    }
+    case "json": {
+      if (trimmed === "") {
+        return { valid: false, error: "expected JSON, got empty string", coerced: trimmed };
+      }
+      try {
+        JSON.parse(trimmed);
+      } catch {
+        const preview = trimmed.length > 50 ? trimmed.slice(0, 50) + "..." : trimmed;
+        return { valid: false, error: `expected valid JSON, got "${preview}"`, coerced: trimmed };
+      }
+      break;
+    }
+  }
+  if (config.assert) {
+    const assertions = typeof config.assert === "string" ? [config.assert] : config.assert;
+    for (const assertion of assertions) {
+      const result = evaluateAssertion(assertion, trimmed, numericValue);
+      if (!result.pass) {
+        return { valid: false, error: result.reason, coerced: trimmed };
+      }
+    }
+  }
+  return { valid: true, coerced: trimmed };
+}
+function evaluateAssertion(assertion, value, numericValue) {
+  const a2 = assertion.trim();
+  if (a2 === "not empty") {
+    return value.length > 0 ? { pass: true } : { pass: false, reason: "value is empty" };
+  }
+  if (a2 === "not null") {
+    return value.length > 0 ? { pass: true } : { pass: false, reason: "value is null/empty" };
+  }
+  if (a2 === "valid json") {
+    if (value.length === 0) {
+      return { pass: false, reason: "expected valid JSON, got empty string" };
+    }
+    try {
+      JSON.parse(value);
+      return { pass: true };
+    } catch {
+      const preview = value.length > 50 ? value.slice(0, 50) + "..." : value;
+      return { pass: false, reason: `expected valid JSON, got "${preview}"` };
+    }
+  }
+  if (a2 === "valid json or empty") {
+    if (value.length === 0) return { pass: true };
+    try {
+      JSON.parse(value);
+      return { pass: true };
+    } catch {
+      const preview = value.length > 50 ? value.slice(0, 50) + "..." : value;
+      return { pass: false, reason: `expected valid JSON or empty, got "${preview}"` };
+    }
+  }
+  if (a2 === "empty") {
+    return value.length === 0 ? { pass: true } : { pass: false, reason: `expected empty, got "${value}"` };
+  }
+  const compMatch = /^(>=|<=|>|<|==|!=)\s*(.+)$/.exec(a2);
+  if (compMatch) {
+    const op = compMatch[1];
+    const rhs = compMatch[2].trim();
+    if (numericValue !== void 0) {
+      const rhsNum = Number(rhs);
+      if (Number.isFinite(rhsNum)) {
+        return numericCompare(op, numericValue, rhsNum, a2);
+      }
+    }
+    const rhsStr = rhs.replace(/^['"]|['"]$/g, "");
+    return stringCompare(op, value, rhsStr, a2);
+  }
+  const regexMatch = /^matches\s+\/(.+)\/([gimsuy]*)$/.exec(a2);
+  if (regexMatch) {
+    try {
+      const re = new RegExp(regexMatch[1], regexMatch[2]);
+      return re.test(value) ? { pass: true } : { pass: false, reason: `"${value}" does not match /${regexMatch[1]}/${regexMatch[2]}` };
+    } catch {
+      return { pass: false, reason: `invalid regex in assertion: ${a2}` };
+    }
+  }
+  return { pass: false, reason: `unknown assertion: "${a2}"` };
+}
+function numericCompare(op, lhs, rhs, expr) {
+  let pass = false;
+  switch (op) {
+    case ">":
+      pass = lhs > rhs;
+      break;
+    case "<":
+      pass = lhs < rhs;
+      break;
+    case ">=":
+      pass = lhs >= rhs;
+      break;
+    case "<=":
+      pass = lhs <= rhs;
+      break;
+    case "==":
+      pass = lhs === rhs;
+      break;
+    case "!=":
+      pass = lhs !== rhs;
+      break;
+  }
+  return pass ? { pass: true } : { pass: false, reason: `assertion failed: ${lhs} ${expr}` };
+}
+function stringCompare(op, lhs, rhs, expr) {
+  let pass = false;
+  switch (op) {
+    case "==":
+      pass = lhs === rhs;
+      break;
+    case "!=":
+      pass = lhs !== rhs;
+      break;
+    default:
+      return { pass: false, reason: `operator "${op}" requires numeric values, got string "${lhs}"` };
+  }
+  return pass ? { pass: true } : { pass: false, reason: `assertion failed: "${lhs}" ${expr}` };
+}
+function parseIni(content) {
+  const data = {};
+  let currentSection = "";
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (line === "" || line.startsWith(";") || line.startsWith("#")) continue;
+    const sectionMatch = /^\[(.+)\]$/.exec(line);
+    if (sectionMatch) {
+      currentSection = sectionMatch[1];
+      if (!data[currentSection]) data[currentSection] = {};
+      continue;
+    }
+    const kvMatch = /^(\+?[^=]+)=(.*)$/.exec(line);
+    if (kvMatch && currentSection) {
+      const key = kvMatch[1].trim();
+      const value = kvMatch[2].trim();
+      if (!data[currentSection]) data[currentSection] = {};
+      data[currentSection][key] = value;
+    }
+  }
+  return data;
+}
+function serializeIni(data) {
+  const lines = [];
+  for (const [section, keys] of Object.entries(data)) {
+    lines.push(`[${section}]`);
+    for (const [key, value] of Object.entries(keys)) {
+      lines.push(`${key}=${value}`);
+    }
+    lines.push("");
+  }
+  return lines.join("\r\n");
+}
+function writeIni(filePath, sections, mode = "overwrite") {
+  let data;
+  if (mode === "merge" && existsSync(filePath)) {
+    const existing = readFileSync(filePath, "utf8");
+    data = parseIni(existing);
+    for (const [section, keys] of Object.entries(sections)) {
+      if (!data[section]) data[section] = {};
+      for (const [key, value] of Object.entries(keys)) {
+        data[section][key] = value;
+      }
+    }
+  } else {
+    data = sections;
+  }
+  mkdirSync(dirname(filePath), { recursive: true });
+  writeFileSync(filePath, serializeIni(data), "utf8");
+}
+function deleteIniKeys(filePath, deletions) {
+  if (!existsSync(filePath)) return;
+  const existing = readFileSync(filePath, "utf8");
+  const data = parseIni(existing);
+  for (const [section, keys] of Object.entries(deletions)) {
+    if (!data[section]) continue;
+    for (const key of keys) {
+      delete data[section][key];
+    }
+    if (Object.keys(data[section]).length === 0) {
+      delete data[section];
+    }
+  }
+  writeFileSync(filePath, serializeIni(data), "utf8");
+}
+
+// src/executor/output.ts
+var ANSI_PALETTE = [
+  "\x1B[32m",
+  // green
+  "\x1B[33m",
+  // yellow
+  "\x1B[34m",
+  // blue
+  "\x1B[35m",
+  // magenta
+  "\x1B[36m",
+  // cyan
+  "\x1B[91m",
+  // bright red
+  "\x1B[92m",
+  // bright green
+  "\x1B[93m"
+  // bright yellow
+];
+var RESET = "\x1B[0m";
+var DIM = "\x1B[2m";
+function shouldUseColor() {
+  if (process.env["NO_COLOR"] !== void 0) return false;
+  if (process.env["FORCE_COLOR"] !== void 0) return true;
+  return process.stdout.isTTY === true;
+}
+function hashColor(name) {
+  let hash = 5381;
+  for (let i2 = 0; i2 < name.length; i2++) {
+    hash = (hash << 5) + hash + name.charCodeAt(i2) | 0;
+  }
+  return ANSI_PALETTE[Math.abs(hash) % ANSI_PALETTE.length];
+}
+function formatPrefix(alias) {
+  if (shouldUseColor()) {
+    return `${hashColor(alias)}${alias}${RESET}`;
+  }
+  return `[${alias}]`;
+}
+function makeLineTransform(alias) {
+  const prefix = formatPrefix(alias);
+  return function* (line) {
+    yield `${prefix} ${line}`;
+  };
+}
+function dimPrefix(label) {
+  if (shouldUseColor()) {
+    return `${DIM}[${label}]${RESET}`;
+  }
+  return `[${label}]`;
+}
+function printStepHeader(stepName, stepNum, totalSteps) {
+  const counter = stepNum !== void 0 && totalSteps !== void 0 ? ` [${stepNum}/${totalSteps}]` : "";
+  process.stderr.write(`\u25B6 ${stepName}${counter}
+`);
+}
+function printStepResult(stepName, exitCode, durationMs) {
+  const useColor = shouldUseColor();
+  const ok = exitCode === 0;
+  const icon = ok ? useColor ? "\x1B[32m\u2713\x1B[0m" : "\u2713" : useColor ? "\x1B[31m\u2717\x1B[0m" : "\u2717";
+  const status = ok ? useColor ? "\x1B[32mOK\x1B[0m" : "OK" : useColor ? `\x1B[31mFAILED (exit ${exitCode})\x1B[0m` : `FAILED (exit ${exitCode})`;
+  const duration = durationMs !== void 0 ? ` ${formatDuration(durationMs)}` : "";
+  process.stderr.write(`${icon} ${stepName} ${status}${duration}
+`);
+}
+function formatDuration(ms) {
+  if (ms < 1e3) return `${ms}ms`;
+  const s = (ms / 1e3).toFixed(1);
+  return `${s}s`;
+}
+function buildSecretValues(config) {
+  const values = /* @__PURE__ */ new Set();
+  for (const key of config.secretKeys) {
+    const val = config.values[key];
+    if (val !== void 0 && val !== "") {
+      values.add(val);
+    }
+  }
+  return values;
+}
+function redactArgv(argv, secretValues) {
+  return argv.map((token) => secretValues.has(token) ? "***" : token);
+}
+function printDryRun(plan, secretValues, envVars, secretKeys) {
+  const prefix = dimPrefix("dry-run");
+  switch (plan.kind) {
+    case "single": {
+      const redacted = redactArgv(plan.argv, secretValues);
+      process.stderr.write(`${prefix} single: ${redacted.join(" ")}
+`);
+      break;
+    }
+    case "sequential": {
+      process.stderr.write(`${prefix} sequential (${plan.steps.length} steps):
+`);
+      for (let i2 = 0; i2 < plan.steps.length; i2++) {
+        const step = plan.steps[i2];
+        if (step) {
+          const redacted = redactArgv(step.argv, secretValues);
+          const captureTag = step.capture ? ` [capture \u2192 ${step.capture.var}]` : "";
+          process.stderr.write(`${prefix}   ${i2 + 1}. ${redacted.join(" ")}${captureTag}
+`);
+        }
+      }
+      break;
+    }
+    case "parallel": {
+      process.stderr.write(
+        `${prefix} parallel (failMode: ${plan.failMode}, ${plan.group.length} commands):
+`
+      );
+      for (const entry of plan.group) {
+        const redacted = redactArgv(entry.argv, secretValues);
+        process.stderr.write(`${prefix}   [${entry.alias}] ${redacted.join(" ")}
+`);
+      }
+      break;
+    }
+    case "ini": {
+      process.stderr.write(`${prefix} ini ${plan.mode}: ${plan.file}
+`);
+      if (plan.set) {
+        for (const [section, keys] of Object.entries(plan.set)) {
+          for (const [k, v] of Object.entries(keys)) {
+            const masked = secretValues.has(v) ? "**********" : v;
+            process.stderr.write(`${prefix}   [${section}] ${k}=${masked}
+`);
+          }
+        }
+      }
+      break;
+    }
+  }
+  if (envVars) {
+    process.stderr.write(`${prefix}
+${prefix} variables:
+`);
+    const sortedKeys = Object.keys(envVars).sort();
+    for (const key of sortedKeys) {
+      if (key.includes(".") || !sortedKeys.some((k) => k.includes(".") && k.toUpperCase().replace(/[.\-]/g, "_") === key)) {
+        const isSecret = secretKeys?.has(key) ?? false;
+        const value = isSecret ? "**********" : envVars[key];
+        process.stderr.write(`${prefix}   ${key} = ${value}
+`);
+      }
+    }
+  }
+}
+function printVerboseTrace(projectRoot, configFiles, envVars, secretKeys) {
+  const prefix = dimPrefix("verbose");
+  process.stderr.write(`${prefix} project root: ${projectRoot}
+`);
+  for (const cf of configFiles) {
+    const status = cf.found ? "loaded" : "not found";
+    process.stderr.write(`${prefix} config: ${cf.path} [${status}]
+`);
+  }
+  const redacted = redactSecrets(envVars, secretKeys);
+  for (const [key, value] of Object.entries(redacted)) {
+    process.stderr.write(`${prefix} env: ${key}=${value}
+`);
+  }
+}
+function printVerboseCommand(aliasDef, plan, secretValues) {
+  const prefix = dimPrefix("verbose");
+  switch (aliasDef.kind) {
+    case "single":
+      process.stderr.write(`${prefix} raw cmd: ${aliasDef.cmd.join(" ")}
+`);
+      break;
+    case "sequential":
+      process.stderr.write(`${prefix} raw steps:
+`);
+      for (const step of aliasDef.steps) {
+        process.stderr.write(`${prefix}   - ${step}
+`);
+      }
+      break;
+    case "parallel":
+      process.stderr.write(`${prefix} raw parallel:
+`);
+      for (const entry of aliasDef.group) {
+        process.stderr.write(`${prefix}   - ${entry}
+`);
+      }
+      break;
+  }
+  switch (plan.kind) {
+    case "single": {
+      const redacted = redactArgv(plan.argv, secretValues);
+      process.stderr.write(`${prefix} resolved: ${redacted.join(" ")}
+`);
+      break;
+    }
+    case "sequential":
+      process.stderr.write(`${prefix} resolved steps:
+`);
+      for (let i2 = 0; i2 < plan.steps.length; i2++) {
+        const step = plan.steps[i2];
+        if (step) {
+          const redacted = redactArgv(step.argv, secretValues);
+          const captureTag = step.capture ? ` [capture \u2192 ${step.capture.var}]` : "";
+          process.stderr.write(`${prefix}   ${i2 + 1}. ${redacted.join(" ")}${captureTag}
+`);
+        }
+      }
+      break;
+    case "parallel":
+      process.stderr.write(`${prefix} resolved parallel:
+`);
+      for (const entry of plan.group) {
+        const redacted = redactArgv(entry.argv, secretValues);
+        process.stderr.write(`${prefix}   [${entry.alias}] ${redacted.join(" ")}
+`);
+      }
+      break;
+  }
+}
+function printStepPreview(rawArgv, resolvedArgv, secretValues) {
+  const useColor = shouldUseColor();
+  const dim2 = useColor ? DIM : "";
+  const reset2 = useColor ? RESET : "";
+  const rawStr = rawArgv ? rawArgv.join(" ") : void 0;
+  const resArgv = resolvedArgv;
+  const resStr = resArgv.join(" ");
+  if (rawStr && rawStr !== resStr) {
+    process.stderr.write(`${dim2}  raw: ${rawStr}${reset2}
+`);
+    process.stderr.write(`${dim2}  run: ${resStr}${reset2}
+`);
+  } else {
+    process.stderr.write(`${dim2}  run: ${resStr}${reset2}
+`);
+  }
+}
+function printCaptureResult(cap, validation, verbose = false) {
+  const useColor = shouldUseColor();
+  const dim2 = useColor ? DIM : "";
+  const reset2 = useColor ? RESET : "";
+  const green2 = useColor ? "\x1B[32m" : "";
+  const red2 = useColor ? "\x1B[31m" : "";
+  process.stderr.write(`${dim2}  \u250C\u2500 capture: ${cap.var} \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500${reset2}
+`);
+  process.stderr.write(`${dim2}  \u2502${reset2} value: ${validation.coerced}
+`);
+  if (verbose) {
+    process.stderr.write(`${dim2}  \u2502${reset2} type:  ${cap.type ?? "string"}
+`);
+    if (cap.assert) {
+      const asserts = typeof cap.assert === "string" ? [cap.assert] : cap.assert;
+      process.stderr.write(`${dim2}  \u2502${reset2} assert: ${asserts.join(", ")}
+`);
+    }
+  }
+  if (validation.valid) {
+    process.stderr.write(`${dim2}  \u2502${reset2} ${green2}PASS${reset2}
+`);
+  } else {
+    process.stderr.write(`${dim2}  \u2502${reset2} ${red2}FAIL: ${validation.error}${reset2}
+`);
+  }
+  process.stderr.write(`${dim2}  \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500${reset2}
+`);
+}
+function printParallelSummary(group, results) {
+  const useColor = shouldUseColor();
+  const check = useColor ? "\x1B[32m\u2713\x1B[0m" : "\u2713";
+  const cross = useColor ? "\x1B[31m\u2717\x1B[0m" : "\u2717";
+  process.stderr.write("\n");
+  for (let i2 = 0; i2 < group.length; i2++) {
+    const entry = group[i2];
+    const result = results[i2];
+    if (!entry || !result) continue;
+    const icon = result.exitCode === 0 ? check : cross;
+    const codeStr = result.canceled ? "canceled" : `exit ${result.exitCode}`;
+    process.stderr.write(`  ${icon} ${entry.alias} (${codeStr})
+`);
+  }
+}
 
 // node_modules/is-plain-obj/index.js
 function isPlainObject(value) {
@@ -12480,8 +13515,8 @@ var defaultVerboseFunction = ({
 }) => {
   const timestampString = serializeTimestamp(timestamp);
   const icon = ICONS[type]({ failed, reject, piped });
-  const color = COLORS[type]({ reject });
-  return `${gray(`[${timestampString}]`)} ${gray(`[${commandId}]`)} ${color(icon)} ${color(message)}`;
+  const color2 = COLORS[type]({ reject });
+  return `${gray(`[${timestampString}]`)} ${gray(`[${commandId}]`)} ${color2(icon)} ${color2(message)}`;
 };
 var serializeTimestamp = (timestamp) => `${padField(timestamp.getHours(), 2)}:${padField(timestamp.getMinutes(), 2)}:${padField(timestamp.getSeconds(), 2)}.${padField(timestamp.getMilliseconds(), 3)}`;
 var padField = (field, padding) => String(field).padStart(padding, "0");
@@ -13184,7 +14219,7 @@ var killOnTimeout = async ({ kill, forceKillAfterDelay, context, controllerSigna
     return;
   }
   try {
-    await setTimeout(forceKillAfterDelay, void 0, { signal: controllerSignal });
+    await setTimeout$1(forceKillAfterDelay, void 0, { signal: controllerSignal });
     if (kill("SIGKILL")) {
       context.isForcefullyTerminated ??= true;
     }
@@ -13785,7 +14820,7 @@ var validateTimeout = ({ timeout }) => {
 };
 var throwOnTimeout = (subprocess, timeout, context, controller) => timeout === 0 || timeout === void 0 ? [] : [killAfterTimeout(subprocess, timeout, context, controller)];
 var killAfterTimeout = async (subprocess, timeout, context, { signal }) => {
-  await setTimeout(timeout, void 0, { signal });
+  await setTimeout$1(timeout, void 0, { signal });
   context.terminationReason ??= "timeout";
   subprocess.kill();
   throw new DiscardedError();
@@ -18360,143 +19395,8 @@ createExeca(mapNode);
 createExeca(mapScriptAsync, {}, deepScriptOptions, setScriptSync);
 getIpcExport();
 
-// src/executor/output.ts
-var ANSI_PALETTE = [
-  "\x1B[32m",
-  // green
-  "\x1B[33m",
-  // yellow
-  "\x1B[34m",
-  // blue
-  "\x1B[35m",
-  // magenta
-  "\x1B[36m",
-  // cyan
-  "\x1B[91m",
-  // bright red
-  "\x1B[92m",
-  // bright green
-  "\x1B[93m"
-  // bright yellow
-];
-var RESET = "\x1B[0m";
-var DIM = "\x1B[2m";
-function shouldUseColor() {
-  if (process.env["NO_COLOR"] !== void 0) return false;
-  if (process.env["FORCE_COLOR"] !== void 0) return true;
-  return process.stdout.isTTY === true;
-}
-function hashColor(name) {
-  let hash = 5381;
-  for (let i2 = 0; i2 < name.length; i2++) {
-    hash = (hash << 5) + hash + name.charCodeAt(i2) | 0;
-  }
-  return ANSI_PALETTE[Math.abs(hash) % ANSI_PALETTE.length];
-}
-function formatPrefix(alias) {
-  if (shouldUseColor()) {
-    return `${hashColor(alias)}${alias}${RESET}`;
-  }
-  return `[${alias}]`;
-}
-function makeLineTransform(alias) {
-  const prefix = formatPrefix(alias);
-  return function* (line) {
-    yield `${prefix} ${line}`;
-  };
-}
-function dimPrefix(label) {
-  if (shouldUseColor()) {
-    return `${DIM}[${label}]${RESET}`;
-  }
-  return `[${label}]`;
-}
-function printStepHeader(stepName) {
-  process.stderr.write(`\u25B6 ${stepName}
-`);
-}
-function buildSecretValues(config) {
-  const values = /* @__PURE__ */ new Set();
-  for (const key of config.secretKeys) {
-    const val = config.values[key];
-    if (val !== void 0 && val !== "") {
-      values.add(val);
-    }
-  }
-  return values;
-}
-function redactArgv(argv, secretValues) {
-  return argv.map((token) => secretValues.has(token) ? "***" : token);
-}
-function printDryRun(plan, secretValues) {
-  const prefix = dimPrefix("dry-run");
-  switch (plan.kind) {
-    case "single": {
-      const redacted = redactArgv(plan.argv, secretValues);
-      process.stderr.write(`${prefix} single: ${redacted.join(" ")}
-`);
-      break;
-    }
-    case "sequential": {
-      process.stderr.write(`${prefix} sequential (${plan.steps.length} steps):
-`);
-      for (let i2 = 0; i2 < plan.steps.length; i2++) {
-        const step = plan.steps[i2];
-        if (step) {
-          const redacted = redactArgv(step, secretValues);
-          process.stderr.write(`${prefix}   ${i2 + 1}. ${redacted.join(" ")}
-`);
-        }
-      }
-      break;
-    }
-    case "parallel": {
-      process.stderr.write(
-        `${prefix} parallel (failMode: ${plan.failMode}, ${plan.group.length} commands):
-`
-      );
-      for (const entry of plan.group) {
-        const redacted = redactArgv(entry.argv, secretValues);
-        process.stderr.write(`${prefix}   [${entry.alias}] ${redacted.join(" ")}
-`);
-      }
-      break;
-    }
-  }
-}
-function printVerboseTrace(projectRoot, configFiles, envVars, secretKeys) {
-  const prefix = dimPrefix("verbose");
-  process.stderr.write(`${prefix} project root: ${projectRoot}
-`);
-  for (const cf of configFiles) {
-    const status = cf.found ? "loaded" : "not found";
-    process.stderr.write(`${prefix} config: ${cf.path} [${status}]
-`);
-  }
-  const redacted = redactSecrets(envVars, secretKeys);
-  for (const [key, value] of Object.entries(redacted)) {
-    process.stderr.write(`${prefix} env: ${key}=${value}
-`);
-  }
-}
-function printParallelSummary(group, results) {
-  const useColor = shouldUseColor();
-  const check = useColor ? "\x1B[32m\u2713\x1B[0m" : "\u2713";
-  const cross = useColor ? "\x1B[31m\u2717\x1B[0m" : "\u2717";
-  process.stderr.write("\n");
-  for (let i2 = 0; i2 < group.length; i2++) {
-    const entry = group[i2];
-    const result = results[i2];
-    if (!entry || !result) continue;
-    const icon = result.exitCode === 0 ? check : cross;
-    const codeStr = result.canceled ? "canceled" : `exit ${result.exitCode}`;
-    process.stderr.write(`  ${icon} ${entry.alias} (${codeStr})
-`);
-  }
-}
-
 // src/executor/parallel.ts
-async function runParallel(group, failMode, cwd, env) {
+async function runParallel(group, failMode, cwd, env, logFile, showOutput = true) {
   const controller = new AbortController();
   const { signal } = controller;
   let wasInterrupted = false;
@@ -18506,20 +19406,35 @@ async function runParallel(group, failMode, cwd, env) {
   };
   process.on("SIGINT", sigintHandler);
   const mergedEnv = { ...process.env, ...env };
+  const logStream = logFile ? createWriteStream(logFile, { flags: "a" }) : void 0;
   const rawPromises = group.map(({ alias, argv }) => {
     const [cmd, ...args] = argv;
     if (!cmd) {
       return Promise.reject(new SpawnError("(empty command)", new Error("argv is empty")));
     }
+    const stdoutDest = [];
+    const stderrDest = [];
+    if (showOutput) {
+      stdoutDest.push(makeLineTransform(alias), "inherit");
+      stderrDest.push(makeLineTransform(alias), "inherit");
+    }
     return execa(cmd, args, {
       cwd,
       env: mergedEnv,
-      stdout: [makeLineTransform(alias), "inherit"],
-      stderr: [makeLineTransform(alias), "inherit"],
+      stdout: stdoutDest.length > 0 ? stdoutDest : "pipe",
+      stderr: stderrDest.length > 0 ? stderrDest : "pipe",
       cancelSignal: signal,
       forceKillAfterDelay: 3e3,
       reject: false
     }).then((value) => {
+      if (logStream) {
+        const out = value.stdout ?? "";
+        const err = value.stderr ?? "";
+        if (out) logStream.write(`[${alias}] ${out}
+`);
+        if (err) logStream.write(`[${alias}] ${err}
+`);
+      }
       const isCanceled = value.isCanceled === true;
       const code = isCanceled ? 0 : value.exitCode ?? 0;
       if (!isCanceled && code !== 0 && failMode === "fast") {
@@ -18562,39 +19477,270 @@ async function runParallel(group, failMode, cwd, env) {
       }
     }
   }
+  logStream?.end();
   printParallelSummary(group, finalResults);
   return { exitCode: firstFailCode };
 }
-
-// src/executor/single.ts
-async function runSingle(argv, cwd, env) {
+var IS_WINDOWS = process.platform === "win32";
+var FORCE_KILL_DELAY = 5e3;
+async function killAndWait(proc) {
+  process.stderr.write("\n[xci] Stopping child process...\n");
+  const pid = proc.pid;
+  if (IS_WINDOWS && pid) {
+    try {
+      execSync(`taskkill /f /t /pid ${pid}`, { stdio: "pipe" });
+    } catch {
+    }
+  } else {
+    proc.kill("SIGTERM");
+  }
+  const forceKillTimer = setTimeout(() => {
+    process.stderr.write("[xci] Force killing child process...\n");
+    if (IS_WINDOWS && pid) {
+      try {
+        execSync(`taskkill /f /t /pid ${pid}`, { stdio: "pipe" });
+      } catch {
+      }
+    } else {
+      proc.kill("SIGKILL");
+    }
+  }, FORCE_KILL_DELAY);
+  try {
+    await proc;
+  } catch {
+  } finally {
+    clearTimeout(forceKillTimer);
+  }
+  process.stderr.write("[xci] Child process terminated.\n");
+}
+async function runSingleCapture(argv, cwd, env, logFile) {
   const [cmd, ...args] = argv;
   if (!cmd) throw new SpawnError("(empty command)", new Error("argv is empty"));
+  let logStream;
+  if (logFile) logStream = createWriteStream(logFile, { flags: "a" });
+  const proc = execa(cmd, args, {
+    cwd,
+    env: { ...process.env, ...env },
+    stdout: "pipe",
+    stderr: "pipe",
+    reject: false
+  });
+  let interrupted = false;
+  const sigintHandler = async () => {
+    interrupted = true;
+    await killAndWait(proc);
+  };
+  process.on("SIGINT", sigintHandler);
   try {
-    const result = await execa(cmd, args, {
-      cwd,
-      env: { ...process.env, ...env },
-      stdout: "inherit",
-      stderr: "inherit",
-      reject: false
+    const result = await proc;
+    const stdout = result.stdout ?? "";
+    const stderr = result.stderr ?? "";
+    if (logStream) {
+      if (stdout) logStream.write(stdout + "\n");
+      if (stderr) logStream.write(stderr + "\n");
+      logStream.end();
+    }
+    if (interrupted) return { exitCode: 130, stdout: "" };
+    if (result.failed && result.exitCode === void 0 && result.cause) {
+      throw new SpawnError(cmd, result.cause);
+    }
+    return { exitCode: result.exitCode ?? 1, stdout: stdout.trim() };
+  } catch (err) {
+    logStream?.end();
+    if (interrupted) return { exitCode: 130, stdout: "" };
+    if (err instanceof SpawnError) throw err;
+    throw new SpawnError(cmd, err);
+  } finally {
+    process.off("SIGINT", sigintHandler);
+  }
+}
+async function runSingle(argv, cwd, env, logFile, showOutput = true, tailLines) {
+  const [cmd, ...args] = argv;
+  if (!cmd) throw new SpawnError("(empty command)", new Error("argv is empty"));
+  let logStream;
+  if (logFile) logStream = createWriteStream(logFile, { flags: "a" });
+  const useInherit = !logFile && showOutput && !tailLines;
+  const isTail = tailLines !== void 0 && tailLines > 0;
+  const proc = execa(cmd, args, {
+    cwd,
+    env: { ...process.env, ...env },
+    stdout: useInherit ? "inherit" : "pipe",
+    stderr: useInherit ? "inherit" : "pipe",
+    reject: false
+  });
+  const tailBuffer = [];
+  let tailLinesDrawn = 0;
+  function redrawTail() {
+    if (!isTail) return;
+    const cols = process.stderr.columns ?? 120;
+    if (tailLinesDrawn > 0) {
+      for (let i2 = 0; i2 < tailLinesDrawn; i2++) {
+        process.stderr.write("\x1B[A\x1B[2K");
+      }
+    }
+    const visible = tailBuffer.slice(-tailLines);
+    tailLinesDrawn = visible.length;
+    for (const line of visible) {
+      const stripped = line.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
+      const truncated = stripped.length > cols - 4 ? line.slice(0, cols - 5) + "\x1B[0m\u2026" : line;
+      process.stderr.write(`  | ${truncated}\x1B[0m
+`);
+    }
+  }
+  function appendTailLine(text) {
+    for (const line of text.split("\n")) {
+      const cleaned = line.replace(/\r/g, "").replace(/[\x00-\x08\x0b\x0c\x0e-\x1a]/g, "");
+      if (cleaned.length > 0) tailBuffer.push(cleaned);
+    }
+    redrawTail();
+  }
+  if (!useInherit) {
+    proc.stdout?.on("data", (chunk) => {
+      const text = chunk.toString("utf8");
+      if (logStream) logStream.write(text);
+      if (showOutput) process.stdout.write(text);
+      if (isTail) appendTailLine(text);
     });
+    proc.stderr?.on("data", (chunk) => {
+      const text = chunk.toString("utf8");
+      if (logStream) logStream.write(text);
+      if (showOutput) process.stderr.write(text);
+      if (isTail) appendTailLine(text);
+    });
+  }
+  let interrupted = false;
+  const sigintHandler = async () => {
+    interrupted = true;
+    await killAndWait(proc);
+  };
+  process.on("SIGINT", sigintHandler);
+  try {
+    const result = await proc;
+    logStream?.end();
+    if (interrupted) return { exitCode: 130 };
     if (result.failed && result.exitCode === void 0 && result.cause) {
       throw new SpawnError(cmd, result.cause);
     }
     return { exitCode: result.exitCode ?? 1 };
   } catch (err) {
+    logStream?.end();
+    if (interrupted) return { exitCode: 130 };
     if (err instanceof SpawnError) throw err;
     throw new SpawnError(cmd, err);
+  } finally {
+    process.off("SIGINT", sigintHandler);
   }
 }
 
 // src/executor/sequential.ts
-async function runSequential(steps, cwd, env) {
+var IS_WINDOWS2 = process.platform === "win32";
+async function runAndCapture(argv, cwd, env, logFile) {
+  const [cmd, ...args] = argv;
+  if (!cmd) throw new SpawnError("(empty command)", new Error("argv is empty"));
+  const logStream = logFile ? createWriteStream(logFile, { flags: "a" }) : void 0;
+  const proc = execa(cmd, args, {
+    cwd,
+    env: { ...process.env, ...env },
+    stdout: "pipe",
+    stderr: "pipe",
+    reject: false
+  });
+  let interrupted = false;
+  const pid = proc.pid;
+  const sigintHandler = async () => {
+    interrupted = true;
+    process.stderr.write("\n[xci] Stopping child process...\n");
+    if (IS_WINDOWS2 && pid) {
+      try {
+        execSync(`taskkill /f /t /pid ${pid}`, { stdio: "pipe" });
+      } catch {
+      }
+    } else {
+      proc.kill("SIGTERM");
+    }
+    const forceTimer = setTimeout(() => {
+      if (IS_WINDOWS2 && pid) {
+        try {
+          execSync(`taskkill /f /t /pid ${pid}`, { stdio: "pipe" });
+        } catch {
+        }
+      } else {
+        proc.kill("SIGKILL");
+      }
+    }, 5e3);
+    try {
+      await proc;
+    } catch {
+    }
+    clearTimeout(forceTimer);
+    process.stderr.write("[xci] Child process terminated.\n");
+  };
+  process.on("SIGINT", sigintHandler);
+  try {
+    const result = await proc;
+    const stdout = result.stdout ?? "";
+    const stderr = result.stderr ?? "";
+    if (logStream) {
+      if (stdout) logStream.write(stdout + "\n");
+      if (stderr) logStream.write(stderr + "\n");
+      logStream.end();
+    }
+    if (interrupted) return { exitCode: 130, stdout: "" };
+    if (result.failed && result.exitCode === void 0 && result.cause) {
+      throw new SpawnError(cmd, result.cause);
+    }
+    return { exitCode: result.exitCode ?? 1, stdout: stdout.trim() };
+  } catch (err) {
+    logStream?.end();
+    if (interrupted) return { exitCode: 130, stdout: "" };
+    if (err instanceof SpawnError) throw err;
+    throw new SpawnError(cmd, err);
+  } finally {
+    process.off("SIGINT", sigintHandler);
+  }
+}
+async function runSequential(steps, cwd, env, logFile, showOutput = true, tailLines) {
+  const capturedVars = {};
+  const totalSteps = steps.length;
+  let stepNum = 0;
   for (const step of steps) {
-    printStepHeader(step[0] ?? "(unknown)");
-    const result = await runSingle(step, cwd, env);
-    if (result.exitCode !== 0) {
-      return result;
+    stepNum++;
+    const mergedValues = { ...env, ...capturedVars };
+    const finalArgv = step.rawArgv ? interpolateArgv(step.rawArgv, "(step)", mergedValues) : step.argv;
+    const stepCmd = finalArgv[0] ?? "(unknown)";
+    printStepHeader(stepCmd, stepNum, totalSteps);
+    printStepPreview(step.rawArgv, finalArgv);
+    const stepEnv = { ...env, ...capturedVars };
+    const startTime = Date.now();
+    if (step.capture) {
+      const cap = step.capture;
+      const result = await runAndCapture(finalArgv, cwd, stepEnv, logFile);
+      const elapsed = Date.now() - startTime;
+      if (result.exitCode !== 0) {
+        printStepResult(stepCmd, result.exitCode, elapsed);
+        return { exitCode: result.exitCode };
+      }
+      if (result.stdout.length > 0 && showOutput) {
+        process.stdout.write(result.stdout + "\n");
+      }
+      const validation = validateCapture(result.stdout, cap);
+      const isVerbose2 = stepEnv["XCI_VERBOSE"] === "1";
+      printCaptureResult(cap, validation, isVerbose2);
+      if (!validation.valid) {
+        printStepResult(stepCmd, 1, elapsed);
+        return { exitCode: 1 };
+      }
+      capturedVars[cap.var] = validation.coerced;
+      const envKey = cap.var.toUpperCase().replace(/[.\-]/g, "_");
+      capturedVars[envKey] = validation.coerced;
+      printStepResult(stepCmd, 0, elapsed);
+    } else {
+      const result = await runSingle(finalArgv, cwd, stepEnv, logFile, showOutput, tailLines);
+      const elapsed = Date.now() - startTime;
+      printStepResult(stepCmd, result.exitCode, elapsed);
+      if (result.exitCode !== 0) {
+        return result;
+      }
     }
   }
   return { exitCode: 0 };
@@ -18603,23 +19749,77 @@ async function runSequential(steps, cwd, env) {
 // src/executor/index.ts
 var executor = {
   async run(plan, options) {
-    const { cwd, env } = options;
+    const { cwd, env, logFile, showOutput, tailLines } = options;
+    const show = showOutput ?? true;
     switch (plan.kind) {
-      case "single":
-        return runSingle(plan.argv, cwd, env);
+      case "single": {
+        const cmdName = plan.argv[0] ?? "(cmd)";
+        printStepHeader(cmdName);
+        printStepPreview(void 0, plan.argv);
+        const startTime = Date.now();
+        if (plan.capture) {
+          const result2 = await runSingleCapture(plan.argv, cwd, env, logFile);
+          const elapsed = Date.now() - startTime;
+          if (result2.exitCode !== 0) {
+            printStepResult(cmdName, result2.exitCode, elapsed);
+            return { exitCode: result2.exitCode };
+          }
+          if (result2.stdout.length > 0 && show) {
+            process.stdout.write(result2.stdout + "\n");
+          }
+          const validation = validateCapture(result2.stdout, plan.capture);
+          const isVerbose2 = env["XCI_VERBOSE"] === "1";
+          printCaptureResult(plan.capture, validation, isVerbose2);
+          if (!validation.valid) {
+            printStepResult(cmdName, 1, elapsed);
+            return { exitCode: 1 };
+          }
+          printStepResult(cmdName, 0, elapsed);
+          return { exitCode: 0 };
+        }
+        const result = await runSingle(plan.argv, cwd, env, logFile, show, tailLines);
+        printStepResult(cmdName, result.exitCode, Date.now() - startTime);
+        return result;
+      }
       case "sequential":
-        return runSequential(plan.steps, cwd, env);
+        return runSequential(plan.steps, cwd, env, logFile, show, tailLines);
       case "parallel":
-        return runParallel(plan.group, plan.failMode, cwd, env);
+        return runParallel(plan.group, plan.failMode, cwd, env, logFile, show);
+      case "ini": {
+        const iniLabel = `ini:${plan.mode}`;
+        printStepHeader(iniLabel);
+        const startTime = Date.now();
+        try {
+          if (plan.set) writeIni(plan.file, plan.set, plan.mode);
+          if (plan.delete) deleteIniKeys(plan.file, plan.delete);
+          process.stderr.write(`  ${plan.file}
+`);
+          if (plan.set) {
+            for (const [section, keys] of Object.entries(plan.set)) {
+              for (const [k, v] of Object.entries(keys)) {
+                process.stderr.write(`    [${section}] ${k}=${v}
+`);
+              }
+            }
+          }
+          printStepResult(iniLabel, 0, Date.now() - startTime);
+          return { exitCode: 0 };
+        } catch (err) {
+          process.stderr.write(`  error: ${err.message}
+`);
+          printStepResult(iniLabel, 1, Date.now() - startTime);
+          return { exitCode: 1 };
+        }
+      }
     }
   }
 };
 
 // src/version.ts
-var LOCI_VERSION = "0.0.0";
+var XCI_VERSION = "0.0.0";
 
 // src/init/templates.ts
-var CONFIG_YML = `# .loci/config.yml
+var CONFIG_YML = `# .xci/config.yml
 # Project-level parameters. Safe to commit.
 # These values are available as \${PARAM_NAME} in commands.yml.
 #
@@ -18627,7 +19827,7 @@ var CONFIG_YML = `# .loci/config.yml
 # registry: https://my-registry.example.com
 # app_name: my-app
 `;
-var COMMANDS_YML = `# .loci/commands.yml
+var COMMANDS_YML = `# .xci/commands.yml
 # Define command aliases for this project.
 
 hello:
@@ -18649,13 +19849,13 @@ hello:
 #     - ["npx", "tsc", "--noEmit"]
 #   failMode: fast
 `;
-var SECRETS_EXAMPLE_YML = `# .loci/secrets.yml.example
+var SECRETS_EXAMPLE_YML = `# .xci/secrets.yml.example
 # Copy this file to secrets.yml and fill in real values.
 # secrets.yml is gitignored and never committed.
 #
 # api_token: your-token-here
 `;
-var LOCAL_EXAMPLE_YML = `# .loci/local.yml.example
+var LOCAL_EXAMPLE_YML = `# .xci/local.yml.example
 # Copy this file to local.yml for per-machine overrides.
 # local.yml is gitignored and never committed.
 #
@@ -18663,7 +19863,7 @@ var LOCAL_EXAMPLE_YML = `# .loci/local.yml.example
 `;
 
 // src/init/index.ts
-var GITIGNORE_ENTRIES = [".loci/secrets.yml", ".loci/local.yml"];
+var GITIGNORE_ENTRIES = [".xci/secrets.yml", ".xci/local.yml"];
 function writeIfAbsent(filePath, content, baseDir, results) {
   const rel = relative(baseDir, filePath);
   if (existsSync(filePath)) {
@@ -18676,7 +19876,7 @@ function writeIfAbsent(filePath, content, baseDir, results) {
 function ensureGitignore(projectDir, results) {
   const gitignorePath = join(projectDir, ".gitignore");
   if (!existsSync(gitignorePath)) {
-    const content = `# loci
+    const content = `# xci
 ${GITIGNORE_ENTRIES.join("\n")}
 `;
     writeFileSync(gitignorePath, content, "utf8");
@@ -18691,7 +19891,7 @@ ${GITIGNORE_ENTRIES.join("\n")}
     return;
   }
   const appendContent = `
-# loci
+# xci
 ${missing.join("\n")}
 `;
   writeFileSync(gitignorePath, existing + appendContent, "utf8");
@@ -18706,27 +19906,1036 @@ function printInitSummary(results) {
   process.stdout.write("\nRun `xci hello` to test your setup.\n");
 }
 function runInit(cwd) {
-  const lociDir = join(cwd, ".loci");
-  mkdirSync(lociDir, { recursive: true });
+  const xciDir = join(cwd, ".xci");
+  mkdirSync(xciDir, { recursive: true });
   const results = [];
-  writeIfAbsent(join(lociDir, "config.yml"), CONFIG_YML, cwd, results);
-  writeIfAbsent(join(lociDir, "commands.yml"), COMMANDS_YML, cwd, results);
-  writeIfAbsent(join(lociDir, "secrets.yml.example"), SECRETS_EXAMPLE_YML, cwd, results);
-  writeIfAbsent(join(lociDir, "local.yml.example"), LOCAL_EXAMPLE_YML, cwd, results);
+  writeIfAbsent(join(xciDir, "config.yml"), CONFIG_YML, cwd, results);
+  writeIfAbsent(join(xciDir, "commands.yml"), COMMANDS_YML, cwd, results);
+  writeIfAbsent(join(xciDir, "secrets.yml.example"), SECRETS_EXAMPLE_YML, cwd, results);
+  writeIfAbsent(join(xciDir, "local.yml.example"), LOCAL_EXAMPLE_YML, cwd, results);
   ensureGitignore(cwd, results);
   printInitSummary(results);
 }
 function registerInitCommand(program2) {
-  program2.command("init").description("Scaffold a .loci/ directory in the current project").action(() => {
+  program2.command("init").description("Scaffold a .xci/ directory in the current project").action(() => {
     runInit(process.cwd());
   });
 }
 
+// src/template/index.ts
+var import_yaml3 = __toESM(require_dist());
+var SKIP_DIRS = /* @__PURE__ */ new Set(["template", "log"]);
+var SKIP_FILES = /* @__PURE__ */ new Set(["local.yml", "local.yaml"]);
+var PLACEHOLDER_RE3 = /\$\{([^}]+)\}/g;
+var BUILTIN_VARS = /* @__PURE__ */ new Set(["xci.project.path", "XCI_PROJECT_PATH", "XCI_VERBOSE"]);
+function stripValues(obj) {
+  if (obj === null || obj === void 0) return "";
+  if (typeof obj !== "object") return "";
+  if (Array.isArray(obj)) return obj.map(() => "");
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      result[key] = stripValues(value);
+    } else {
+      result[key] = "";
+    }
+  }
+  return result;
+}
+function isSecretsFile(relPath) {
+  return relPath === "secrets.yml" || relPath === "secrets.yaml" || relPath.startsWith("secrets/");
+}
+function extractPlaceholdersWithLocations(text, filePath) {
+  const vars = /* @__PURE__ */ new Map();
+  const lines = text.split("\n");
+  for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+    const lineText = lines[lineNum];
+    let m;
+    const re = new RegExp(PLACEHOLDER_RE3.source, "g");
+    while ((m = re.exec(lineText)) !== null) {
+      if (m.index > 0 && lineText[m.index - 1] === "$") continue;
+      const key = m[1];
+      const bracketIdx = key.indexOf("[");
+      const base = bracketIdx > 0 ? key.slice(0, bracketIdx) : key;
+      const usages = vars.get(base) ?? [];
+      usages.push({ file: filePath, line: lineNum + 1 });
+      vars.set(base, usages);
+    }
+  }
+  return vars;
+}
+function scanForPlaceholdersWithLocations(dir, baseDir) {
+  const allVars = /* @__PURE__ */ new Map();
+  if (!existsSync(dir)) return allVars;
+  function merge(source) {
+    for (const [key, usages] of source) {
+      const existing = allVars.get(key) ?? [];
+      existing.push(...usages);
+      allVars.set(key, existing);
+    }
+  }
+  for (const entry of readdirSync(dir)) {
+    const fullPath = join(dir, entry);
+    if (SKIP_DIRS.has(entry) && statSync(fullPath).isDirectory()) continue;
+    if (SKIP_FILES.has(entry)) continue;
+    if (statSync(fullPath).isDirectory()) {
+      merge(scanForPlaceholdersWithLocations(fullPath, baseDir));
+    } else if (entry.endsWith(".yml") || entry.endsWith(".yaml")) {
+      const content = readFileSync(fullPath, "utf8");
+      const relPath = relative(baseDir, fullPath);
+      merge(extractPlaceholdersWithLocations(content, relPath));
+    }
+  }
+  return allVars;
+}
+function flattenKeys(obj, prefix = "") {
+  const keys = /* @__PURE__ */ new Set();
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return keys;
+  for (const [key, value] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      for (const k of flattenKeys(value, fullKey)) keys.add(k);
+    } else {
+      keys.add(fullKey);
+    }
+  }
+  return keys;
+}
+function collectDefinedKeysFromDir(dir) {
+  const keys = /* @__PURE__ */ new Set();
+  if (!existsSync(dir)) return keys;
+  const scanFiles = (d) => {
+    for (const entry of readdirSync(d)) {
+      const path6 = join(d, entry);
+      if (SKIP_DIRS.has(entry)) continue;
+      if (statSync(path6).isDirectory()) {
+        scanFiles(path6);
+        continue;
+      }
+      if (!entry.endsWith(".yml") && !entry.endsWith(".yaml")) continue;
+      const rel = relative(dir, path6);
+      if (rel.startsWith("commands")) continue;
+      try {
+        const parsed = (0, import_yaml3.parse)(readFileSync(path6, "utf8"));
+        for (const k of flattenKeys(parsed)) keys.add(k);
+      } catch {
+      }
+    }
+  };
+  scanFiles(dir);
+  return keys;
+}
+function copyDir(srcDir, destDir, baseDir, results) {
+  mkdirSync(destDir, { recursive: true });
+  for (const entry of readdirSync(srcDir)) {
+    const srcPath = join(srcDir, entry);
+    const destPath = join(destDir, entry);
+    const relPath = relative(baseDir, srcPath);
+    if (SKIP_DIRS.has(entry) && statSync(srcPath).isDirectory()) continue;
+    if (SKIP_FILES.has(entry)) continue;
+    if (statSync(srcPath).isDirectory()) {
+      copyDir(srcPath, destPath, baseDir, results);
+      continue;
+    }
+    if (!entry.endsWith(".yml") && !entry.endsWith(".yaml")) {
+      writeFileSync(destPath, readFileSync(srcPath));
+      results.push({ path: relPath, action: "copied" });
+      continue;
+    }
+    if (isSecretsFile(relPath)) {
+      const content = readFileSync(srcPath, "utf8");
+      const parsed = (0, import_yaml3.parse)(content);
+      if (parsed && typeof parsed === "object") {
+        const stripped = stripValues(parsed);
+        writeFileSync(destPath, (0, import_yaml3.stringify)(stripped), "utf8");
+        results.push({ path: relPath, action: "stripped" });
+      } else {
+        writeFileSync(destPath, content, "utf8");
+        results.push({ path: relPath, action: "copied" });
+      }
+    } else {
+      writeFileSync(destPath, readFileSync(srcPath));
+      results.push({ path: relPath, action: "copied" });
+    }
+  }
+}
+function runTemplate(cwd) {
+  const xciDir = join(cwd, ".xci");
+  if (!existsSync(xciDir)) {
+    process.stderr.write("No .xci/ directory found. Run 'xci init' first.\n");
+    process.exitCode = 1;
+    return;
+  }
+  const configPath = join(xciDir, "config.yml");
+  let projectName = "default";
+  if (existsSync(configPath)) {
+    try {
+      const configContent = readFileSync(configPath, "utf8");
+      const config = (0, import_yaml3.parse)(configContent);
+      if (config && typeof config === "object" && "project" in config && typeof config.project === "string") {
+        projectName = config.project;
+      }
+    } catch {
+    }
+  }
+  const templateBase = join(xciDir, "template");
+  if (existsSync(templateBase)) {
+    rmSync(templateBase, { recursive: true, force: true });
+  }
+  const templateDir = join(templateBase, projectName);
+  mkdirSync(templateDir, { recursive: true });
+  const results = [];
+  copyDir(xciDir, templateDir, xciDir, results);
+  const machineDir = process.env["XCI_MACHINE_CONFIGS"];
+  const sysResults = [];
+  if (machineDir) {
+    const sysDestRoot = join(templateDir, "sys");
+    if (existsSync(machineDir)) {
+      copyDir(machineDir, sysDestRoot, machineDir, sysResults);
+    }
+    const machineProjectDir = join(machineDir, projectName);
+    if (existsSync(machineProjectDir)) {
+      const sysDestProject = join(sysDestRoot, projectName);
+      copyDir(machineProjectDir, sysDestProject, machineProjectDir, sysResults);
+    }
+  }
+  const allVarUsages = /* @__PURE__ */ new Map();
+  function mergeUsages(source, prefix = "") {
+    for (const [key, usages] of source) {
+      const existing = allVarUsages.get(key) ?? [];
+      for (const u2 of usages) {
+        existing.push({ file: prefix ? `${prefix}/${u2.file}` : u2.file, line: u2.line });
+      }
+      allVarUsages.set(key, existing);
+    }
+  }
+  mergeUsages(scanForPlaceholdersWithLocations(xciDir, xciDir));
+  if (machineDir && existsSync(machineDir)) {
+    mergeUsages(scanForPlaceholdersWithLocations(machineDir, machineDir), "$XCI_MACHINE_CONFIGS");
+    const machineProjectDir = join(machineDir, projectName);
+    if (existsSync(machineProjectDir)) {
+      mergeUsages(scanForPlaceholdersWithLocations(machineProjectDir, machineProjectDir), `$XCI_MACHINE_CONFIGS/${projectName}`);
+    }
+  }
+  const definedKeys = /* @__PURE__ */ new Set();
+  for (const k of collectDefinedKeysFromDir(xciDir)) definedKeys.add(k);
+  if (machineDir && existsSync(machineDir)) {
+    for (const k of collectDefinedKeysFromDir(machineDir)) definedKeys.add(k);
+    const machineProjectDir = join(machineDir, projectName);
+    if (existsSync(machineProjectDir)) {
+      for (const k of collectDefinedKeysFromDir(machineProjectDir)) definedKeys.add(k);
+    }
+  }
+  const missingVars = [];
+  const missingUsages = /* @__PURE__ */ new Map();
+  for (const [v, usages] of allVarUsages) {
+    if (BUILTIN_VARS.has(v)) continue;
+    if (definedKeys.has(v)) continue;
+    const upper = v.toUpperCase().replace(/[.\-]/g, "_");
+    if (definedKeys.has(upper)) continue;
+    missingVars.push(v);
+    missingUsages.set(v, usages);
+  }
+  missingVars.sort();
+  if (missingVars.length > 0) {
+    const lines = [
+      "# Variables used in commands but not defined in any config file.",
+      "# Fill these in or add them to config.yml / secrets.yml as needed.",
+      ""
+    ];
+    for (const v of missingVars) {
+      const usages = missingUsages.get(v) ?? [];
+      for (const u2 of usages) {
+        lines.push(`# used in ${u2.file}:${u2.line}`);
+      }
+      const parts = v.split(".");
+      if (parts.length === 1) {
+        lines.push(`${v}: ""`);
+      } else {
+        for (let i2 = 0; i2 < parts.length - 1; i2++) {
+          lines.push(`${"  ".repeat(i2)}${parts[i2]}:`);
+        }
+        lines.push(`${"  ".repeat(parts.length - 1)}${parts[parts.length - 1]}: ""`);
+      }
+      lines.push("");
+    }
+    const missingPath = join(templateDir, "missing.yml");
+    writeFileSync(missingPath, lines.join("\n"), "utf8");
+  }
+  process.stdout.write(`xci template \u2192 .xci/template/${projectName}/
+
+`);
+  process.stdout.write("  Project files:\n");
+  for (const { path: path6, action } of results) {
+    const label = action === "stripped" ? "stripped" : "copied  ";
+    process.stdout.write(`    ${label}  ${path6}
+`);
+  }
+  if (sysResults.length > 0) {
+    process.stdout.write("\n  System files (from $XCI_MACHINE_CONFIGS):\n");
+    for (const { path: path6, action } of sysResults) {
+      const label = action === "stripped" ? "stripped" : "copied  ";
+      process.stdout.write(`    ${label}  sys/${path6}
+`);
+    }
+  }
+  if (missingVars.length > 0) {
+    process.stdout.write(`
+  Missing variables (written to missing.yml):
+`);
+    for (const v of missingVars) {
+      process.stdout.write(`    ${v}
+`);
+    }
+  }
+  process.stdout.write("\n");
+}
+function registerTemplateCommand(program2) {
+  program2.command("template").description("Generate a shareable template of .xci/ with secrets stripped").action(() => {
+    runTemplate(process.cwd());
+  });
+}
+
+// src/tui/ansi.ts
+var ESC = "\x1B[";
+var cursor = {
+  hide: `${ESC}?25l`,
+  show: `${ESC}?25h`,
+  moveTo: (row, col) => `${ESC}${row};${col}H`,
+  moveUp: (n2 = 1) => `${ESC}${n2}A`,
+  moveDown: (n2 = 1) => `${ESC}${n2}B`,
+  saveCursor: `${ESC}s`,
+  restoreCursor: `${ESC}u`
+};
+var screen = {
+  clear: `${ESC}2J${ESC}1;1H`,
+  clearDown: `${ESC}J`,
+  altBuffer: `${ESC}?1049h`,
+  mainBuffer: `${ESC}?1049l`
+};
+var color = {
+  reset: `${ESC}0m`,
+  bold: `${ESC}1m`,
+  dim: `${ESC}2m`,
+  red: `${ESC}31m`,
+  green: `${ESC}32m`,
+  yellow: `${ESC}33m`,
+  cyan: `${ESC}36m`,
+  gray: `${ESC}90m`};
+var box = {
+  topLeft: "\u250C",
+  topRight: "\u2510",
+  bottomLeft: "\u2514",
+  bottomRight: "\u2518",
+  horizontal: "\u2500",
+  vertical: "\u2502",
+  teeDown: "\u252C"};
+function termSize() {
+  return {
+    cols: process.stdout.columns || 80,
+    rows: process.stdout.rows || 24
+  };
+}
+function isTTY() {
+  return process.stdout.isTTY === true;
+}
+function stripAnsi(s) {
+  return s.replace(/\x1b\[[0-9;]*[a-zA-Z]|\x1b\][^\x07]*\x07/g, "");
+}
+function truncate(s, maxLen) {
+  const visible = stripAnsi(s);
+  if (visible.length <= maxLen) return s;
+  return visible.slice(0, maxLen - 1) + "\u2026";
+}
+function fitWidth(s, width) {
+  const visible = stripAnsi(s);
+  if (visible.length === width) return s;
+  if (visible.length > width) return truncate(s, width);
+  return s + " ".repeat(width - visible.length);
+}
+function write(s) {
+  process.stdout.write(s);
+}
+
+// src/tui/picker.ts
+function buildEntries(commands2) {
+  const entries = [];
+  for (const [alias, def] of commands2) {
+    entries.push({
+      alias,
+      description: def.description ?? "",
+      kind: def.kind
+    });
+  }
+  return entries;
+}
+function renderPicker(entries, selected) {
+  const { rows } = termSize();
+  const maxVisible = Math.min(entries.length, rows - 6);
+  const aliasMaxLen = Math.max(...entries.map((e) => e.alias.length), 5);
+  let scrollTop = 0;
+  if (selected >= scrollTop + maxVisible) {
+    scrollTop = selected - maxVisible + 1;
+  }
+  if (selected < scrollTop) {
+    scrollTop = selected;
+  }
+  write(cursor.moveTo(1, 1) + screen.clearDown);
+  write(`${color.bold}${color.cyan}  Available aliases${color.reset}
+`);
+  write(`${color.dim}  \u2191\u2193 navigate  \u23CE select  q quit${color.reset}
+
+`);
+  const visibleEntries = entries.slice(scrollTop, scrollTop + maxVisible);
+  for (let i2 = 0; i2 < visibleEntries.length; i2++) {
+    const entry = visibleEntries[i2];
+    const idx = scrollTop + i2;
+    const isSelected = idx === selected;
+    const pointer = isSelected ? `${color.cyan}${color.bold}\u276F ` : "  ";
+    const aliasText = fitWidth(entry.alias, aliasMaxLen);
+    const kindTag = `${color.dim}(${entry.kind})${color.reset}`;
+    const desc = entry.description ? `${color.dim} \u2014 ${entry.description}${color.reset}` : "";
+    if (isSelected) {
+      write(`${pointer}${color.bold}${aliasText}${color.reset}${desc}  ${kindTag}
+`);
+    } else {
+      write(`${pointer}${color.reset}${aliasText}${desc}  ${kindTag}
+`);
+    }
+  }
+  if (entries.length > maxVisible) {
+    const above = scrollTop > 0 ? `${color.dim}  \u2191 ${scrollTop} more${color.reset}` : "";
+    const belowCount = entries.length - scrollTop - maxVisible;
+    const below = belowCount > 0 ? `${color.dim}  \u2193 ${belowCount} more${color.reset}` : "";
+    if (above) write(`${above}
+`);
+    if (below) write(`${below}
+`);
+  }
+}
+function showPicker(commands2) {
+  const entries = buildEntries(commands2);
+  if (entries.length === 0) {
+    write("No aliases defined in commands.yml\n");
+    return Promise.resolve(null);
+  }
+  return new Promise((resolve2) => {
+    const stdin = process.stdin;
+    const wasRaw = stdin.isRaw;
+    let selected = 0;
+    function cleanup() {
+      stdin.setRawMode(wasRaw ?? false);
+      stdin.removeListener("data", onKey);
+      stdin.pause();
+      write(cursor.show);
+    }
+    function onKey(data) {
+      const key = data.toString();
+      if (key === "\x1B" || key === "q" || key === "Q") {
+        cleanup();
+        write("\n");
+        resolve2(null);
+        return;
+      }
+      if (key === "\r" || key === "\n") {
+        cleanup();
+        write("\n");
+        resolve2(entries[selected].alias);
+        return;
+      }
+      if (key === "") {
+        cleanup();
+        write("\n");
+        resolve2(null);
+        return;
+      }
+      if (key === "\x1B[A" || key === "k") {
+        selected = Math.max(0, selected - 1);
+      } else if (key === "\x1B[B" || key === "j") {
+        selected = Math.min(entries.length - 1, selected + 1);
+      } else if (key === "\x1B[H" || key === "g") {
+        selected = 0;
+      } else if (key === "\x1B[F" || key === "G") {
+        selected = entries.length - 1;
+      }
+      renderPicker(entries, selected);
+    }
+    write(cursor.hide);
+    renderPicker(entries, selected);
+    stdin.setRawMode(true);
+    stdin.resume();
+    stdin.on("data", onKey);
+  });
+}
+
+// src/tui/dashboard.ts
+var commands = [];
+var logLines2 = [];
+var logScrollOffset = 0;
+var leftPanelWidth = 0;
+var isExecuting = false;
+var lastExitCode = 0;
+function statusIcon(status) {
+  switch (status) {
+    case "pending":
+      return `${color.dim}\u25CB${color.reset}`;
+    case "running":
+      return `${color.yellow}\u25B6${color.reset}`;
+    case "success":
+      return `${color.green}\u2713${color.reset}`;
+    case "failed":
+      return `${color.red}\u2717${color.reset}`;
+    case "canceled":
+      return `${color.gray}\u2298${color.reset}`;
+    case "skipped":
+      return `${color.gray}\u2013${color.reset}`;
+  }
+}
+function statusColor(status) {
+  switch (status) {
+    case "pending":
+      return color.dim;
+    case "running":
+      return color.yellow;
+    case "success":
+      return color.green;
+    case "failed":
+      return color.red;
+    case "canceled":
+      return color.gray;
+    case "skipped":
+      return color.gray;
+  }
+}
+function pad(text, width) {
+  if (text.length > width) return text.slice(0, width - 1) + "\u2026";
+  if (text.length < width) return text + " ".repeat(width - text.length);
+  return text;
+}
+function renderFrame() {
+  const { cols, rows } = termSize();
+  leftPanelWidth = Math.max(24, Math.min(40, Math.floor(cols * 0.3)));
+  const rightWidth = cols - leftPanelWidth - 3;
+  const contentRows = rows - 4;
+  const buf = [];
+  const leftHeader = ` Commands ${box.horizontal.repeat(Math.max(0, leftPanelWidth - 11))}`;
+  const rightHeader = ` Output ${box.horizontal.repeat(Math.max(0, rightWidth - 8))}`;
+  buf.push(`${color.dim}${box.topLeft}${box.horizontal}${leftHeader}${box.teeDown}${box.horizontal}${rightHeader}${box.topRight}${color.reset}`);
+  for (let row = 0; row < contentRows; row++) {
+    let leftPlain = "";
+    let leftStyled = "";
+    if (row < commands.length) {
+      const cmd = commands[row];
+      const exitSuffix = cmd.exitCode !== void 0 && cmd.status === "failed" ? ` (${cmd.exitCode})` : "";
+      const iconChar = { pending: "o", running: ">", success: "v", failed: "x", canceled: "-", skipped: "-" }[cmd.status];
+      leftPlain = ` ${iconChar} ${cmd.label}${exitSuffix}`;
+      leftPlain = pad(leftPlain, leftPanelWidth);
+      const icon = statusIcon(cmd.status);
+      const sColor = statusColor(cmd.status);
+      const labelPart = pad(`${cmd.label}${exitSuffix}`, leftPanelWidth - 3);
+      leftStyled = ` ${icon} ${sColor}${labelPart}${color.reset}`;
+    } else {
+      leftPlain = " ".repeat(leftPanelWidth);
+      leftStyled = leftPlain;
+    }
+    let rightStyled = "";
+    const logIdx = logScrollOffset + row;
+    if (logIdx < logLines2.length) {
+      rightStyled = " " + pad(logLines2[logIdx], rightWidth - 1);
+    } else {
+      rightStyled = " ".repeat(rightWidth);
+    }
+    buf.push(`${color.dim}${box.vertical}${color.reset}${leftStyled}${color.dim}${box.vertical}${color.reset}${rightStyled}${color.dim}${box.vertical}${color.reset}`);
+  }
+  const keys = isExecuting ? `${color.dim} Ctrl+C exit ${color.reset}` : `${color.dim} r rerun  n new command  \u2191\u2193 scroll  Ctrl+C exit ${color.reset}`;
+  const keysPlain = isExecuting ? " Ctrl+C exit " : " r rerun  n new command  \u2191\u2193 scroll  Ctrl+C exit ";
+  const borderLen = leftPanelWidth + rightWidth + 1;
+  const keysLen = keysPlain.length;
+  const leftBorder = Math.max(1, Math.floor((borderLen - keysLen) / 2));
+  const rightBorder = Math.max(0, borderLen - keysLen - leftBorder);
+  buf.push(`${color.dim}${box.bottomLeft}${box.horizontal.repeat(leftBorder)}${color.reset}${keys}${color.dim}${box.horizontal.repeat(rightBorder)}${box.bottomRight}${color.reset}`);
+  const running = commands.filter((c3) => c3.status === "running").length;
+  const done = commands.filter((c3) => c3.status === "success" || c3.status === "failed").length;
+  const total = commands.length;
+  let statusText;
+  if (running > 0) {
+    statusText = `  ${color.yellow}> ${running} running${color.reset}  ${color.dim}${done}/${total} done${color.reset}`;
+  } else if (lastExitCode !== 0) {
+    statusText = `  ${color.red}x exit ${lastExitCode}${color.reset}  ${color.dim}${done}/${total} done${color.reset}`;
+  } else {
+    statusText = `  ${color.green}${done}/${total} done${color.reset}`;
+  }
+  buf.push(statusText);
+  write(cursor.moveTo(1, 1) + screen.clearDown + buf.join("\n"));
+}
+function sanitize(s) {
+  return stripAnsi(s).replace(/\r/g, "").replace(/\t/g, "    ").replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "");
+}
+function appendLog(line) {
+  const clean = sanitize(line);
+  const lines = clean.split("\n");
+  for (const l of lines) {
+    if (l.length > 0 || logLines2.length > 0) {
+      logLines2.push(l);
+    }
+  }
+  const { rows } = termSize();
+  const contentRows = rows - 4;
+  if (logLines2.length > contentRows) {
+    logScrollOffset = logLines2.length - contentRows;
+  }
+}
+var renderTimer = null;
+var renderPending = false;
+function scheduleRender() {
+  renderPending = true;
+  if (renderTimer !== null) return;
+  renderTimer = setTimeout(() => {
+    renderTimer = null;
+    if (renderPending) {
+      renderPending = false;
+      renderFrame();
+    }
+  }, 33);
+}
+function flushRender() {
+  if (renderTimer !== null) {
+    clearTimeout(renderTimer);
+    renderTimer = null;
+  }
+  renderPending = false;
+  renderFrame();
+}
+function updateCommand(index, status, exitCode) {
+  if (commands[index]) {
+    commands[index].status = status;
+    if (exitCode !== void 0) commands[index].exitCode = exitCode;
+  }
+}
+function buildEntries2(plan) {
+  switch (plan.kind) {
+    case "single":
+      return [{ label: plan.argv[0] ?? "(cmd)", status: "pending" }];
+    case "sequential":
+      return plan.steps.map((step) => ({
+        label: step.argv[0] ?? "(step)",
+        status: "pending"
+      }));
+    case "parallel":
+      return plan.group.map((entry) => ({
+        label: entry.alias,
+        status: "pending"
+      }));
+  }
+}
+async function runWithCapture(argv, cwd, env, prefix) {
+  const [cmd, ...args] = argv;
+  if (!cmd) throw new SpawnError("(empty command)", new Error("argv is empty"));
+  const proc = execa(cmd, args, {
+    cwd,
+    env: { ...process.env, ...env },
+    stdout: "pipe",
+    stderr: "pipe",
+    reject: false
+  });
+  const pfx = "";
+  const stdoutChunks = [];
+  proc.stdout?.on("data", (chunk) => {
+    const text = chunk.toString("utf8");
+    stdoutChunks.push(text);
+    for (const line of text.split("\n")) {
+      if (line.length > 0) appendLog(pfx + line);
+    }
+    scheduleRender();
+  });
+  proc.stderr?.on("data", (chunk) => {
+    for (const line of chunk.toString("utf8").split("\n")) {
+      if (line.length > 0) appendLog(pfx + line);
+    }
+    scheduleRender();
+  });
+  const result = await proc;
+  if (result.failed && result.exitCode === void 0 && result.cause) {
+    throw new SpawnError(cmd, result.cause);
+  }
+  return {
+    exitCode: result.exitCode ?? 1,
+    captured: stdoutChunks.join("").trim()
+  };
+}
+async function execSingle(plan, cwd, env) {
+  updateCommand(0, "running");
+  flushRender();
+  try {
+    const result = await runWithCapture(plan.argv, cwd, env);
+    updateCommand(0, result.exitCode === 0 ? "success" : "failed", result.exitCode);
+    flushRender();
+    return result;
+  } catch (err) {
+    updateCommand(0, "failed", 1);
+    flushRender();
+    throw err;
+  }
+}
+async function execSequential(plan, cwd, env) {
+  const capturedVars = {};
+  for (let i2 = 0; i2 < plan.steps.length; i2++) {
+    const step = plan.steps[i2];
+    const mergedValues = { ...env, ...capturedVars };
+    const finalArgv = step.rawArgv ? interpolateArgv(step.rawArgv, "(step)", mergedValues) : step.argv;
+    updateCommand(i2, "running");
+    appendLog(`-- step ${i2 + 1}/${plan.steps.length}: ${finalArgv[0]} --`);
+    flushRender();
+    const stepEnv = { ...env, ...capturedVars };
+    try {
+      const result = await runWithCapture(finalArgv, cwd, stepEnv);
+      if (result.exitCode !== 0) {
+        updateCommand(i2, "failed", result.exitCode);
+        for (let j = i2 + 1; j < plan.steps.length; j++) {
+          updateCommand(j, "skipped");
+        }
+        flushRender();
+        return result;
+      }
+      if (step.capture && result.captured !== void 0) {
+        const cap = step.capture;
+        const validation = validateCapture(result.captured, cap);
+        const typeName = cap.type ?? "string";
+        appendLog(`--- capture: ${cap.var} ---`);
+        appendLog(`  value: ${validation.coerced}`);
+        appendLog(`  type:  ${typeName}`);
+        if (cap.assert) {
+          const asserts = typeof cap.assert === "string" ? [cap.assert] : cap.assert;
+          appendLog(`  assert: ${asserts.join(", ")}`);
+        }
+        if (validation.valid) {
+          appendLog(`  PASS`);
+        } else {
+          appendLog(`  FAIL: ${validation.error}`);
+          appendLog(`--- end capture ---`);
+          updateCommand(i2, "failed", 1);
+          for (let j = i2 + 1; j < plan.steps.length; j++) {
+            updateCommand(j, "skipped");
+          }
+          flushRender();
+          return { exitCode: 1 };
+        }
+        appendLog(`--- end capture ---`);
+        capturedVars[cap.var] = validation.coerced;
+        const envKey = cap.var.toUpperCase().replace(/\./g, "_");
+        capturedVars[envKey] = validation.coerced;
+      }
+      updateCommand(i2, "success");
+      flushRender();
+    } catch (err) {
+      updateCommand(i2, "failed", 1);
+      for (let j = i2 + 1; j < plan.steps.length; j++) {
+        updateCommand(j, "skipped");
+      }
+      flushRender();
+      throw err;
+    }
+  }
+  return { exitCode: 0 };
+}
+async function execParallel(plan, cwd, env) {
+  const controller = new AbortController();
+  const { signal } = controller;
+  for (let i2 = 0; i2 < plan.group.length; i2++) {
+    updateCommand(i2, "running");
+  }
+  flushRender();
+  const promises = plan.group.map(async (entry, idx) => {
+    const [cmd, ...args] = entry.argv;
+    if (!cmd) throw new SpawnError("(empty command)", new Error("argv is empty"));
+    const pfx = `[${entry.alias}] `;
+    const proc = execa(cmd, args, {
+      cwd,
+      env: { ...process.env, ...env },
+      stdout: "pipe",
+      stderr: "pipe",
+      cancelSignal: signal,
+      forceKillAfterDelay: 3e3,
+      reject: false
+    });
+    proc.stdout?.on("data", (chunk) => {
+      for (const line of chunk.toString("utf8").split("\n")) {
+        if (line.length > 0) appendLog(pfx + line);
+      }
+      scheduleRender();
+    });
+    proc.stderr?.on("data", (chunk) => {
+      for (const line of chunk.toString("utf8").split("\n")) {
+        if (line.length > 0) appendLog(pfx + line);
+      }
+      scheduleRender();
+    });
+    const result = await proc;
+    if (result.isCanceled) {
+      updateCommand(idx, "canceled");
+      flushRender();
+      return { exitCode: 0 };
+    }
+    const exitCode = result.exitCode ?? 1;
+    updateCommand(idx, exitCode === 0 ? "success" : "failed", exitCode);
+    if (exitCode !== 0 && plan.failMode === "fast") {
+      controller.abort(new Error("fail-fast"));
+    }
+    flushRender();
+    return { exitCode };
+  });
+  const results = await Promise.allSettled(promises);
+  let firstFail = 0;
+  for (const r of results) {
+    if (r.status === "fulfilled" && r.value.exitCode !== 0 && firstFail === 0) {
+      firstFail = r.value.exitCode;
+    } else if (r.status === "rejected" && firstFail === 0) {
+      firstFail = 1;
+    }
+  }
+  return { exitCode: firstFail };
+}
+async function executePlan(plan, cwd, env) {
+  commands = buildEntries2(plan);
+  logLines2 = [];
+  logScrollOffset = 0;
+  isExecuting = true;
+  lastExitCode = 0;
+  flushRender();
+  let result;
+  switch (plan.kind) {
+    case "single":
+      result = await execSingle(plan, cwd, env);
+      break;
+    case "sequential":
+      result = await execSequential(plan, cwd, env);
+      break;
+    case "parallel":
+      result = await execParallel(plan, cwd, env);
+      break;
+  }
+  isExecuting = false;
+  lastExitCode = result.exitCode;
+  flushRender();
+  return result;
+}
+async function runWithDashboard(plan, cwd, env, ctx) {
+  write(screen.altBuffer + cursor.hide + screen.clear);
+  let currentResult;
+  try {
+    currentResult = await executePlan(plan, cwd, env);
+  } catch (err) {
+    write(cursor.show + screen.mainBuffer);
+    throw err;
+  }
+  const finalResult = await interactiveLoop(currentResult, cwd, env, ctx);
+  write(cursor.show + screen.mainBuffer);
+  printSummary(finalResult);
+  return finalResult;
+}
+function printSummary(result) {
+  for (const cmd of commands) {
+    const icon = cmd.status === "success" ? `${color.green}v${color.reset}` : cmd.status === "failed" ? `${color.red}x${color.reset}` : cmd.status === "skipped" ? `${color.gray}-${color.reset}` : cmd.status === "canceled" ? `${color.gray}-${color.reset}` : `${color.dim}o${color.reset}`;
+    const exitStr = cmd.exitCode !== void 0 && cmd.status === "failed" ? ` ${color.dim}(exit ${cmd.exitCode})${color.reset}` : "";
+    write(`${icon} ${cmd.label}${exitStr}
+`);
+  }
+  if (result.exitCode !== 0) {
+    write(`
+${color.red}Exited with code ${result.exitCode}${color.reset}
+`);
+  }
+}
+function interactiveLoop(currentResult, cwd, env, ctx) {
+  return new Promise((resolve2) => {
+    const stdin = process.stdin;
+    if (!stdin.isTTY) {
+      resolve2(currentResult);
+      return;
+    }
+    let result = currentResult;
+    const savedPlanEntries = [...commands];
+    const wasRaw = stdin.isRaw;
+    stdin.setRawMode(true);
+    stdin.resume();
+    function cleanup() {
+      stdin.removeListener("data", onKey);
+      try {
+        stdin.setRawMode(wasRaw ?? false);
+        stdin.pause();
+      } catch {
+      }
+    }
+    async function onKey(data) {
+      const key = data.toString();
+      if (key === "") {
+        cleanup();
+        resolve2(result);
+        return;
+      }
+      if (key === "\x1B[A" || key === "k") {
+        if (logScrollOffset > 0) {
+          logScrollOffset--;
+          flushRender();
+        }
+        return;
+      }
+      if (key === "\x1B[B" || key === "j") {
+        const { rows } = termSize();
+        const contentRows = rows - 4;
+        if (logScrollOffset < logLines2.length - contentRows) {
+          logScrollOffset++;
+          flushRender();
+        }
+        return;
+      }
+      if (key === "\x1B[5~") {
+        const { rows } = termSize();
+        const contentRows = rows - 4;
+        logScrollOffset = Math.max(0, logScrollOffset - contentRows);
+        flushRender();
+        return;
+      }
+      if (key === "\x1B[6~") {
+        const { rows } = termSize();
+        const contentRows = rows - 4;
+        logScrollOffset = Math.min(
+          Math.max(0, logLines2.length - contentRows),
+          logScrollOffset + contentRows
+        );
+        flushRender();
+        return;
+      }
+      if (key === "r" || key === "R") {
+        if (isExecuting) return;
+        stdin.removeListener("data", onKey);
+        try {
+          const firstLabel = savedPlanEntries[0]?.label;
+          if (firstLabel && ctx) {
+            const plan = resolver.resolve(firstLabel, ctx.commandMap, ctx.config);
+            result = await executePlan(plan, cwd, env);
+          }
+        } catch {
+        }
+        stdin.on("data", onKey);
+        return;
+      }
+      if ((key === "n" || key === "N") && ctx) {
+        if (isExecuting) return;
+        stdin.removeListener("data", onKey);
+        const aliases = [...ctx.commandMap.keys()];
+        const selected = await showInlinePicker(aliases);
+        if (selected) {
+          try {
+            const plan = resolver.resolve(selected, ctx.commandMap, ctx.config);
+            result = await executePlan(plan, cwd, env);
+          } catch {
+          }
+        }
+        stdin.on("data", onKey);
+        return;
+      }
+    }
+    stdin.on("data", onKey);
+  });
+}
+function showInlinePicker(aliases) {
+  return new Promise((resolveP) => {
+    const stdin = process.stdin;
+    let selected = 0;
+    function renderPickerOverlay() {
+      const savedLog = [...logLines2];
+      const savedOffset = logScrollOffset;
+      logLines2 = ["", "  Select alias:", ""];
+      for (let i2 = 0; i2 < aliases.length; i2++) {
+        const pointer = i2 === selected ? "> " : "  ";
+        logLines2.push(`  ${pointer}${aliases[i2]}`);
+      }
+      logLines2.push("", "  Enter=select  Esc=cancel");
+      logScrollOffset = 0;
+      flushRender();
+      logLines2 = savedLog;
+      logScrollOffset = savedOffset;
+    }
+    renderPickerOverlay();
+    function onKey(data) {
+      const key = data.toString();
+      if (key === "\x1B" || key === "q") {
+        stdin.removeListener("data", onKey);
+        flushRender();
+        resolveP(null);
+        return;
+      }
+      if (key === "\r" || key === "\n") {
+        stdin.removeListener("data", onKey);
+        flushRender();
+        resolveP(aliases[selected]);
+        return;
+      }
+      if (key === "") {
+        stdin.removeListener("data", onKey);
+        flushRender();
+        resolveP(null);
+        return;
+      }
+      if (key === "\x1B[A" || key === "k") {
+        selected = Math.max(0, selected - 1);
+        renderPickerOverlay();
+      } else if (key === "\x1B[B" || key === "j") {
+        selected = Math.min(aliases.length - 1, selected + 1);
+        renderPickerOverlay();
+      }
+    }
+    stdin.on("data", onKey);
+  });
+}
+
 // src/cli.ts
-function findLociRoot(startDir) {
+function createLogFile(projectRoot, alias) {
+  const logDir = join(projectRoot, ".xci", "log");
+  mkdirSync(logDir, { recursive: true });
+  const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  return join(logDir, `${alias}-${timestamp}.log`);
+}
+function askShowLog(logFile) {
+  if (!isTTY()) return Promise.resolve(false);
+  return new Promise((res) => {
+    process.stderr.write(`
+Log saved to: ${logFile}
+Show log? [y/N] `);
+    const stdin = process.stdin;
+    const wasRaw = stdin.isRaw;
+    stdin.setRawMode(true);
+    stdin.resume();
+    function onData(data) {
+      stdin.removeListener("data", onData);
+      try {
+        stdin.setRawMode(wasRaw ?? false);
+        stdin.pause();
+      } catch {
+      }
+      const key = data.toString().toLowerCase();
+      process.stderr.write(key + "\n");
+      res(key === "y");
+    }
+    stdin.on("data", onData);
+  });
+}
+function printLogFile(logFile) {
+  try {
+    const content = readFileSync(logFile, "utf8");
+    process.stderr.write("\n--- log start ---\n");
+    process.stderr.write(content);
+    process.stderr.write("--- log end ---\n");
+  } catch {
+    process.stderr.write(`(could not read log file: ${logFile})
+`);
+  }
+}
+function findXciRoot(startDir) {
   let current = resolve(startDir);
   while (true) {
-    if (existsSync(join(current, ".loci"))) {
+    if (existsSync(join(current, ".xci"))) {
       return current;
     }
     const parent = dirname(current);
@@ -18734,17 +20943,50 @@ function findLociRoot(startDir) {
     current = parent;
   }
 }
-function printAliasList(commands) {
-  if (commands.size === 0) {
-    process.stdout.write("No aliases defined in commands.yml\n");
-    return;
+function listYamlFilesRecursive3(dirPath) {
+  const results = [];
+  let entries;
+  try {
+    entries = readdirSync(dirPath);
+  } catch {
+    return [];
   }
-  process.stdout.write("Available aliases:\n\n");
-  for (const [alias, def] of commands) {
-    const desc = def.description ?? "";
-    const kind = def.kind;
-    process.stdout.write(`  ${alias}  ${desc ? "- " + desc : ""}  (${kind})
+  for (const entry of entries.sort()) {
+    const full = join(dirPath, entry);
+    try {
+      if (statSync(full).isDirectory()) {
+        results.push(...listYamlFilesRecursive3(full));
+      } else if (entry.endsWith(".yml") || entry.endsWith(".yaml")) {
+        results.push(full);
+      }
+    } catch {
+    }
+  }
+  return results;
+}
+function printAliasList(commands2) {
+  process.stdout.write("xci \u2014 Local CI command runner\n\n");
+  process.stdout.write("Commands:\n\n");
+  process.stdout.write("  xci <alias> [KEY=VALUE...]   Run an alias\n");
+  process.stdout.write("  xci init                     Scaffold .xci/ directory\n");
+  process.stdout.write("  xci template                 Generate shareable template\n");
+  process.stdout.write("  xci --help                   Show full help\n");
+  process.stdout.write("\nFlags:\n\n");
+  process.stdout.write("  --log          Show command output in terminal\n");
+  process.stdout.write("  --verbose      Show config trace + output\n");
+  process.stdout.write("  --dry-run      Preview without executing\n");
+  process.stdout.write("  --ui           Interactive TUI dashboard\n");
+  process.stdout.write("  --list, -l     List aliases\n");
+  if (commands2.size > 0) {
+    process.stdout.write("\nAliases:\n\n");
+    for (const [alias, def] of commands2) {
+      const desc = def.description ?? "";
+      const kind = def.kind;
+      process.stdout.write(`  ${alias}  ${desc ? "- " + desc : ""}  (${kind})
 `);
+    }
+  } else {
+    process.stdout.write("\nNo aliases defined. Edit .xci/commands.yml to add aliases.\n");
   }
   process.stdout.write("\nRun `xci <alias> --help` for details on a specific alias.\n");
 }
@@ -18768,8 +21010,43 @@ function buildAliasHelpText(alias, def) {
       lines.push(`  members (failMode: ${def.failMode ?? "fast"}):`);
       def.group.forEach((entry) => lines.push(`    - ${entry}`));
       break;
+    case "for_each":
+      lines.push(`  var: ${def.var}`);
+      lines.push(`  in: [${def.in.join(", ")}]`);
+      lines.push(`  mode: ${def.mode}`);
+      if (def.cmd) lines.push(`  cmd: ${def.cmd.join(" ")}`);
+      if (def.run) lines.push(`  run: ${def.run}`);
+      break;
+    case "ini":
+      lines.push(`  file: ${def.file}`);
+      lines.push(`  mode: ${def.mode ?? "overwrite"}`);
+      if (def.set) {
+        for (const [section, keys] of Object.entries(def.set)) {
+          lines.push(`  [${section}]`);
+          for (const [k, v] of Object.entries(keys)) {
+            lines.push(`    ${k} = ${v}`);
+          }
+        }
+      }
+      break;
   }
   return lines.join("\n");
+}
+function parseCliOverrides(args) {
+  const dashDashIdx = args.indexOf("--");
+  const preArgs = dashDashIdx === -1 ? args : args.slice(0, dashDashIdx);
+  const postArgs = dashDashIdx === -1 ? [] : [...args.slice(dashDashIdx + 1)];
+  const overrides = {};
+  const prePassThrough = [];
+  for (const arg of preArgs) {
+    const match = /^([^=]+)=(.*)$/.exec(arg);
+    if (match?.[1] !== void 0) {
+      overrides[match[1]] = match[2] ?? "";
+    } else {
+      prePassThrough.push(arg);
+    }
+  }
+  return { overrides, passThrough: [...prePassThrough, ...postArgs] };
 }
 function appendExtraArgs(plan, extra) {
   switch (plan.kind) {
@@ -18779,7 +21056,7 @@ function appendExtraArgs(plan, extra) {
       if (plan.steps.length === 0) return plan;
       const lastIdx = plan.steps.length - 1;
       const newSteps = plan.steps.map(
-        (s, i2) => i2 === lastIdx ? [...s, ...extra] : s
+        (s, i2) => i2 === lastIdx ? { ...s, argv: [...s.argv, ...extra] } : s
       );
       return { ...plan, steps: newSteps };
     }
@@ -18793,50 +21070,120 @@ function appendExtraArgs(plan, extra) {
       };
   }
 }
-function registerAliases(program2, commands, config, projectRoot) {
-  for (const [alias, def] of commands) {
-    const sub = program2.command(alias).description(def.description ?? "").passThroughOptions().allowUnknownOption().allowExcessArguments().option("--dry-run", "Preview the resolved command without executing").option("--verbose", "Show config trace and run the command").addHelpText("after", buildAliasHelpText(alias, def));
+function registerAliases(program2, commands2, config, projectRoot) {
+  for (const [alias, def] of commands2) {
+    const sub = program2.command(alias).description(def.description ?? "").passThroughOptions().allowUnknownOption().allowExcessArguments().option("--dry-run", "Preview the resolved command without executing").option("--verbose", "Show config trace and run the command").option("--log", "Show command output in terminal (default: hidden)").option("--short-log <N>", "Show last N lines of output per command").option("--ui", "Run with interactive TUI dashboard").addHelpText("after", buildAliasHelpText(alias, def));
     sub.action(async function(options) {
-      const extraArgs = this.args;
-      const plan = resolver.resolve(alias, commands, config);
-      const env = buildEnvVars(config.values);
+      const XCI_FLAGS = /* @__PURE__ */ new Set(["--dry-run", "--verbose", "--log", "--ui", "--dry-run=true", "--verbose=true", "--log=true", "--ui=true"]);
+      const rawArgs = this.parent?.rawArgs ?? [];
+      const aliasIdx = rawArgs.indexOf(alias);
+      const afterAlias = aliasIdx >= 0 ? rawArgs.slice(aliasIdx + 1) : [...this.args];
+      const filteredArgs = [];
+      for (let i2 = 0; i2 < afterAlias.length; i2++) {
+        if (afterAlias[i2] === "--short-log") {
+          i2++;
+          continue;
+        }
+        if (afterAlias[i2].startsWith("--short-log=")) continue;
+        filteredArgs.push(afterAlias[i2]);
+      }
+      const userArgs = filteredArgs.filter((a2) => !XCI_FLAGS.has(a2));
+      const { overrides, passThrough } = parseCliOverrides(userArgs);
+      const isDryRun = options.dryRun === true || afterAlias.includes("--dry-run");
+      const isVerbose2 = options.verbose === true || afterAlias.includes("--verbose");
+      const isLog = options.log === true || afterAlias.includes("--log");
+      const isUi = options.ui === true || afterAlias.includes("--ui");
+      const tailLines = options.shortLog ? Number.parseInt(options.shortLog, 10) : void 0;
+      const showOutput = isVerbose2 || isLog;
+      const builtins = {
+        "xci.project.path": projectRoot,
+        "XCI_PROJECT_PATH": projectRoot
+      };
+      const effectiveValues = { ...config.values, ...builtins, ...overrides };
+      const effectiveConfig = { ...config, values: effectiveValues };
+      const plan = resolver.resolve(alias, commands2, effectiveConfig);
+      const env = { ...effectiveValues, ...buildEnvVars(effectiveValues) };
+      if (isVerbose2) env["XCI_VERBOSE"] = "1";
       const secretValues = buildSecretValues(config);
-      if (options.verbose) {
-        const configFiles = [
-          { path: join(projectRoot, ".loci", "config.yml"), found: existsSync(join(projectRoot, ".loci", "config.yml")) },
-          { path: join(projectRoot, ".loci", "secrets.yml"), found: existsSync(join(projectRoot, ".loci", "secrets.yml")) },
-          { path: join(projectRoot, ".loci", "local.yml"), found: existsSync(join(projectRoot, ".loci", "local.yml")) }
-        ];
-        const machineConfig = process.env["LOCI_MACHINE_CONFIG"];
-        if (machineConfig) {
-          configFiles.unshift({ path: machineConfig, found: existsSync(machineConfig) });
+      if (isVerbose2) {
+        const configFiles = [];
+        const machineConfigsDir = process.env["XCI_MACHINE_CONFIGS"];
+        if (machineConfigsDir) {
+          let isDir = false;
+          try {
+            isDir = statSync(machineConfigsDir).isDirectory();
+          } catch {
+          }
+          if (isDir) {
+            configFiles.push({ path: join(machineConfigsDir, "commands.yml"), found: existsSync(join(machineConfigsDir, "commands.yml")) });
+            configFiles.push({ path: join(machineConfigsDir, "secrets.yml"), found: existsSync(join(machineConfigsDir, "secrets.yml")) });
+            const mSecretsDir = join(machineConfigsDir, "secrets");
+            if (existsSync(mSecretsDir)) {
+              for (const f of listYamlFilesRecursive3(mSecretsDir)) {
+                configFiles.push({ path: f, found: true });
+              }
+            }
+            const mCommandsDir = join(machineConfigsDir, "commands");
+            if (existsSync(mCommandsDir)) {
+              for (const f of listYamlFilesRecursive3(mCommandsDir)) {
+                configFiles.push({ path: f, found: true });
+              }
+            }
+          }
+        }
+        configFiles.push(
+          { path: join(projectRoot, ".xci", "config.yml"), found: existsSync(join(projectRoot, ".xci", "config.yml")) },
+          { path: join(projectRoot, ".xci", "secrets.yml"), found: existsSync(join(projectRoot, ".xci", "secrets.yml")) },
+          { path: join(projectRoot, ".xci", "local.yml"), found: existsSync(join(projectRoot, ".xci", "local.yml")) }
+        );
+        const projSecretsDir = join(projectRoot, ".xci", "secrets");
+        if (existsSync(projSecretsDir)) {
+          for (const f of listYamlFilesRecursive3(projSecretsDir)) {
+            configFiles.push({ path: f, found: true });
+          }
         }
         const redactedEnv = redactSecrets(env, config.secretKeys);
         printVerboseTrace(projectRoot, configFiles, redactedEnv, config.secretKeys);
+        printVerboseCommand(def, plan, secretValues);
       }
-      if (options.dryRun) {
-        printDryRun(plan, secretValues);
+      if (isDryRun) {
+        printDryRun(plan, secretValues, effectiveValues, config.secretKeys);
         return;
       }
-      const finalPlan = extraArgs.length > 0 ? appendExtraArgs(plan, extraArgs) : plan;
-      const result = await executor.run(finalPlan, { cwd: projectRoot, env });
+      const finalPlan = passThrough.length > 0 ? appendExtraArgs(plan, passThrough) : plan;
+      const logFile = createLogFile(projectRoot, alias);
+      const result = isUi && isTTY() ? await runWithDashboard(finalPlan, projectRoot, env, {
+        commandMap: commands2,
+        config: effectiveConfig,
+        cwd: projectRoot,
+        env
+      }) : await executor.run(finalPlan, { cwd: projectRoot, env, logFile, showOutput, tailLines });
       if (result.exitCode !== 0) {
         process.exitCode = result.exitCode;
+        if (!showOutput) {
+          const show = await askShowLog(logFile);
+          if (show) printLogFile(logFile);
+        }
       }
     });
   }
 }
 function buildProgram() {
   const program2 = new Command();
-  program2.name("xci").description("Local CI - cross-platform command alias runner").version(LOCI_VERSION, "-V, --version", "output the current xci version").helpOption("-h, --help", "display help for command").enablePositionalOptions().exitOverride().configureOutput({ writeErr: () => {
+  program2.name("xci").description("Local CI - cross-platform command alias runner").version(XCI_VERSION, "-V, --version", "output the current xci version").helpOption("-h, --help", "display help for command").enablePositionalOptions().exitOverride().configureOutput({ writeErr: () => {
   } });
   program2.option("-l, --list", "list all available aliases");
   return program2;
 }
 function handleError(err, _program) {
-  if (err instanceof LociError) {
+  if (err instanceof XciError) {
     process.stderr.write(`error [${err.code}]: ${err.message}
 `);
+    if (err.cause) {
+      const causeMsg = err.cause instanceof Error ? err.cause.message : String(err.cause);
+      process.stderr.write(`  cause: ${causeMsg}
+`);
+    }
     if (err.suggestion) process.stderr.write(`  suggestion: ${err.suggestion}
 `);
     return exitCodeFor(err);
@@ -18846,8 +21193,12 @@ function handleError(err, _program) {
     return 0;
   }
   if (commanderErr.code === "commander.excessArguments") {
-    const match = commanderErr.message?.match(/excess arguments: (.+)/i);
-    const aliasName = match ? match[1].split(",")[0]?.trim().replace(/^'|'$/g, "") : "unknown";
+    const match = commanderErr.message?.match(/excess arguments?: (.+)/i);
+    let aliasName = match ? match[1].split(",")[0]?.trim().replace(/^'|'$/g, "") : void 0;
+    if (!aliasName) {
+      const args = process.argv.slice(2);
+      aliasName = args.find((a2) => !a2.startsWith("-") && !a2.includes("=")) ?? "(unknown)";
+    }
     process.stderr.write(`error [CLI_UNKNOWN_ALIAS]: Unknown alias: "${aliasName}"
 `);
     process.stderr.write("  suggestion: Run `xci --list` to see available aliases\n");
@@ -18874,12 +21225,13 @@ function handleError(err, _program) {
 async function main(argv) {
   const program2 = buildProgram();
   registerInitCommand(program2);
-  const projectRoot = findLociRoot(process.cwd());
+  registerTemplateCommand(program2);
+  const projectRoot = findXciRoot(process.cwd());
   if (projectRoot === null) {
     let helpOrVersionDisplayed = false;
     let subcommandRan = false;
     program2.action(() => {
-      process.stdout.write("No .loci/ directory found. Run 'xci init' to get started.\n");
+      process.stdout.write("No .xci/ directory found. Run 'xci init' to get started.\n");
     });
     program2.hook("postAction", (_thisCommand, actionCommand) => {
       if (actionCommand !== program2) {
@@ -18899,25 +21251,37 @@ async function main(argv) {
     return helpOrVersionDisplayed || subcommandRan ? 0 : 1;
   }
   let config;
-  let commands;
+  let commands2;
   try {
-    [config, commands] = await Promise.all([
+    [config, commands2] = await Promise.all([
       configLoader.load(projectRoot),
       commandsLoader.load(projectRoot)
     ]);
   } catch (err) {
-    if (err instanceof LociError) {
+    if (err instanceof XciError) {
       process.stderr.write(`error [${err.code}]: ${err.message}
 `);
+      if (err.cause) {
+        const causeMsg = err.cause instanceof Error ? err.cause.message : String(err.cause);
+        process.stderr.write(`  cause: ${causeMsg}
+`);
+      }
       if (err.suggestion) process.stderr.write(`  suggestion: ${err.suggestion}
 `);
       return exitCodeFor(err);
     }
     throw err;
   }
-  registerAliases(program2, commands, config, projectRoot);
-  program2.action((_options) => {
-    printAliasList(commands);
+  registerAliases(program2, commands2, config, projectRoot);
+  program2.option("--ui", "Interactive TUI mode");
+  program2.action(async (options) => {
+    if (options.ui && isTTY()) {
+      const selected = await showPicker(commands2);
+      if (selected === null) return;
+      await program2.parseAsync([...argv.slice(0, 2), selected, "--ui"]);
+      return;
+    }
+    printAliasList(commands2);
   });
   try {
     await program2.parseAsync(argv);
@@ -18935,4 +21299,4 @@ main(process.argv).then(
   }
 );
 
-export { CliError, buildProgram, main };
+export { CliError, buildProgram, main, parseCliOverrides };

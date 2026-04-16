@@ -2,6 +2,7 @@
 //
 // Parallel group execution with AbortController cancellation (T-04-04, T-04-05, EXE-05).
 
+import { createWriteStream } from 'node:fs';
 import { execa } from 'execa';
 import { SpawnError } from '../errors.js';
 import type { ExecutionResult } from '../types.js';
@@ -24,6 +25,8 @@ export async function runParallel(
   failMode: 'fast' | 'complete',
   cwd: string,
   env: Record<string, string>,
+  logFile?: string,
+  showOutput = true,
 ): Promise<ExecutionResult> {
   const controller = new AbortController();
   const { signal } = controller;
@@ -36,6 +39,7 @@ export async function runParallel(
   process.on('SIGINT', sigintHandler);
 
   const mergedEnv = { ...process.env, ...env };
+  const logStream = logFile ? createWriteStream(logFile, { flags: 'a' }) : undefined;
 
   // For failMode 'fast', wrap each promise so that on failure it immediately aborts the rest.
   const rawPromises = group.map(({ alias, argv }) => {
@@ -43,15 +47,31 @@ export async function runParallel(
     if (!cmd) {
       return Promise.reject(new SpawnError('(empty command)', new Error('argv is empty')));
     }
+
+    // Build stdout/stderr destination based on showOutput
+    const stdoutDest: unknown[] = [];
+    const stderrDest: unknown[] = [];
+    if (showOutput) {
+      stdoutDest.push(makeLineTransform(alias), 'inherit');
+      stderrDest.push(makeLineTransform(alias), 'inherit');
+    }
+
     return execa(cmd, args, {
       cwd,
       env: mergedEnv,
-      stdout: [makeLineTransform(alias), 'inherit'],
-      stderr: [makeLineTransform(alias), 'inherit'],
+      stdout: stdoutDest.length > 0 ? stdoutDest : 'pipe',
+      stderr: stderrDest.length > 0 ? stderrDest : 'pipe',
       cancelSignal: signal,
       forceKillAfterDelay: 3000,
       reject: false,
     }).then((value) => {
+      // Write to log file if present
+      if (logStream) {
+        const out = value.stdout ?? '';
+        const err = value.stderr ?? '';
+        if (out) logStream.write(`[${alias}] ${out}\n`);
+        if (err) logStream.write(`[${alias}] ${err}\n`);
+      }
       const isCanceled = value.isCanceled === true;
       const code = isCanceled ? 0 : (value.exitCode ?? 0);
 
@@ -105,6 +125,7 @@ export async function runParallel(
     }
   }
 
+  logStream?.end();
   printParallelSummary(group, finalResults);
   return { exitCode: firstFailCode };
 }

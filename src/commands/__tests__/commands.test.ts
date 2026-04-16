@@ -17,12 +17,12 @@ import { commandsLoader } from '../index.js';
 let tmpDir: string;
 
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), 'loci-test-'));
-  mkdirSync(join(tmpDir, '.loci'), { recursive: true });
+  tmpDir = mkdtempSync(join(tmpdir(), 'xci-test-'));
+  mkdirSync(join(tmpDir, '.xci'), { recursive: true });
 });
 
 function writeCommands(yaml: string): void {
-  writeFileSync(join(tmpDir, '.loci', 'commands.yml'), yaml, 'utf8');
+  writeFileSync(join(tmpDir, '.xci', 'commands.yml'), yaml, 'utf8');
 }
 
 // ---------------------------------------------------------------------------
@@ -289,5 +289,126 @@ describe('commandsLoader.load — D-09 lookup-based alias detection', () => {
       ['lint: "npx biome check"\n', 'check:\n  parallel:\n    - lint\n    - "npm test"\n'].join(''),
     );
     await expect(commandsLoader.load(tmpDir)).resolves.toBeInstanceOf(Map);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// .xci/commands/ directory loading
+// ---------------------------------------------------------------------------
+
+describe('commandsLoader.load — commands/ directory', () => {
+  function writeCommandsDir(files: Record<string, string>): void {
+    mkdirSync(join(tmpDir, '.xci', 'commands'), { recursive: true });
+    for (const [name, content] of Object.entries(files)) {
+      writeFileSync(join(tmpDir, '.xci', 'commands', name), content, 'utf8');
+    }
+  }
+
+  it('loads aliases from .xci/commands/ directory', async () => {
+    writeCommandsDir({
+      'build.yml': 'build: "npm run build"',
+      'test.yml': 'test: "npm test"',
+    });
+    const result = await commandsLoader.load(tmpDir);
+    expect(result.size).toBe(2);
+    expect(result.get('build')).toMatchObject({ kind: 'single' });
+    expect(result.get('test')).toMatchObject({ kind: 'single' });
+  });
+
+  it('merges commands.yml and commands/ directory', async () => {
+    writeCommands('lint: "npx biome check"');
+    writeCommandsDir({
+      'build.yml': 'build: "npm run build"',
+    });
+    const result = await commandsLoader.load(tmpDir);
+    expect(result.size).toBe(2);
+    expect(result.get('lint')).toMatchObject({ kind: 'single' });
+    expect(result.get('build')).toMatchObject({ kind: 'single' });
+  });
+
+  it('throws CommandSchemaError on duplicate alias between commands.yml and commands/', async () => {
+    writeCommands('build: "npm run build"');
+    writeCommandsDir({
+      'build.yml': 'build: "npx tsup"',
+    });
+    await expect(commandsLoader.load(tmpDir)).rejects.toBeInstanceOf(CommandSchemaError);
+  });
+
+  it('throws CommandSchemaError on duplicate alias across files in commands/', async () => {
+    writeCommandsDir({
+      'a.yml': 'deploy: "npm run deploy"',
+      'b.yml': 'deploy: "npm run deploy:prod"',
+    });
+    await expect(commandsLoader.load(tmpDir)).rejects.toBeInstanceOf(CommandSchemaError);
+  });
+
+  it('ignores non-YAML files in commands/ directory', async () => {
+    writeCommandsDir({
+      'build.yml': 'build: "npm run build"',
+    });
+    writeFileSync(join(tmpDir, '.xci', 'commands', 'readme.txt'), 'not yaml', 'utf8');
+    const result = await commandsLoader.load(tmpDir);
+    expect(result.size).toBe(1);
+  });
+
+  it('supports .yaml extension in commands/ directory', async () => {
+    writeCommandsDir({
+      'build.yaml': 'build: "npm run build"',
+    });
+    const result = await commandsLoader.load(tmpDir);
+    expect(result.get('build')).toMatchObject({ kind: 'single' });
+  });
+
+  it('loads files in alphabetical order from commands/', async () => {
+    // Both define different aliases; order matters for sequential references
+    writeCommandsDir({
+      'z-deploy.yml': 'deploy:\n  steps:\n    - build\n  description: "Deploy"',
+      'a-build.yml': 'build: "npm run build"',
+    });
+    const result = await commandsLoader.load(tmpDir);
+    expect(result.size).toBe(2);
+    // deploy references build — validation should pass since build is loaded first
+    expect(result.get('deploy')).toMatchObject({ kind: 'sequential', steps: ['build'] });
+  });
+
+  it('skips empty files in commands/ directory', async () => {
+    writeCommandsDir({
+      'empty.yml': '',
+      'build.yml': 'build: "npm run build"',
+    });
+    const result = await commandsLoader.load(tmpDir);
+    expect(result.size).toBe(1);
+  });
+
+  it('works with only commands/ directory and no commands.yml', async () => {
+    writeCommandsDir({
+      'build.yml': 'build: "npm run build"',
+    });
+    // No commands.yml written
+    const result = await commandsLoader.load(tmpDir);
+    expect(result.size).toBe(1);
+    expect(result.get('build')).toMatchObject({ kind: 'single' });
+  });
+
+  it('loads aliases from nested subdirectories in commands/', async () => {
+    mkdirSync(join(tmpDir, '.xci', 'commands', 'deploy'), { recursive: true });
+    mkdirSync(join(tmpDir, '.xci', 'commands', 'ci', 'checks'), { recursive: true });
+    writeFileSync(join(tmpDir, '.xci', 'commands', 'build.yml'), 'build: "npm run build"', 'utf8');
+    writeFileSync(join(tmpDir, '.xci', 'commands', 'deploy', 'staging.yml'), 'deploy-staging: "npm run deploy:staging"', 'utf8');
+    writeFileSync(join(tmpDir, '.xci', 'commands', 'ci', 'checks', 'lint.yml'), 'lint: "npx biome check"', 'utf8');
+
+    const result = await commandsLoader.load(tmpDir);
+    expect(result.size).toBe(3);
+    expect(result.get('build')).toMatchObject({ kind: 'single' });
+    expect(result.get('deploy-staging')).toMatchObject({ kind: 'single' });
+    expect(result.get('lint')).toMatchObject({ kind: 'single' });
+  });
+
+  it('throws on duplicate alias across nested subdirectories', async () => {
+    mkdirSync(join(tmpDir, '.xci', 'commands', 'sub'), { recursive: true });
+    writeFileSync(join(tmpDir, '.xci', 'commands', 'build.yml'), 'build: "npm run build"', 'utf8');
+    writeFileSync(join(tmpDir, '.xci', 'commands', 'sub', 'build.yml'), 'build: "npx tsup"', 'utf8');
+
+    await expect(commandsLoader.load(tmpDir)).rejects.toBeInstanceOf(CommandSchemaError);
   });
 });
