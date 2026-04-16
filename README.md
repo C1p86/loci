@@ -88,27 +88,31 @@ export XCI_MACHINE_CONFIGS=~/.config/xci
 
 ```
 ~/.config/xci/
+  config.yml                # Shared config (all projects)
   commands.yml              # Shared commands (all projects)
   commands/                 # Shared command files (recursive)
   secrets.yml               # Shared secrets (all projects)
   secrets/                  # Shared secret files (recursive)
   my-app/                   # Project-specific (matches config.yml → project)
+    config.yml
     commands.yml
     commands/
     secrets.yml
     secrets/
   other-project/
+    config.yml
     commands.yml
     secrets.yml
 ```
 
 When `project: my-app` is set in `.xci/config.yml`, xci loads:
-- **Root**: shared commands and secrets from `$XCI_MACHINE_CONFIGS/`
+- **Root**: shared config, commands, and secrets from `$XCI_MACHINE_CONFIGS/`
 - **Project**: project-specific files from `$XCI_MACHINE_CONFIGS/my-app/`
 - **Local**: `.xci/` in the project directory (highest priority)
 
-Priority for commands: root machine < project machine < project `.xci/` (duplicates silently overridden).
-Priority for secrets: root machine < project machine < project `.xci/secrets` < `local.yml`.
+Priority for config: machine root < machine project < project `.xci/config.yml`.
+Priority for commands: machine root < machine project < project `.xci/` (duplicates silently overridden).
+Priority for secrets: machine root < machine project < project `.xci/secrets` < `local.yml`.
 
 ### Variable Interpolation in Config
 
@@ -439,15 +443,31 @@ aws:
 
 ## Logging
 
-By default, command output is **hidden** — only step headers and results are shown. Output is always saved to `.xci/log/`.
+By default, command output is **hidden** — only step headers, command preview, and results are shown. Output is always saved to `.xci/log/`.
 
 ```bash
-xci build              # output hidden, saved to .xci/log/build-2026-04-16T09-30-00.log
-xci build --log        # output shown in terminal AND saved to log
+xci build              # output hidden, saved to log file
+xci build --log        # full output shown in terminal + saved to log
+xci build --short-log 10  # last 10 lines shown in real-time (rolling tail)
 xci build --verbose    # config trace + output shown + saved to log
 ```
 
-On error, xci prompts to show the log (in TTY mode):
+### Short Log (Real-time Tail)
+
+`--short-log N` shows the last N lines of output in real-time, updated as the command runs. Lines scroll like `tail -f` with a fixed window. Colors from the command output are preserved.
+
+```
+▶ RunUAT.bat
+  run: e:/git/UE/Engine/Build/BatchFiles/RunUAT.bat ...
+  | [5/127] Compile Module.Engine.cpp
+  | [6/127] Compile Module.Renderer.cpp
+  | [7/127] Compile Module.Audio.cpp
+✓ RunUAT.bat OK 45.3s
+```
+
+### Error Prompt
+
+On error, xci prompts to show the full log (in TTY mode):
 
 ```
 ✗ npm FAILED (exit 1) 3.2s
@@ -458,7 +478,7 @@ Show log? [y/N]
 
 ## Template
 
-Generate a shareable template of your project's `.xci/` directory with secret values stripped:
+Generate a shareable template of your project's `.xci/` directory with secret values stripped, system config included, and missing variables identified:
 
 ```bash
 xci template
@@ -467,25 +487,46 @@ xci template
 ```
 xci template → .xci/template/my-app/
 
-  📄 copied   config.yml
-  📄 copied   commands.yml
-  📄 copied   commands/deploy.yml
-  🔒 stripped  secrets.yml
-  🔒 stripped  secrets/aws.yml
+  Project files:
+    copied    config.yml
+    copied    commands.yml
+    copied    commands/deploy.yml
+    stripped  secrets.yml
+    stripped  secrets/aws.yml
 
-Copy .xci/template/my-app/ to $XCI_MACHINE_CONFIGS/my-app/
+  System files (from $XCI_MACHINE_CONFIGS):
+    copied    sys/commands.yml
+    stripped  sys/secrets.yml
+    copied    sys/my-app/commands.yml
+    stripped  sys/my-app/secrets.yml
+
+  Missing variables (written to missing.yml):
+    ANDROID.PACKAGE_NAME
+    StoreVersion
+    UE.ENGINE.PATH
 ```
 
-Secret values are replaced with empty strings, preserving the key structure:
+The template includes:
+
+- **Project files**: copied from `.xci/`, secrets values replaced with `""`
+- **System files**: copied from `$XCI_MACHINE_CONFIGS/` and `$XCI_MACHINE_CONFIGS/<project>/` into `sys/`, secrets stripped
+- **`missing.yml`**: variables used in commands but not defined anywhere, with file:line comments showing where each is used
 
 ```yaml
-# Original secrets.yml         # Template secrets.yml
-api:                            api:
-  token: ghp_xxxxxxxx            token: ""
-  key: secret123                  key: ""
+# missing.yml (generated)
+# Variables used in commands but not defined in any config file.
+# Fill these in or add them to config.yml / secrets.yml as needed.
+
+# used in commands.yml:15
+# used in commands/deploy.yml:8
+ANDROID:
+  PACKAGE_NAME: ""
+
+# used in commands.yml:22
+StoreVersion: ""
 ```
 
-The generated template can be copied to `$XCI_MACHINE_CONFIGS/<project>/` so team members get the command definitions and know which secrets they need to fill in.
+Previous template output is automatically deleted before regenerating.
 
 ## Interactive TUI (--ui)
 
@@ -525,13 +566,14 @@ The dashboard stays open after execution so you can review the log and run more 
 
 | Command | Description |
 |---------|-------------|
-| `xci` | List available aliases |
+| `xci` | List available aliases and commands |
 | `xci --list` / `-l` | List aliases with descriptions |
 | `xci <alias>` | Run an alias (output hidden, logged) |
-| `xci <alias> --log` | Run with output shown in terminal |
+| `xci <alias> --log` | Run with full output shown in terminal |
+| `xci <alias> --short-log N` | Show last N lines of output in real-time |
 | `xci <alias> --verbose` | Show config trace + raw/resolved commands + output |
 | `xci <alias> KEY=VALUE` | Run with parameter overrides |
-| `xci <alias> --dry-run` | Preview resolved command without executing |
+| `xci <alias> --dry-run` | Preview resolved command + variables without executing |
 | `xci <alias> --ui` | Run with interactive TUI dashboard |
 | `xci <alias> -- --extra` | Pass arguments through to child process |
 | `xci <alias> --help` | Show help for a specific alias |
@@ -540,6 +582,44 @@ The dashboard stays open after execution so you can review the log and run more 
 | `xci template` | Generate shareable template with secrets stripped |
 | `xci --version` / `-V` | Show version |
 | `xci --help` / `-h` | Show help |
+
+### Command Preview
+
+Before each command or step, xci shows the resolved command:
+
+```
+▶ aws
+  run: aws gamelift describe-build --name 252
+✓ aws OK 1.2s
+```
+
+When placeholders were interpolated, both raw and resolved are shown:
+
+```
+▶ echo [2/2]
+  raw: echo Deploying ${build_id}
+  run: echo Deploying abc123
+✓ echo OK 15ms
+```
+
+### Dry Run
+
+```bash
+xci deploy --dry-run
+```
+
+Shows the resolved command and all imported variables, with secrets masked:
+
+```
+[dry-run] single: aws deploy --region eu-west-1 --token **********
+
+[dry-run] variables:
+[dry-run]   api.token = **********
+[dry-run]   deploy.region = eu-west-1
+[dry-run]   project = my-app
+[dry-run]   registry = https://my-registry.com
+[dry-run]   xci.project.path = F:\MyProject
+```
 
 ### Verbose
 
@@ -574,6 +654,35 @@ complex-build:
   windows:
     cmd: ["powershell", "-File", "./scripts/build.ps1"]
 ```
+
+## Error Reporting
+
+YAML parse errors show the file, line number, and the offending line:
+
+```
+error [CFG_YAML_PARSE]: Invalid YAML in .xci/config.yml at line 12
+  12 | UE5_RUNUAT: C:\Program Files\Epic Games\...
+  cause: Implicit keys need to be on a single line
+  suggestion: Check the file for unmatched quotes or indentation errors
+```
+
+For secrets files, the line content is hidden:
+
+```
+error [CFG_YAML_PARSE]: Invalid YAML in .xci/secrets.yml at line 3
+  (line content hidden — secrets file)
+```
+
+## Process Termination
+
+When you press `Ctrl+C`, xci kills the child process and waits for it to exit before returning:
+
+```
+[xci] Stopping child process...
+[xci] Child process terminated.
+```
+
+On Windows, xci uses `taskkill /f /t` to kill the entire process tree (parent + all children). If the process doesn't exit within 5 seconds, it's force-killed. xci does not exit until the child process is confirmed dead.
 
 ## Exit Codes
 
