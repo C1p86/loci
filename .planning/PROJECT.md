@@ -10,6 +10,49 @@ Serve a chi lavora su più progetti e vuole evitare di ricordare/digitare a mano
 
 **Un alias → sempre lo stesso comando eseguito correttamente**, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
 
+## Current Milestone: v2.0 Remote CI — Agents + Web Dashboard
+
+**Goal:** Trasformare `xci` da CLI locale a sistema CI distribuito: agenti che si registrano a un server web SaaS, task definite dalla UI e dispatchate in remoto sugli agenti — preservando il CLI esistente senza regressioni osservabili.
+
+**Target features:**
+
+*Agent layer*
+- `xci --agent <url> --token <T>`: modalità agente con WebSocket persistente al server (auto-reconnect)
+- Registrazione agente con hostname di default, overridabile dalla UI
+- Per-agent token + handshake (TOFU alla prima registrazione, revocabile dalla UI)
+- Esecuzione task remote con lo stesso engine di v1 (single / sequential / parallel)
+- Streaming stdout/stderr realtime al server via WS; exit code propagato
+
+*Server (backend)*
+- Stack: Fastify + TypeScript + Postgres, distribuito come Docker image
+- SaaS multi-tenant: signup, login, org isolation, TLS-ready, password reset, CSRF
+- REST API + WebSocket endpoint per agenti
+- Task definitions server-side con lo stesso YAML DSL del CLI (alias, single/sequential/parallel, placeholder `${NAME}`)
+- Dispatch con label matching: agenti pubblicano label (`os`, `arch`, ...), task dichiara requisiti, server sceglie
+- Log persistence con retention configurabile
+- Secrets hybrid: org-level cifrati sul server (envelope encryption) + per-agent locali che hanno precedenza
+- Plugin system per trigger esterni (interfaccia stabile: verify → parse → map-to-task)
+- Plugin in v2.0: GitHub (webhook + signature HMAC) + Perforce (trigger script / changelist hook)
+- Billing stub: entities org/plan/quota + enforcement limiti (Free plan). Stripe in v2.1+
+
+*Web UI (frontend)*
+- React + Vite SPA
+- Dashboard agenti: lista, stato online/offline, label, rename hostname
+- Editor task YAML
+- Trigger manuale dalla UI + schedulazione via plugin
+- Log realtime con autoscroll + storico
+
+*Packaging & distribution*
+- Monorepo con workspaces
+- 3 npm package: `xci` (CLI + agent mode), `@xci/server` (backend), `@xci/web` (SPA)
+- Docker image pubblicata (server + web statico + Postgres esterno)
+
+**Non-negotiable constraint — Backward compatibility:**
+- La suite di test v1 (202 test) deve passare invariata
+- `xci` senza `--agent` è osservabilmente identico a v1: config loading, esecuzione, exit code, `--list` / `--dry-run` / `--verbose`, pass-through args
+
+**Scope pivot intenzionale:** v2.0 inverte 3 "Out of Scope" di v1 (esecuzione remota, UI dashboard, trigger automatici) e inverte parzialmente "gestione segreti via vault / KMS" (modello hybrid).
+
 ## Requirements
 
 ### Validated
@@ -38,13 +81,15 @@ Serve a chi lavora su più progetti e vuole evitare di ricordare/digitare a mano
 
 ### Out of Scope
 
-- **Esecuzione remota / runner SSH** — loci esegue sempre in locale. Se serve deploy remoto, il comando locale può invocare `ssh`/`rsync`, ma loci non gestisce connessioni.
-- **Trigger automatici (file watcher, git hooks)** — loci si invoca a mano. Niente watch mode, niente hook automatici, almeno inizialmente.
-- **UI grafica / dashboard** — solo CLI.
+- ~~**Esecuzione remota / runner SSH**~~ — **Invertito in v2.0** (dispatch remoto tramite agenti WebSocket). Il CLI continua a eseguire in locale quando invocato senza `--agent`.
+- ~~**Trigger automatici (file watcher, git hooks)**~~ — **Invertito in v2.0** lato server (webhook plugin GitHub/Perforce). Il CLI locale resta manuale.
+- ~~**UI grafica / dashboard**~~ — **Invertito in v2.0** (web SPA servita da `@xci/server`). Il CLI resta invariato.
 - **Sostituzione di npm scripts / Makefile** — loci non vuole rimpiazzarli, vive affianco. Gli alias possono comunque chiamare `npm run x` o `make x`.
-- **Gestione segreti via vault / KMS** — il file `secrets.yml` è in chiaro, protetto solo da `.gitignore`. Integrazione con vault esterni non è nello scope iniziale.
+- **Gestione segreti via vault / KMS completo** — *Parzialmente invertito in v2.0*: i secrets org-level sul server sono cifrati con envelope encryption; i secrets per-agent restano in chiaro in `.xci/secrets.yml` locale come in v1.
 - **Support per linguaggi di config diversi da YAML** (JSON, TOML, .env) — scelto YAML e basta, per coerenza.
 - **Versioning / lock del tool per progetto** — versione unica globale installata. Niente `loci.lock` o auto-update per-progetto.
+- **Stripe / pagamenti reali in v2.0** — billing stub-only (entities + quota enforcement del Free plan). Integrazione Stripe e piani paid rimandati a v2.1+.
+- **Multi-region / high-availability del server** — v2.0 è single-region, single-instance Docker. HA e multi-region sono fuori scope per questa milestone.
 
 ## Context
 
@@ -98,4 +143,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-14 after Phase 4 (Executor & CLI) completion — cross-platform command executor with single/sequential/parallel modes, ANSI output formatting, failMode support; full CLI rewrite with dynamic alias registration, --list/--dry-run/--verbose flags, pass-through args. 202 tests, strict TS clean.*
+*Last updated: 2026-04-16 — started milestone v2.0 (Remote CI — Agents + Web Dashboard). Major product pivot: inverts 3 v1 Out-of-Scope items (remote execution, web dashboard, auto triggers) and partially inverts secrets-via-vault. Stack additions: Fastify + Postgres server, React+Vite web, WebSocket agent protocol, plugin system for triggers. Backward-compat with v1 CLI is non-negotiable.*
