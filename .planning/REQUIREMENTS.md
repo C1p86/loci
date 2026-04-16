@@ -301,7 +301,7 @@ Escluso esplicitamente. Documentato per evitare scope creep.
 
 ## Traceability
 
-Quali fasi coprono quali requirement. La tabella v2.0 sarà popolata dal roadmapper.
+Quali fasi coprono quali requirement.
 
 ### v1.0 (complete)
 
@@ -315,12 +315,112 @@ Quali fasi coprono quali requirement. La tabella v2.0 sarà popolata dal roadmap
 
 **v1.0 coverage:** 57 requirement → 57 mapped.
 
-### v2.0 (to be filled by roadmapper)
+### v2.0
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| _(pending roadmap)_ | | |
+| BC-01 | 06-monorepo-setup | Pending |
+| BC-02 | 06-monorepo-setup | Pending |
+| BC-03 | 06-monorepo-setup | Pending |
+| BC-04 | 06-monorepo-setup | Pending |
+| PKG-01 | 06-monorepo-setup | Pending |
+| PKG-02 | 06-monorepo-setup | Pending |
+| PKG-03 | 06-monorepo-setup | Pending |
+| AUTH-01 | 07-database-auth | Pending |
+| AUTH-02 | 07-database-auth | Pending |
+| AUTH-03 | 07-database-auth | Pending |
+| AUTH-04 | 07-database-auth | Pending |
+| AUTH-05 | 07-database-auth | Pending |
+| AUTH-06 | 07-database-auth | Pending |
+| AUTH-07 | 07-database-auth | Pending |
+| AUTH-08 | 07-database-auth | Pending |
+| AUTH-09 | 07-database-auth | Pending |
+| AUTH-10 | 07-database-auth | Pending |
+| AUTH-11 | 07-database-auth | Pending |
+| AUTH-12 | 07-database-auth | Pending |
+| QUOTA-01 | 07-database-auth | Pending |
+| QUOTA-02 | 07-database-auth | Pending |
+| QUOTA-07 | 07-database-auth | Pending |
+| ATOK-01 | 08-agent-ws-protocol | Pending |
+| ATOK-02 | 08-agent-ws-protocol | Pending |
+| ATOK-03 | 08-agent-ws-protocol | Pending |
+| ATOK-04 | 08-agent-ws-protocol | Pending |
+| ATOK-05 | 08-agent-ws-protocol | Pending |
+| ATOK-06 | 08-agent-ws-protocol | Pending |
+| AGENT-01 | 08-agent-ws-protocol | Pending |
+| AGENT-02 | 08-agent-ws-protocol | Pending |
+| AGENT-03 | 08-agent-ws-protocol | Pending |
+| AGENT-04 | 08-agent-ws-protocol | Pending |
+| AGENT-05 | 08-agent-ws-protocol | Pending |
+| AGENT-06 | 08-agent-ws-protocol | Pending |
+| AGENT-07 | 08-agent-ws-protocol | Pending |
+| AGENT-08 | 08-agent-ws-protocol | Pending |
+| TASK-01 | 09-task-definitions-secrets | Pending |
+| TASK-02 | 09-task-definitions-secrets | Pending |
+| TASK-03 | 09-task-definitions-secrets | Pending |
+| TASK-04 | 09-task-definitions-secrets | Pending |
+| TASK-05 | 09-task-definitions-secrets | Pending |
+| TASK-06 | 09-task-definitions-secrets | Pending |
+| SEC-01 | 09-task-definitions-secrets | Pending |
+| SEC-02 | 09-task-definitions-secrets | Pending |
+| SEC-03 | 09-task-definitions-secrets | Pending |
+| SEC-04 | 09-task-definitions-secrets | Pending |
+| SEC-05 | 09-task-definitions-secrets | Pending |
+| SEC-06 | 09-task-definitions-secrets | Pending |
+| SEC-07 | 09-task-definitions-secrets | Pending |
+| SEC-08 | 09-task-definitions-secrets | Pending |
+| DISP-01 | 10-dispatch-quota | Pending |
+| DISP-02 | 10-dispatch-quota | Pending |
+| DISP-03 | 10-dispatch-quota | Pending |
+| DISP-04 | 10-dispatch-quota | Pending |
+| DISP-05 | 10-dispatch-quota | Pending |
+| DISP-06 | 10-dispatch-quota | Pending |
+| DISP-07 | 10-dispatch-quota | Pending |
+| DISP-08 | 10-dispatch-quota | Pending |
+| DISP-09 | 10-dispatch-quota | Pending |
+| QUOTA-03 | 10-dispatch-quota | Pending |
+| QUOTA-04 | 10-dispatch-quota | Pending |
+| QUOTA-05 | 10-dispatch-quota | Pending |
+| QUOTA-06 | 10-dispatch-quota | Pending |
+| LOG-01 | 11-log-streaming | Pending |
+| LOG-02 | 11-log-streaming | Pending |
+| LOG-03 | 11-log-streaming | Pending |
+| LOG-04 | 11-log-streaming | Pending |
+| LOG-05 | 11-log-streaming | Pending |
+| LOG-06 | 11-log-streaming | Pending |
+| LOG-07 | 11-log-streaming | Pending |
+| LOG-08 | 11-log-streaming | Pending |
+| PLUG-01 | 12-plugin-webhooks | Pending |
+| PLUG-02 | 12-plugin-webhooks | Pending |
+| PLUG-03 | 12-plugin-webhooks | Pending |
+| PLUG-04 | 12-plugin-webhooks | Pending |
+| PLUG-05 | 12-plugin-webhooks | Pending |
+| PLUG-06 | 12-plugin-webhooks | Pending |
+| PLUG-07 | 12-plugin-webhooks | Pending |
+| PLUG-08 | 12-plugin-webhooks | Pending |
+| UI-01 | 13-web-dashboard | Pending |
+| UI-02 | 13-web-dashboard | Pending |
+| UI-03 | 13-web-dashboard | Pending |
+| UI-04 | 13-web-dashboard | Pending |
+| UI-05 | 13-web-dashboard | Pending |
+| UI-06 | 13-web-dashboard | Pending |
+| UI-07 | 13-web-dashboard | Pending |
+| UI-08 | 13-web-dashboard | Pending |
+| UI-09 | 13-web-dashboard | Pending |
+| UI-10 | 13-web-dashboard | Pending |
+| UI-11 | 13-web-dashboard | Pending |
+| BADGE-01 | 13-web-dashboard | Pending |
+| BADGE-02 | 13-web-dashboard | Pending |
+| BADGE-03 | 13-web-dashboard | Pending |
+| BADGE-04 | 13-web-dashboard | Pending |
+| PKG-04 | 14-docker-publishing | Pending |
+| PKG-05 | 14-docker-publishing | Pending |
+| PKG-06 | 14-docker-publishing | Pending |
+| PKG-07 | 14-docker-publishing | Pending |
+| PKG-08 | 14-docker-publishing | Pending |
+
+**v2.0 coverage:** 99 requirements → 99 mapped. No orphans.
 
 ---
 
-*v1.0 requirements defined: 2026-04-10 · Last updated: 2026-04-16 after adding milestone v2.0 requirements*
+*v1.0 requirements defined: 2026-04-10 · Last updated: 2026-04-16 after adding milestone v2.0 requirements and traceability*

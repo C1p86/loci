@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: remote-ci-agents-web
-status: defining_requirements
-stopped_at: Milestone v2.0 started — defining requirements
+status: phase_ready
+stopped_at: Roadmap created — Phase 06 ready to plan
 last_updated: "2026-04-16T00:00:00.000Z"
 last_activity: 2026-04-16
 progress:
-  total_phases: 0
+  total_phases: 9
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Milestone v2.0 — defining requirements
+**Current focus:** Milestone v2.0 — Phase 06: Monorepo Setup & Backward-Compat Fence
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 06-monorepo-setup
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-16 — Milestone v2.0 started
+Status: Not started (roadmap complete, ready to plan Phase 06)
+Last activity: 2026-04-16 — v2.0 roadmap created (9 phases, 99 requirements mapped)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -36,11 +36,11 @@ Progress: [░░░░░░░░░░] 0%
 
 **Velocity:**
 
-- Total plans completed: 12
+- Total plans completed: 12 (v1.0)
 - Average duration: —
-- Total execution time: 0 hours
+- Total execution time: 0 hours (v2.0)
 
-**By Phase:**
+**By Phase (v1.0 complete):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
@@ -49,6 +49,20 @@ Progress: [░░░░░░░░░░] 0%
 | 03 | 2 | - | - |
 | 04 | 2 | - | - |
 | 05 | 3 | - | - |
+
+**By Phase (v2.0 — not started):**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| 06 | TBD | - | - |
+| 07 | TBD | - | - |
+| 08 | TBD | - | - |
+| 09 | TBD | - | - |
+| 10 | TBD | - | - |
+| 11 | TBD | - | - |
+| 12 | TBD | - | - |
+| 13 | TBD | - | - |
+| 14 | TBD | - | - |
 
 **Recent Trend:**
 
@@ -101,10 +115,17 @@ Recent decisions affecting current work:
 - [Phase 04-executor-cli]: Pass-through test uses script file not 'node -e' to avoid Node v22 treating '--foo' as its own option
 - [Phase 04-executor-cli]: configureOutput writeErr noop to suppress commander stderr double-output with exitOverride
 - [Phase 05-init-distribution]: registerInitCommand called before findLociRoot; postAction hook enables exit-0 from no-.loci/ dirs
-- [Phase 05-init-distribution]: README uses npm package name 'xci' per D-01; binary command documented as 'loci'; badges included for CI workflow and npm xci package
+- [Phase 05-init-distribution]: README uses npm package name 'xci' per D-01; binary command documented as 'xci'; badges included for CI workflow and npm xci package
 - [Phase 05-init-distribution]: Package name set to 'xci' per D-01 (npm name loci is taken); bin command stays loci; LICENSE added to package.json files array
 - [Phase 05-init-distribution]: Package name set to 'xci' per D-01 (npm name 'loci' is taken); bin command stays 'loci'
 - [Phase 05-init-distribution]: LICENSE explicitly in package.json files array for unambiguous tarball inclusion
+- [v2.0 Roadmap]: 9 phases (06–14), 99 requirements, all mapped with no orphans
+- [v2.0 Roadmap]: Phase 06 is a hard backward-compat fence — no agent code written until CI gates are active (BC-02, BC-03 enforced)
+- [v2.0 Roadmap]: `ws` and `reconnecting-websocket` are external[] in cli.ts tsup entry; bundle-size CI gate fails at >200KB
+- [v2.0 Roadmap]: Docker base must be node:22-slim (not Alpine) — @node-rs/argon2 prebuilt binaries require glibc
+- [v2.0 Roadmap]: Agent token transmitted in WS frame body only, never in connection URL (proxy log safety)
+- [v2.0 Roadmap]: QUOTA-01/02/07 assigned to Phase 07 (schema + entity definitions); QUOTA-03/04/05/06 assigned to Phase 10 (enforcement at dispatch/registration)
+- [v2.0 Roadmap]: TASK-05 (UI editor) assigned to Phase 09 alongside server-side task API; UI wiring completed in Phase 13
 
 ### Pending Todos
 
@@ -123,6 +144,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-15T12:51:39.437Z
-Stopped at: Completed 05-03-PLAN.md — Phase 5 complete, all plans done
+Last session: 2026-04-16T00:00:00.000Z
+Stopped at: v2.0 roadmap created — 9 phases (06–14), 99/99 requirements mapped
 Resume file: None
