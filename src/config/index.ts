@@ -95,9 +95,12 @@ function flattenToStrings(
         }
         result[k] = v;
       }
+    } else if (Array.isArray(value)) {
+      // Serialize arrays as JSON strings so modifiers (|map:, |join:) can parse them
+      result[fullKey] = JSON.stringify(value);
     } else {
-      // D-04: non-string leaf (number, boolean, array, null)
-      const actualType = Array.isArray(value) ? 'array' : value === null ? 'null' : typeof value;
+      // D-04: non-string leaf (number, boolean, null)
+      const actualType = value === null ? 'null' : typeof value;
       throw new YamlParseError(
         filePath,
         undefined,

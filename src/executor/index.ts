@@ -14,14 +14,14 @@ export { buildSecretValues, printCaptureResult, printDryRun, printStepPreview, p
 
 export const executor: Executor = {
   async run(plan: ExecutionPlan, options: ExecutorOptions): Promise<ExecutionResult> {
-    const { cwd, env, logFile, showOutput, tailLines } = options;
+    const { cwd, env, logFile, showOutput, tailLines, fromStep } = options;
     const show = showOutput ?? true;
 
     switch (plan.kind) {
       case 'single': {
         const cmdName = plan.argv[0] ?? '(cmd)';
         printStepHeader(cmdName);
-        printStepPreview(undefined, plan.argv);
+        printStepPreview(undefined, plan.argv, undefined, { verbose: env['XCI_VERBOSE'] === '1', logFile });
         const startTime = Date.now();
 
         if (plan.capture) {
@@ -51,7 +51,7 @@ export const executor: Executor = {
         return result;
       }
       case 'sequential':
-        return runSequential(plan.steps, cwd, env, logFile, show, tailLines);
+        return runSequential(plan.steps, cwd, env, logFile, show, tailLines, fromStep);
       case 'parallel':
         return runParallel(plan.group, plan.failMode, cwd, env, logFile, show);
       case 'ini': {

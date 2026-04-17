@@ -12,6 +12,9 @@ import { selectPlatformCmd } from './platform.js';
 export { buildEnvVars, redactSecrets } from './envvars.js';
 export { interpolateArgv } from './interpolate.js';
 
+/** Matches a variable assignment step: KEY=VALUE (no spaces around =). */
+const VAR_ASSIGN_RE = /^[A-Za-z_][A-Za-z0-9_.]*=/;
+
 /**
  * Resolve an alias into SequentialSteps using lenient interpolation.
  * Unknown ${placeholders} are kept as-is for runtime resolution (e.g. captured vars).
@@ -41,6 +44,7 @@ function resolveToStepsLenient(
       const rawCmd = selectPlatformCmd(def, aliasName);
       const argv = interpolateArgvLenient(rawCmd, config.values);
       return [{
+        label: aliasName,
         argv,
         rawArgv: rawCmd,
         ...(def.capture ? { capture: def.capture } : {}),
@@ -49,7 +53,13 @@ function resolveToStepsLenient(
     case 'sequential': {
       const allSteps: SequentialStep[] = [];
       for (const step of def.steps) {
-        if (commands.has(step)) {
+        if (VAR_ASSIGN_RE.test(step)) {
+          // Variable assignment step: KEY=VALUE
+          const eqIdx = step.indexOf('=');
+          const key = step.substring(0, eqIdx);
+          const value = step.substring(eqIdx + 1);
+          allSteps.push({ kind: 'set', vars: { [key]: value } });
+        } else if (commands.has(step)) {
           const subSteps = resolveToStepsLenient(step, commands, config, depth + 1, [...chain, step]);
           for (const s of subSteps) allSteps.push(s);
         } else {
@@ -73,6 +83,43 @@ function resolveToStepsLenient(
         const argv = interpolateArgvLenient(tokens, config.values);
         return { argv, rawArgv: tokens };
       });
+
+    case 'for_each': {
+      const allSteps: SequentialStep[] = [];
+      for (const value of def.in) {
+        const loopValues = { ...config.values, [def.var]: value };
+        if (def.run && commands.has(def.run)) {
+          const loopConfig: ResolvedConfig = { ...config, values: loopValues };
+          const subSteps = resolveToStepsLenient(def.run, commands, loopConfig, depth + 1, [...chain, def.run]);
+          for (const s of subSteps) allSteps.push(s);
+        } else if (def.cmd) {
+          const argv = interpolateArgvLenient(def.cmd, loopValues);
+          allSteps.push({ argv, rawArgv: def.cmd });
+        }
+      }
+      return allSteps;
+    }
+
+    case 'ini': {
+      const file = interpolateArgvLenient([def.file], config.values)[0] ?? def.file;
+      let set: Record<string, Record<string, string>> | undefined;
+      if (def.set) {
+        set = {};
+        for (const [section, keys] of Object.entries(def.set)) {
+          set[section] = {};
+          for (const [k, v] of Object.entries(keys)) {
+            set[section][k] = interpolateArgvLenient([v], config.values)[0] ?? v;
+          }
+        }
+      }
+      return [{
+        kind: 'ini' as const,
+        file,
+        mode: def.mode ?? 'overwrite',
+        ...(set ? { set } : {}),
+        ...(def.delete ? { delete: def.delete } : {}),
+      }];
+    }
   }
 }
 
@@ -110,7 +157,12 @@ function resolveAlias(
       // resolution with captured variables from prior steps.
       const allSteps: SequentialStep[] = [];
       for (const step of def.steps) {
-        if (commands.has(step)) {
+        if (VAR_ASSIGN_RE.test(step)) {
+          const eqIdx = step.indexOf('=');
+          const key = step.substring(0, eqIdx);
+          const value = step.substring(eqIdx + 1);
+          allSteps.push({ kind: 'set', vars: { [key]: value } });
+        } else if (commands.has(step)) {
           const subSteps = resolveToStepsLenient(step, commands, config, depth + 1, [...chain, step]);
           for (const s of subSteps) allSteps.push(s);
         } else {
@@ -187,14 +239,14 @@ function resolveAlias(
 
     case 'ini': {
       // Interpolate file path and values
-      const file = interpolateArgv([def.file], aliasName, config.values)[0];
+      const file = interpolateArgv([def.file], aliasName, config.values)[0] ?? def.file;
       let set: Record<string, Record<string, string>> | undefined;
       if (def.set) {
         set = {};
         for (const [section, keys] of Object.entries(def.set)) {
           set[section] = {};
           for (const [k, v] of Object.entries(keys)) {
-            set[section][k] = interpolateArgv([v], aliasName, config.values)[0];
+            set[section][k] = interpolateArgv([v], aliasName, config.values)[0] ?? v;
           }
         }
       }

@@ -49,6 +49,13 @@ export interface CaptureConfig {
   readonly assert?: string | readonly string[];  // e.g. "> 0", "not empty", [">=1", "<=100"]
 }
 
+/** Parameter definition for a command. */
+export interface ParamDef {
+  readonly required?: boolean;              // default: false
+  readonly default?: string;                // default value if not provided
+  readonly description?: string;            // human-readable description
+}
+
 /** Union type matching the commands.yml schema after parse + validation. */
 export type CommandDef =
   | {
@@ -57,17 +64,20 @@ export type CommandDef =
       readonly description?: string;
       readonly platforms?: PlatformOverrides;
       readonly capture?: CaptureConfig; // capture stdout into a named variable with optional validation
+      readonly params?: Readonly<Record<string, ParamDef>>;
     }
   | {
       readonly kind: 'sequential';
       readonly steps: readonly CommandRef[];
       readonly description?: string;
+      readonly params?: Readonly<Record<string, ParamDef>>;
     }
   | {
       readonly kind: 'parallel';
       readonly group: readonly CommandRef[];
       readonly description?: string;
       readonly failMode?: 'fast' | 'complete'; // D-15: validated at load time
+      readonly params?: Readonly<Record<string, ParamDef>>;
     }
   | {
       readonly kind: 'for_each';
@@ -78,6 +88,7 @@ export type CommandDef =
       readonly run?: string;                   // alias reference
       readonly description?: string;
       readonly failMode?: 'fast' | 'complete'; // for parallel mode
+      readonly params?: Readonly<Record<string, ParamDef>>;
     }
   | {
       readonly kind: 'ini';
@@ -86,6 +97,7 @@ export type CommandDef =
       readonly set?: Readonly<Record<string, Readonly<Record<string, string>>>>; // section → key → value
       readonly delete?: Readonly<Record<string, readonly string[]>>;             // section → keys to delete
       readonly description?: string;
+      readonly params?: Readonly<Record<string, ParamDef>>;
     };
 
 export type CommandMap = ReadonlyMap<string, CommandDef>;
@@ -98,11 +110,25 @@ export interface CommandsLoader {
  * Resolver contract (Phase 3)
  * ------------------------------------------------------------ */
 
-export interface SequentialStep {
-  readonly argv: readonly string[];          // interpolated argv (best-effort at plan time)
-  readonly rawArgv?: readonly string[];      // pre-interpolation tokens (for deferred interpolation with captured vars)
-  readonly capture?: CaptureConfig;
-}
+export type SequentialStep =
+  | {
+      readonly kind?: 'cmd';                    // default — omit for backward compat
+      readonly label?: string;                  // alias name for display in step headers
+      readonly argv: readonly string[];          // interpolated argv (best-effort at plan time)
+      readonly rawArgv?: readonly string[];      // pre-interpolation tokens (for deferred interpolation with captured vars)
+      readonly capture?: CaptureConfig;
+    }
+  | {
+      readonly kind: 'ini';
+      readonly file: string;
+      readonly mode: 'overwrite' | 'merge';
+      readonly set?: Readonly<Record<string, Readonly<Record<string, string>>>>;
+      readonly delete?: Readonly<Record<string, readonly string[]>>;
+    }
+  | {
+      readonly kind: 'set';
+      readonly vars: Readonly<Record<string, string>>;   // variable assignments (raw, may contain ${placeholders})
+    };
 
 export type ExecutionPlan =
   | { readonly kind: 'single'; readonly argv: readonly string[]; readonly capture?: CaptureConfig }
@@ -141,6 +167,7 @@ export interface ExecutorOptions {
   readonly logFile?: string;     // path to log file (always written)
   readonly showOutput?: boolean; // pipe output to terminal (default: false)
   readonly tailLines?: number;   // show last N lines of output after each command (--short-log N)
+  readonly fromStep?: string;    // start from this step label, skip earlier ones (--from)
 }
 
 export interface Executor {

@@ -4,7 +4,7 @@
 // Converts the flexible user-facing YAML shapes into the strict CommandDef union.
 
 import { CommandSchemaError } from '../errors.js';
-import type { CaptureConfig, CaptureType, CommandDef, CommandMap, PlatformOverrides } from '../types.js';
+import type { CaptureConfig, CaptureType, CommandDef, CommandMap, ParamDef, PlatformOverrides } from '../types.js';
 import { tokenize } from './tokenize.js';
 
 /**
@@ -64,6 +64,58 @@ function normalizePlatformBlock(
     aliasName,
     `platform override "${platformKey}.cmd" must be a string or array of strings`,
   );
+}
+
+/**
+ * Normalize a params block: Record<string, { required?, default?, description? }>
+ */
+function normalizeParams(
+  aliasName: string,
+  raw: unknown,
+): Readonly<Record<string, ParamDef>> | undefined {
+  if (raw === undefined) return undefined;
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw new CommandSchemaError(aliasName, 'params must be an object of { paramName: { required?, default?, description? } }');
+  }
+  const result: Record<string, ParamDef> = {};
+  for (const [name, def] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof def === 'string') {
+      // Shorthand: params: { BuildVersion: "required" }
+      if (def === 'required') {
+        result[name] = { required: true };
+      } else {
+        // Treat as default value
+        result[name] = { default: def };
+      }
+      continue;
+    }
+    if (typeof def === 'object' && def !== null && !Array.isArray(def)) {
+      const obj = def as Record<string, unknown>;
+      const param: { required?: boolean; default?: string; description?: string } = {};
+      if (obj.required !== undefined) {
+        if (typeof obj.required !== 'boolean') {
+          throw new CommandSchemaError(aliasName, `params.${name}.required must be a boolean`);
+        }
+        param.required = obj.required;
+      }
+      if (obj.default !== undefined) {
+        if (typeof obj.default !== 'string') {
+          throw new CommandSchemaError(aliasName, `params.${name}.default must be a string`);
+        }
+        param.default = obj.default;
+      }
+      if (obj.description !== undefined) {
+        if (typeof obj.description !== 'string') {
+          throw new CommandSchemaError(aliasName, `params.${name}.description must be a string`);
+        }
+        param.description = obj.description;
+      }
+      result[name] = param;
+      continue;
+    }
+    throw new CommandSchemaError(aliasName, `params.${name} must be "required", a default value string, or an object { required?, default?, description? }`);
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 /**
@@ -130,6 +182,7 @@ function normalizeObject(
     }
 
     const description = typeof obj.description === 'string' ? obj.description : undefined;
+    const params = normalizeParams(aliasName, obj.params);
 
     return {
       kind: 'ini',
@@ -138,6 +191,7 @@ function normalizeObject(
       ...(set !== undefined ? { set } : {}),
       ...(del !== undefined ? { delete: del } : {}),
       ...(description !== undefined ? { description } : {}),
+      ...(params !== undefined ? { params } : {}),
     };
   }
 
@@ -187,6 +241,8 @@ function normalizeObject(
       failMode = fe.failMode;
     }
 
+    const params = normalizeParams(aliasName, obj.params);
+
     return {
       kind: 'for_each',
       var: fe.var,
@@ -196,6 +252,7 @@ function normalizeObject(
       ...(run !== undefined ? { run } : {}),
       ...(description !== undefined ? { description } : {}),
       ...(failMode !== undefined ? { failMode } : {}),
+      ...(params !== undefined ? { params } : {}),
     };
   }
 
@@ -203,7 +260,8 @@ function normalizeObject(
   if (Object.hasOwn(obj, 'steps')) {
     const steps = validateStringArray(aliasName, obj.steps, 'steps');
     const description = typeof obj.description === 'string' ? obj.description : undefined;
-    return { kind: 'sequential', steps, ...(description !== undefined ? { description } : {}) };
+    const params = normalizeParams(aliasName, obj.params);
+    return { kind: 'sequential', steps, ...(description !== undefined ? { description } : {}), ...(params !== undefined ? { params } : {}) };
   }
 
   // Check for parallel (concurrent group)
@@ -224,11 +282,14 @@ function normalizeObject(
       failMode = raw;
     }
 
+    const params = normalizeParams(aliasName, obj.params);
+
     return {
       kind: 'parallel',
       group,
       ...(description !== undefined ? { description } : {}),
       ...(failMode !== undefined ? { failMode } : {}),
+      ...(params !== undefined ? { params } : {}),
     };
   }
 
@@ -314,12 +375,15 @@ function normalizeObject(
     }
   }
 
+  const params = normalizeParams(aliasName, obj.params);
+
   return {
     kind: 'single',
     cmd,
     ...(description !== undefined ? { description } : {}),
     ...(platforms !== undefined ? { platforms } : {}),
     ...(capture !== undefined ? { capture } : {}),
+    ...(params !== undefined ? { params } : {}),
   };
 }
 

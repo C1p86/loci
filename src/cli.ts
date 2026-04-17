@@ -6,6 +6,7 @@ import { Command } from 'commander';
 import { configLoader } from './config/index.js';
 import { commandsLoader } from './commands/index.js';
 import { resolver, buildEnvVars, redactSecrets } from './resolver/index.js';
+import { validateParams, getParamNames } from './resolver/params.js';
 import { executor, printDryRun, printVerboseCommand, printVerboseTrace, buildSecretValues } from './executor/index.js';
 import { CliError, exitCodeFor, XciError, UnknownAliasError, UnknownFlagError } from './errors.js';
 import { XCI_VERSION } from './version.js';
@@ -110,33 +111,39 @@ function printAliasList(commands: CommandMap): void {
   process.stdout.write('xci — Local CI command runner\n\n');
 
   // Built-in commands
-  process.stdout.write('Commands:\n\n');
-  process.stdout.write('  xci <alias> [KEY=VALUE...]   Run an alias\n');
+  process.stdout.write('Built-in commands:\n\n');
   process.stdout.write('  xci init                     Scaffold .xci/ directory\n');
   process.stdout.write('  xci template                 Generate shareable template\n');
-  process.stdout.write('  xci --help                   Show full help\n');
+  process.stdout.write('  xci completion [shell]       Output shell completion script\n');
+  process.stdout.write('  xci install [shell]          Install shell completion permanently\n');
+  process.stdout.write('  xci uninstall [shell]        Remove shell completion\n');
 
   // Flags
   process.stdout.write('\nFlags:\n\n');
-  process.stdout.write('  --log          Show command output in terminal\n');
-  process.stdout.write('  --verbose      Show config trace + output\n');
-  process.stdout.write('  --dry-run      Preview without executing\n');
-  process.stdout.write('  --ui           Interactive TUI dashboard\n');
-  process.stdout.write('  --list, -l     List aliases\n');
+  process.stdout.write('  --log              Show full command output in terminal\n');
+  process.stdout.write('  --short-log <N>    Show last N lines of output (default: 10)\n');
+  process.stdout.write('  --verbose          Show config trace + full output\n');
+  process.stdout.write('  --dry-run          Preview without executing\n');
+  process.stdout.write('  --list             Show command details and sub-steps\n');
+  process.stdout.write('  --from <step>      Start from a specific step (skip earlier)\n');
+  process.stdout.write('  --ui               Interactive TUI dashboard\n');
+  process.stdout.write('  -l                 List all aliases\n');
 
-  // Aliases
+  // Project aliases
   if (commands.size > 0) {
-    process.stdout.write('\nAliases:\n\n');
+    process.stdout.write('\nProject aliases:\n\n');
+    // Calculate padding for alignment
+    const maxLen = Math.max(...[...commands.keys()].map((a) => a.length));
     for (const [alias, def] of commands) {
-      const desc = def.description ?? '';
-      const kind = def.kind;
-      process.stdout.write(`  ${alias}  ${desc ? '- ' + desc : ''}  (${kind})\n`);
+      const pad = ' '.repeat(maxLen - alias.length + 2);
+      const desc = def.description ? `${def.description} ` : '';
+      process.stdout.write(`  ${alias}${pad}${desc}(${def.kind})\n`);
     }
   } else {
     process.stdout.write('\nNo aliases defined. Edit .xci/commands.yml to add aliases.\n');
   }
 
-  process.stdout.write('\nRun `xci <alias> --help` for details on a specific alias.\n');
+  process.stdout.write('\nRun `xci <alias> --list` for details on a specific alias.\n');
 }
 
 /* ------------------------------------------------------------------ */
@@ -187,6 +194,71 @@ function buildAliasHelpText(alias: string, def: CommandDef): string {
 }
 
 /* ------------------------------------------------------------------ */
+/* --list: detailed alias info                                           */
+/* ------------------------------------------------------------------ */
+
+function printAliasDetails(
+  alias: string,
+  def: CommandDef,
+  commands: CommandMap,
+  config: ResolvedConfig,
+  projectRoot: string,
+): void {
+  const builtins: Record<string, string> = { 'xci.project.path': projectRoot, 'XCI_PROJECT_PATH': projectRoot };
+  const effectiveValues = { ...config.values, ...builtins };
+
+  process.stderr.write(`\n${alias}`);
+  if (def.description) process.stderr.write(` — ${def.description}`);
+  process.stderr.write(`\n  type: ${def.kind}\n`);
+
+  // Show steps/sub-commands recursively
+  switch (def.kind) {
+    case 'sequential':
+      process.stderr.write('  steps:\n');
+      for (let i = 0; i < def.steps.length; i++) {
+        const step = def.steps[i];
+        const subDef = commands.get(step);
+        const desc = subDef?.description ? ` — ${subDef.description}` : '';
+        const kind = subDef ? ` (${subDef.kind})` : '';
+        process.stderr.write(`    ${i + 1}. ${step}${kind}${desc}\n`);
+      }
+      break;
+    case 'parallel':
+      process.stderr.write(`  parallel (failMode: ${def.failMode ?? 'fast'}):\n`);
+      for (const entry of def.group) {
+        const subDef = commands.get(entry);
+        const desc = subDef?.description ? ` — ${subDef.description}` : '';
+        process.stderr.write(`    - ${entry}${desc}\n`);
+      }
+      break;
+    case 'single':
+      process.stderr.write(`  cmd: ${def.cmd.join(' ')}\n`);
+      break;
+    case 'for_each':
+      process.stderr.write(`  var: ${def.var}  in: [${def.in.join(', ')}]  mode: ${def.mode}\n`);
+      if (def.cmd) process.stderr.write(`  cmd: ${def.cmd.join(' ')}\n`);
+      if (def.run) process.stderr.write(`  run: ${def.run}\n`);
+      break;
+    case 'ini':
+      process.stderr.write(`  file: ${def.file}  mode: ${def.mode ?? 'overwrite'}\n`);
+      break;
+  }
+
+  // Show params (declared + auto-detected)
+  const params = getParamNames(alias, commands, effectiveValues);
+  if (params.length > 0) {
+    process.stderr.write('  params:\n');
+    for (const p of params) {
+      const tag = p.required ? 'required' : p.hasDefault ? 'has default' : 'optional';
+      const desc = p.description ? ` — ${p.description}` : '';
+      process.stderr.write(`    ${p.name} (${tag})${desc}\n`);
+    }
+  }
+
+  process.stderr.write('\n');
+}
+
+/* ------------------------------------------------------------------ */
 /* parseCliOverrides helper (CLI-KV)                                     */
 /* ------------------------------------------------------------------ */
 
@@ -231,11 +303,13 @@ function appendExtraArgs(plan: ExecutionPlan, extra: readonly string[]): Executi
     case 'single':
       return { ...plan, argv: [...plan.argv, ...extra] };
     case 'sequential': {
-      // Append to the LAST step in the chain
+      // Append to the LAST cmd step in the chain (skip ini steps)
       if (plan.steps.length === 0) return plan;
       const lastIdx = plan.steps.length - 1;
+      const lastStep = plan.steps[lastIdx];
+      if (lastStep.kind === 'ini') return plan;
       const newSteps = plan.steps.map((s, i) =>
-        i === lastIdx ? { ...s, argv: [...s.argv, ...extra] } : s
+        i === lastIdx && s.kind !== 'ini' ? { ...s, argv: [...s.argv, ...extra] } : s
       );
       return { ...plan, steps: newSteps };
     }
@@ -248,6 +322,9 @@ function appendExtraArgs(plan: ExecutionPlan, extra: readonly string[]): Executi
           argv: [...entry.argv, ...extra],
         })),
       };
+    case 'ini':
+      // Extra args don't apply to ini operations
+      return plan;
   }
 }
 
@@ -273,6 +350,8 @@ function registerAliases(
       .option('--log', 'Show command output in terminal (default: hidden)')
       .option('--short-log <N>', 'Show last N lines of output per command')
       .option('--ui', 'Run with interactive TUI dashboard')
+      .option('--list', 'Show command details and sub-steps')
+      .option('--from <step>', 'Start execution from this step, skip earlier ones')
       .addHelpText('after', buildAliasHelpText(alias, def));
 
     sub.action(async function (this: Command, options: { dryRun?: boolean; verbose?: boolean; log?: boolean; shortLog?: string; ui?: boolean }) {
@@ -280,15 +359,15 @@ function registerAliases(
       // commander strips '--' from this.args with passThroughOptions(), so we
       // re-derive the user args slice from parent.rawArgs (which keeps '--').
       // We strip the binary path, alias name, and xci-owned flags.
-      const XCI_FLAGS = new Set(['--dry-run', '--verbose', '--log', '--ui', '--dry-run=true', '--verbose=true', '--log=true', '--ui=true']);
+      const XCI_FLAGS = new Set(['--dry-run', '--verbose', '--log', '--no-log', '--ui', '--list', '--dry-run=true', '--verbose=true', '--log=true', '--ui=true', '--list=true']);
       const rawArgs: readonly string[] = this.parent?.rawArgs ?? [];
       const aliasIdx = rawArgs.indexOf(alias);
       const afterAlias = aliasIdx >= 0 ? rawArgs.slice(aliasIdx + 1) : [...this.args];
-      // Also strip --short-log and its value
+      // Strip --short-log, --from and their values
       const filteredArgs: string[] = [];
       for (let i = 0; i < afterAlias.length; i++) {
-        if (afterAlias[i] === '--short-log') { i++; continue; } // skip flag + value
-        if (afterAlias[i].startsWith('--short-log=')) continue;
+        if (afterAlias[i] === '--short-log' || afterAlias[i] === '--from') { i++; continue; }
+        if (afterAlias[i].startsWith('--short-log=') || afterAlias[i].startsWith('--from=')) continue;
         filteredArgs.push(afterAlias[i]);
       }
       const userArgs = filteredArgs.filter((a) => !XCI_FLAGS.has(a));
@@ -300,8 +379,42 @@ function registerAliases(
       const isVerbose = options.verbose === true || afterAlias.includes('--verbose');
       const isLog = options.log === true || afterAlias.includes('--log');
       const isUi = options.ui === true || afterAlias.includes('--ui');
-      const tailLines = options.shortLog ? Number.parseInt(options.shortLog, 10) : undefined;
+      // --short-log may not be parsed by commander when passThroughOptions is active
+      // and it appears after positional args. Fall back to manual extraction from afterAlias.
+      let shortLogValue = options.shortLog;
+      if (!shortLogValue) {
+        const slIdx = afterAlias.indexOf('--short-log');
+        if (slIdx >= 0 && slIdx + 1 < afterAlias.length) {
+          shortLogValue = afterAlias[slIdx + 1];
+        } else {
+          const slEq = afterAlias.find((a) => a.startsWith('--short-log='));
+          if (slEq) shortLogValue = slEq.split('=')[1];
+        }
+      }
+      const parsedTail = shortLogValue ? Number.parseInt(shortLogValue, 10) : undefined;
+      // Default: short-log 10. --log/--verbose: full output. --short-log 0: silent.
       const showOutput = isVerbose || isLog;
+      const tailLines = showOutput ? undefined : (parsedTail ?? 10);
+
+      const isList = (options as Record<string, unknown>).list === true || afterAlias.includes('--list');
+
+      // --from: extract step name
+      let fromStep: string | undefined = (options as Record<string, unknown>).from as string | undefined;
+      if (!fromStep) {
+        const fromIdx = afterAlias.indexOf('--from');
+        if (fromIdx >= 0 && fromIdx + 1 < afterAlias.length) {
+          fromStep = afterAlias[fromIdx + 1];
+        } else {
+          const fromEq = afterAlias.find((a) => a.startsWith('--from='));
+          if (fromEq) fromStep = fromEq.split('=')[1];
+        }
+      }
+
+      // --list: show command details, sub-steps, and params
+      if (isList) {
+        printAliasDetails(alias, def, commands, config, projectRoot);
+        return;
+      }
 
       // Built-in variables always available for interpolation and as env vars.
       // Registered in both dot-notation and UPPER_UNDERSCORE so users can write
@@ -312,10 +425,13 @@ function registerAliases(
       };
 
       // Merge: config values < builtins < CLI overrides
-      const effectiveValues = { ...config.values, ...builtins, ...overrides };
+      const mergedValues = { ...config.values, ...builtins, ...overrides };
+
+      // Validate params: apply defaults, check required params across the full chain
+      const effectiveValues = validateParams(alias, commands, mergedValues);
       const effectiveConfig: ResolvedConfig = { ...config, values: effectiveValues };
 
-      // Resolve the execution plan using effective config (includes builtins + overrides)
+      // Resolve the execution plan using effective config (includes builtins + overrides + param defaults)
       const plan = resolver.resolve(alias, commands, effectiveConfig);
 
       // Build env vars: include both original keys (for ${placeholder} interpolation in
@@ -387,7 +503,7 @@ function registerAliases(
             cwd: projectRoot,
             env,
           } satisfies DashboardContext)
-        : await executor.run(finalPlan, { cwd: projectRoot, env, logFile, showOutput, tailLines });
+        : await executor.run(finalPlan, { cwd: projectRoot, env, logFile, showOutput, tailLines, fromStep });
       if (result.exitCode !== 0) {
         process.exitCode = result.exitCode;
         // On error, offer to show the log (if output was hidden)
@@ -479,15 +595,228 @@ function handleError(err: unknown, _program?: Command): number {
 }
 
 /* ------------------------------------------------------------------ */
+/* Shell completion                                                      */
+/* ------------------------------------------------------------------ */
+
+const XCI_FLAGS = ['--dry-run', '--verbose', '--log', '--short-log', '--ui', '--help'];
+
+function generatePowerShellScript(): string {
+  return `# xci PowerShell completion — add to your $PROFILE
+Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
+if ((Get-Module PSReadLine).Version -ge [version]'2.2.0') { Set-PSReadLineOption -PredictionViewStyle ListView }
+Register-ArgumentCompleter -CommandName xci -Native -ScriptBlock { param($wordToComplete, $commandAst, $cursorPosition); $words = $commandAst.ToString() -split '\\s+'; $result = & xci --get-completions @words 2>$null; if ($result) { $result -split '\\n' | ForEach-Object { $parts = $_ -split '\\t', 2; $text = $parts[0]; $tooltip = if ($parts.Length -gt 1) { $parts[1] } else { $text }; [System.Management.Automation.CompletionResult]::new($text, $text, 'ParameterValue', $tooltip) } } }
+`;
+}
+
+async function handleGetCompletions(argv: readonly string[]): Promise<string[]> {
+  // argv: ['node', 'cli.mjs', '--get-completions', 'xci', ...words]
+  const words = argv.slice(4); // skip node, script, --get-completions, 'xci'
+  const completions: string[] = [];
+
+  const projectRoot = findXciRoot(process.cwd());
+  if (projectRoot === null) return completions;
+
+  let config: ResolvedConfig;
+  let commands: CommandMap;
+  try {
+    [config, commands] = await Promise.all([
+      configLoader.load(projectRoot),
+      commandsLoader.load(projectRoot),
+    ]);
+  } catch {
+    return completions;
+  }
+
+  const aliasName = words[0];
+
+  // No alias yet or completing alias name
+  if (!aliasName || (words.length === 1 && !commands.has(aliasName))) {
+    // Complete alias names
+    const builtins = ['init', 'template', 'completion'];
+    for (const name of builtins) {
+      if (name.startsWith(aliasName ?? '')) {
+        completions.push(name);
+      }
+    }
+    for (const [name, def] of commands) {
+      if (name.startsWith(aliasName ?? '')) {
+        completions.push(`${name}\t${def.description ?? ''}`);
+      }
+    }
+    return completions;
+  }
+
+  // Alias is known — complete flags and params
+  if (!commands.has(aliasName)) return completions;
+
+  const currentWord = words[words.length - 1] ?? '';
+
+  // Complete flags
+  if (currentWord.startsWith('-')) {
+    for (const flag of XCI_FLAGS) {
+      if (flag.startsWith(currentWord)) {
+        completions.push(flag);
+      }
+    }
+    return completions;
+  }
+
+  // Complete param names (KEY=value style)
+  // Collect already-provided overrides
+  const providedKeys = new Set<string>();
+  for (const w of words.slice(1)) {
+    const eqIdx = w.indexOf('=');
+    if (eqIdx > 0) providedKeys.add(w.substring(0, eqIdx));
+  }
+
+  const builtins: Record<string, string> = {
+    'xci.project.path': projectRoot,
+    'XCI_PROJECT_PATH': projectRoot,
+  };
+  const effectiveValues = { ...config.values, ...builtins };
+
+  const params = getParamNames(aliasName, commands, effectiveValues);
+  const prefix = currentWord.includes('=') ? '' : currentWord;
+
+  for (const p of params) {
+    if (providedKeys.has(p.name)) continue;
+    if (p.name.startsWith(prefix)) {
+      const suffix = p.required ? ' (required)' : p.hasDefault ? ' (has default)' : ' (optional)';
+      completions.push(`${p.name}=\t${(p.description ?? '') + suffix}`);
+    }
+  }
+
+  return completions;
+}
+
+/* ------------------------------------------------------------------ */
 /* main (D-17, D-19, D-20, D-24)                                        */
 /* ------------------------------------------------------------------ */
 
 async function main(argv: readonly string[]): Promise<number> {
+  // Handle --get-completions early, before commander parsing
+  if (argv[2] === '--get-completions') {
+    const completions = await handleGetCompletions(argv);
+    if (completions.length > 0) {
+      process.stdout.write(completions.join('\n') + '\n');
+    }
+    return 0;
+  }
+
   const program = buildProgram();
 
-  // Register init and template commands BEFORE findXciRoot so they work from any directory
+  // Register init, template, and completion commands BEFORE findXciRoot so they work from any directory
   registerInitCommand(program);
   registerTemplateCommand(program);
+  program
+    .command('completion')
+    .description('Output shell completion script')
+    .argument('[shell]', 'Shell type (powershell)', 'powershell')
+    .action((shell: string) => {
+      if (shell === 'powershell' || shell === 'pwsh') {
+        process.stdout.write(generatePowerShellScript());
+      } else {
+        process.stderr.write(`Unsupported shell: ${shell}. Supported: powershell\n`);
+        process.exitCode = 1;
+      }
+    });
+
+  program
+    .command('install')
+    .description('Install shell completion permanently')
+    .argument('[shell]', 'Shell type (powershell)', 'powershell')
+    .action(async (shell: string) => {
+      if (shell !== 'powershell' && shell !== 'pwsh') {
+        process.stderr.write(`Unsupported shell: ${shell}. Supported: powershell\n`);
+        process.exitCode = 1;
+        return;
+      }
+      const script = generatePowerShellScript();
+      const marker = '# xci PowerShell completion';
+
+      // Find PowerShell profile path
+      const { execSync } = await import('node:child_process');
+      let profilePath: string;
+      try {
+        profilePath = execSync('powershell -NoProfile -Command "$PROFILE"', { encoding: 'utf8' }).trim();
+      } catch {
+        try {
+          profilePath = execSync('pwsh -NoProfile -Command "$PROFILE"', { encoding: 'utf8' }).trim();
+        } catch {
+          process.stderr.write('Could not detect PowerShell profile path.\n');
+          process.stderr.write('Run manually: xci completion powershell >> $PROFILE\n');
+          process.exitCode = 1;
+          return;
+        }
+      }
+
+      // Read existing profile, check if already installed
+      const { existsSync: exists, readFileSync: readFile, appendFileSync: appendFile, mkdirSync: mkDir } = await import('node:fs');
+      const { dirname: dir } = await import('node:path');
+      let existing = '';
+      if (exists(profilePath)) {
+        existing = readFile(profilePath, 'utf8');
+      }
+
+      if (existing.includes(marker)) {
+        process.stderr.write(`xci completion already installed in ${profilePath}\n`);
+        process.stderr.write('To reinstall, remove the existing xci block from your $PROFILE and run again.\n');
+        return;
+      }
+
+      // Ensure profile directory exists
+      mkDir(dir(profilePath), { recursive: true });
+
+      // Append completion script
+      appendFile(profilePath, '\n' + script);
+      process.stderr.write(`xci completion installed in ${profilePath}\n`);
+      process.stderr.write('Restart PowerShell or run: . $PROFILE\n');
+    });
+
+  program
+    .command('uninstall')
+    .description('Remove shell completion from profile')
+    .argument('[shell]', 'Shell type (powershell)', 'powershell')
+    .action(async (shell: string) => {
+      if (shell !== 'powershell' && shell !== 'pwsh') {
+        process.stderr.write(`Unsupported shell: ${shell}. Supported: powershell\n`);
+        process.exitCode = 1;
+        return;
+      }
+
+      const { execSync } = await import('node:child_process');
+      let profilePath: string;
+      try {
+        profilePath = execSync('powershell -NoProfile -Command "$PROFILE"', { encoding: 'utf8' }).trim();
+      } catch {
+        try {
+          profilePath = execSync('pwsh -NoProfile -Command "$PROFILE"', { encoding: 'utf8' }).trim();
+        } catch {
+          process.stderr.write('Could not detect PowerShell profile path.\n');
+          process.exitCode = 1;
+          return;
+        }
+      }
+
+      const { existsSync: exists, readFileSync: readFile, writeFileSync: writeFile } = await import('node:fs');
+      if (!exists(profilePath)) {
+        process.stderr.write('No PowerShell profile found. Nothing to remove.\n');
+        return;
+      }
+
+      const content = readFile(profilePath, 'utf8');
+      // Remove the xci block: from marker line through the Register-ArgumentCompleter line
+      const cleaned = content.replace(/\n?# xci PowerShell completion[^\n]*(?:\n[^\n]*(?:Set-PSReadLineKeyHandler|Set-PSReadLineOption|Register-ArgumentCompleter)[^\n]*)*/g, '');
+
+      if (cleaned === content) {
+        process.stderr.write('xci completion not found in profile. Nothing to remove.\n');
+        return;
+      }
+
+      writeFile(profilePath, cleaned);
+      process.stderr.write(`xci completion removed from ${profilePath}\n`);
+      process.stderr.write('Restart PowerShell to apply.\n');
+    });
 
   // D-18: walk-up discovery
   const projectRoot = findXciRoot(process.cwd());
