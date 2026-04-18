@@ -6,6 +6,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -167,6 +168,71 @@ export const orgInvites = pgTable(
   ],
 );
 
+export const agents = pgTable(
+  'agents',
+  {
+    id: text('id').primaryKey(),
+    orgId: text('org_id')
+      .notNull()
+      .references(() => orgs.id, { onDelete: 'cascade' }),
+    hostname: text('hostname').notNull(),
+    labels: jsonb('labels').$type<Record<string, string>>().notNull().default({}),
+    state: text('state', { enum: ['online', 'offline', 'draining'] })
+      .notNull()
+      .default('offline'),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+    registeredAt: timestamp('registered_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('agents_org_state_idx').on(t.orgId, t.state)],
+);
+
+export const agentCredentials = pgTable(
+  'agent_credentials',
+  {
+    id: text('id').primaryKey(),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    orgId: text('org_id')
+      .notNull()
+      .references(() => orgs.id, { onDelete: 'cascade' }),
+    credentialHash: text('credential_hash').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('agent_credentials_one_active_per_agent')
+      .on(t.agentId)
+      .where(sql`revoked_at IS NULL`),
+    index('agent_credentials_org_agent_idx').on(t.orgId, t.agentId),
+  ],
+);
+
+export const registrationTokens = pgTable(
+  'registration_tokens',
+  {
+    id: text('id').primaryKey(),
+    orgId: text('org_id')
+      .notNull()
+      .references(() => orgs.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull(),
+    createdByUserId: text('created_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('registration_tokens_org_idx').on(t.orgId),
+    index('registration_tokens_active_idx')
+      .on(t.orgId)
+      .where(sql`consumed_at IS NULL AND expires_at > now()`),
+  ],
+);
+
 // Type inference per D-04 / general use
 export type Org = typeof orgs.$inferSelect;
 export type NewOrg = typeof orgs.$inferInsert;
@@ -184,3 +250,9 @@ export type PasswordReset = typeof passwordResets.$inferSelect;
 export type NewPasswordReset = typeof passwordResets.$inferInsert;
 export type OrgInvite = typeof orgInvites.$inferSelect;
 export type NewOrgInvite = typeof orgInvites.$inferInsert;
+export type Agent = typeof agents.$inferSelect;
+export type NewAgent = typeof agents.$inferInsert;
+export type AgentCredential = typeof agentCredentials.$inferSelect;
+export type NewAgentCredential = typeof agentCredentials.$inferInsert;
+export type RegistrationToken = typeof registrationTokens.$inferSelect;
+export type NewRegistrationToken = typeof registrationTokens.$inferInsert;
