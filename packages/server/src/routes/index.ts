@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { registerAuthRoutes } from './auth/index.js';
 
 export const registerRoutes: FastifyPluginAsync = async (fastify) => {
   // Healthcheck — no auth, no CSRF, no rate-limit override
@@ -6,6 +7,10 @@ export const registerRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({ ok: true });
   });
 
-  // Plan 06 will register auth routes via a child plugin here.
-  // Plan 07 will register org/invite routes via a child plugin here.
+  // Auth routes: signup, verify-email, login, logout, request-reset, reset, csrf
+  await fastify.register(registerAuthRoutes, { prefix: '/auth' });
+
+  // Plan 07 will register org/invite routes here:
+  // await fastify.register(registerOrgRoutes, { prefix: '/orgs' });
+  // await fastify.register(registerInviteRoutes, { prefix: '/invites' });
 };

@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { hashPassword } from '../crypto/password.js';
 import { generateId, generateToken } from '../crypto/tokens.js';
@@ -175,6 +175,63 @@ export function makeAdminRepo(db: PostgresJsDatabase) {
         .where(eq(users.id, params.userId))
         .limit(1);
       if (rows.length === 0) throw new UserNotFoundError();
+    },
+
+    /** Cross-org email verification lookup by token (user may not be logged in when verifying). */
+    async findEmailVerificationByToken(token: string) {
+      return db
+        .select()
+        .from(emailVerifications)
+        .where(
+          and(
+            eq(emailVerifications.token, token),
+            isNull(emailVerifications.consumedAt),
+            gt(emailVerifications.expiresAt, sql`now()`),
+          ),
+        )
+        .limit(1);
+    },
+
+    async markEmailVerificationConsumed(token: string) {
+      return db
+        .update(emailVerifications)
+        .set({ consumedAt: sql`now()` })
+        .where(and(eq(emailVerifications.token, token), isNull(emailVerifications.consumedAt)));
+    },
+
+    async findPasswordResetByToken(token: string) {
+      return db
+        .select()
+        .from(passwordResets)
+        .where(
+          and(
+            eq(passwordResets.token, token),
+            isNull(passwordResets.consumedAt),
+            gt(passwordResets.expiresAt, sql`now()`),
+          ),
+        )
+        .limit(1);
+    },
+
+    async markPasswordResetConsumed(token: string) {
+      return db
+        .update(passwordResets)
+        .set({ consumedAt: sql`now()` })
+        .where(
+          and(
+            eq(passwordResets.token, token),
+            isNull(passwordResets.consumedAt),
+            gt(passwordResets.expiresAt, sql`now()`),
+          ),
+        );
+    },
+
+    /** Revoke all active sessions for a user (called after password reset). */
+    async revokeAllSessionsForUser(userId: string) {
+      await db
+        .update(sessions)
+        .set({ revokedAt: sql`now()` })
+        .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)));
     },
 
     /**
