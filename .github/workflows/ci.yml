@@ -23,26 +23,80 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        # No explicit version input - reads from packageManager field in root package.json (pnpm@10.33.0)
+
       - name: Setup Node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: npm
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Typecheck + Lint + Build + Test (turbo pipeline)
+        run: pnpm turbo run typecheck lint build test
 
-      - name: Lint
-        run: npm run lint
+      - name: Smoke check - xci --version
+        run: node packages/xci/dist/cli.mjs --version
 
-      - name: Build
-        run: npm run build
+  fence-gates:
+    # Linux-only job that enforces the ws-exclusion grep (D-16b) and cold-start gate (D-17).
+    # Runs in parallel with build-test-lint. Both jobs MUST be required checks on main branch.
+    # NOTE: size-limit gate (D-15) is intentionally omitted from this workflow - see 06-05-SUMMARY.md
+    # for rationale (real bundle baseline 760KB exceeds original 200KB target; gate deferred).
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Test
-        run: npm test
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
-      - name: Smoke check — loci --version
-        run: node dist/cli.mjs --version
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build xci (fresh, for accurate measurement)
+        run: pnpm --filter xci build
+
+      - name: WS-exclusion grep gate (D-16b)
+        run: |
+          if grep -E "(reconnecting-websocket|['\"]ws['\"])" packages/xci/dist/cli.mjs; then
+            echo "::error::Found ws/reconnecting-websocket in dist/cli.mjs - Phase 6 D-16 fence broken!"
+            exit 1
+          fi
+          echo "OK: no ws/reconnecting-websocket strings in dist/cli.mjs"
+
+      - name: Install hyperfine
+        run: sudo apt-get update && sudo apt-get install -y hyperfine
+
+      - name: Cold-start gate (D-17) - xci --version mean under 300ms on Linux
+        run: |
+          hyperfine --runs 10 --warmup 3 \
+            --export-json hyperfine.json \
+            'node packages/xci/dist/cli.mjs --version'
+          node -e "
+            const r = require('./hyperfine.json');
+            const meanMs = r.results[0].mean * 1000;
+            console.log('Mean cold-start:', meanMs.toFixed(1) + 'ms');
+            if (meanMs >= 300) {
+              console.error('FAIL: mean ' + meanMs.toFixed(1) + 'ms >= 300ms budget');
+              process.exit(1);
+            }
+            console.log('PASS: under 300ms budget');
+          "
+
+      - name: Upload hyperfine JSON artifact (for post-mortem)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hyperfine-results
+          path: hyperfine.json
