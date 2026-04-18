@@ -42,7 +42,7 @@ describe('encryptSecret / decryptSecret', () => {
 
     // Flip first byte of tag
     const tamperedTag = Buffer.from(tag);
-    tamperedTag[0] ^= 0xff;
+    tamperedTag.writeUInt8((tamperedTag.readUInt8(0) ^ 0xff), 0);
 
     expect(() => decryptSecret(dek, ciphertext, iv, tamperedTag, aad)).toThrowError(
       SecretDecryptError,
@@ -55,7 +55,7 @@ describe('encryptSecret / decryptSecret', () => {
     const { ciphertext, iv, tag } = encryptSecret(dek, 'value', aad);
 
     const tamperedIv = Buffer.from(iv);
-    tamperedIv[0] ^= 0xff;
+    tamperedIv.writeUInt8((tamperedIv.readUInt8(0) ^ 0xff), 0);
 
     expect(() => decryptSecret(dek, ciphertext, tamperedIv, tag, aad)).toThrowError(
       SecretDecryptError,
@@ -79,7 +79,7 @@ describe('encryptSecret / decryptSecret', () => {
     const { ciphertext, iv, tag } = encryptSecret(dek, 'hello world', aad);
 
     const tamperedCt = Buffer.from(ciphertext);
-    tamperedCt[0] ^= 0xff;
+    tamperedCt.writeUInt8((tamperedCt.readUInt8(0) ^ 0xff), 0);
 
     expect(() => decryptSecret(dek, tamperedCt, iv, tag, aad)).toThrowError(SecretDecryptError);
   });
@@ -116,7 +116,7 @@ describe('SecretDecryptError discipline', () => {
     const { ciphertext, iv, tag } = encryptSecret(dek, plaintext, aad);
 
     const tamperedTag = Buffer.from(tag);
-    tamperedTag[0] ^= 0xff;
+    tamperedTag.writeUInt8((tamperedTag.readUInt8(0) ^ 0xff), 0);
 
     let caught: SecretDecryptError | undefined;
     try {
