@@ -31,10 +31,10 @@
 - [ ] **AUTH-04**: Password reset: richiesta via email con token single-use, expiry 1h.
 - [ ] **AUTH-05**: CSRF protection (`@fastify/csrf-protection` o double-submit cookie) su tutte le route mutation.
 - [ ] **AUTH-06**: Rate limiting (`@fastify/rate-limit`) su signup, login, password-reset, webhook ingress.
-- [ ] **AUTH-07**: Ogni utente appartiene ad almeno un Org; Org personale creata automaticamente al signup.
-- [ ] **AUTH-08**: Ruoli per Org: **Owner** (unique, non-removable), **Member**, **Viewer** (read-only).
+- [x] **AUTH-07**: Ogni utente appartiene ad almeno un Org; Org personale creata automaticamente al signup.
+- [x] **AUTH-08**: Ruoli per Org: **Owner** (unique, non-removable), **Member**, **Viewer** (read-only).
 - [ ] **AUTH-09**: Owner può invitare membri via email con ruolo Member o Viewer; invito ha token expiry 7g.
-- [ ] **AUTH-10**: Isolation multi-tenant: ogni entity tenant-scoped ha FK `org_id`; repository layer enforcea filtro `org_id` su ogni query; test fixture multi-org copre tutte le repo function.
+- [x] **AUTH-10**: Isolation multi-tenant: ogni entity tenant-scoped ha FK `org_id`; repository layer enforcea filtro `org_id` su ogni query; test fixture multi-org copre tutte le repo function.
 - [x] **AUTH-11**: Email transport pluggable (nodemailer abstract transport); default SMTP configurabile via env var; template email in source.
 - [ ] **AUTH-12**: Logout invalida la sessione DB-side; nessuna riusabilità del cookie dopo logout.
 
@@ -128,8 +128,8 @@
 
 ### Billing / Quota Stub (QUOTA)
 
-- [ ] **QUOTA-01**: Entity `OrgPlan` con fields: `plan_name`, `max_agents`, `max_concurrent_tasks`, `log_retention_days`, `created_at`, `updated_at`.
-- [ ] **QUOTA-02**: Plan "Free" di default per ogni org: `max_agents=5`, `max_concurrent_tasks=5`, `log_retention_days=30`.
+- [x] **QUOTA-01**: Entity `OrgPlan` con fields: `plan_name`, `max_agents`, `max_concurrent_tasks`, `log_retention_days`, `created_at`, `updated_at`.
+- [x] **QUOTA-02**: Plan "Free" di default per ogni org: `max_agents=5`, `max_concurrent_tasks=5`, `log_retention_days=30`.
 - [ ] **QUOTA-03**: Enforcement registrazione agente: tentativo oltre `max_agents` → registration rifiutata con errore esplicito user-visible.
 - [ ] **QUOTA-04**: Enforcement concurrent: dispatch oltre `max_concurrent_tasks` → task in coda standard; se coda > threshold → error UI "quota exceeded, retry later".
 - [ ] **QUOTA-05**: Retention cleanup (LOG-08) usa `log_retention_days` del Plan corrente dell'org.
@@ -332,14 +332,14 @@ Quali fasi coprono quali requirement.
 | AUTH-04 | 07-database-auth | Pending |
 | AUTH-05 | 07-database-auth | Pending |
 | AUTH-06 | 07-database-auth | Pending |
-| AUTH-07 | 07-database-auth | Pending |
-| AUTH-08 | 07-database-auth | Pending |
+| AUTH-07 | 07-database-auth | Complete |
+| AUTH-08 | 07-database-auth | Complete |
 | AUTH-09 | 07-database-auth | Pending |
-| AUTH-10 | 07-database-auth | Pending |
+| AUTH-10 | 07-database-auth | Complete |
 | AUTH-11 | 07-database-auth | Complete |
 | AUTH-12 | 07-database-auth | Pending |
-| QUOTA-01 | 07-database-auth | Pending |
-| QUOTA-02 | 07-database-auth | Pending |
+| QUOTA-01 | 07-database-auth | Complete |
+| QUOTA-02 | 07-database-auth | Complete |
 | QUOTA-07 | 07-database-auth | Complete |
 | ATOK-01 | 08-agent-ws-protocol | Pending |
 | ATOK-02 | 08-agent-ws-protocol | Pending |

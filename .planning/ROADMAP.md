@@ -139,7 +139,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. Password reset flow sends a single-use link that expires in 1 hour and cannot be reused
 **Plans**: 9 plans
 - [x] 07-01-PLAN.md — Server package bootstrap: real package.json (private:false), tsconfig, drizzle.config, vitest unit+integration configs, biome overrides, .env.example, first changeset
-- [ ] 07-02-PLAN.md — Database foundation: Drizzle schema (8 tables) + relations + programmatic migrator + db plugin + testcontainers harness + two-org fixture + generated SQL migration
+- [x] 07-02-PLAN.md — Database foundation: Drizzle schema (8 tables) + relations + programmatic migrator + db plugin + testcontainers harness + two-org fixture + generated SQL migration
 - [ ] 07-03-PLAN.md — XciServerError hierarchy (mirror v1 LociError) + crypto primitives (Argon2id + tokens) + @fastify/env JSON schema + email transport (log/stub/smtp) + 5 templates
 - [ ] 07-04-PLAN.md — Scoped repos (6 files + forOrg + adminRepo + index barrel) + D-04 two-org isolation tests per repo + auto-discovery meta-test
 - [ ] 07-05-PLAN.md — buildApp factory (D-06 plugin chain: env→db→helmet→cookie→csrf→rate-limit→auth→error-handler→routes) + auth plugin (session + sliding expiry) + error-handler + server.ts entry
@@ -250,7 +250,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 4. Executor & CLI | 2/2 | Complete | 2026-04-14 |
 | 5. Init & Distribution | 3/3 | Complete | 2026-04-15 |
 | 6. Monorepo Setup & Backward-Compat Fence | 0/? | Not started | - |
-| 7. Database Schema & Auth | 0/? | Not started | - |
+| 7. Database Schema & Auth | 2/9 | In Progress|  |
 | 8. Agent Registration & WebSocket Protocol | 0/? | Not started | - |
 | 9. Task Definitions & Secrets Management | 0/? | Not started | - |
 | 10. Dispatch Pipeline & Quota Enforcement | 0/? | Not started | - |

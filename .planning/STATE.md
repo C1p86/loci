@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: executing
-stopped_at: Completed 07-database-schema-auth plan 01 (07-01-PLAN.md)
-last_updated: "2026-04-18T18:27:40.446Z"
+stopped_at: Completed 07-database-schema-auth plan 02 (07-02-PLAN.md)
+last_updated: "2026-04-18T18:36:07.063Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 28
-  completed_plans: 20
-  percent: 71
+  completed_plans: 21
+  percent: 75
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 7 (Database Schema & Auth) — EXECUTING
-Plan: 2 of 9
+Plan: 3 of 9
 Status: Ready to execute
 Last activity: 2026-04-18
 
@@ -86,6 +86,7 @@ Progress (v2.0 milestone): [█░░░░░░░░░] 11% (1/9 phases)
 | Phase 05-init-distribution P03 | 1m | 1 tasks | 2 files |
 | Phase 05-init-distribution P03 | 1 | 2 tasks | 2 files |
 | Phase 07-database-schema-auth P01 | 15 | 3 tasks | 14 files |
+| Phase 07 P02 | 10 | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -138,6 +139,9 @@ Recent decisions affecting current work:
 - [Phase 06]: release.yml has job-scoped `permissions: { contents: write, pull-requests: write }` per plan-checker recommendation
 - [Phase 07-database-schema-auth]: Build tool is tsc -b (not tsup) for @xci/server — servers have no cold-start pressure
 - [Phase 07-database-schema-auth]: passWithNoTests:true in both vitest configs so zero-test bootstrap exits 0
+- [Phase 07]: drizzle-kit generates randomly-named SQL migration (0000_volatile_mad_thinker.sql) — prefix ordering is what matters for migrator, not human-readable suffix
+- [Phase 07]: sessions.activeOrgId uses ON DELETE SET NULL per D-18 — org deletion does not cascade-destroy sessions
+- [Phase 07]: resetDb() uses dynamic information_schema enumeration to avoid hardcoded table list drift (Pitfall 5)
 
 ### Pending Todos
 
@@ -161,6 +165,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T18:27:40.414Z
-Stopped at: Completed 07-database-schema-auth plan 01 (07-01-PLAN.md)
+Last session: 2026-04-18T18:36:07.031Z
+Stopped at: Completed 07-database-schema-auth plan 02 (07-02-PLAN.md)
 Resume file: None
