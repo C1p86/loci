@@ -33,7 +33,7 @@
 - [x] **AUTH-06**: Rate limiting (`@fastify/rate-limit`) su signup, login, password-reset, webhook ingress.
 - [x] **AUTH-07**: Ogni utente appartiene ad almeno un Org; Org personale creata automaticamente al signup.
 - [x] **AUTH-08**: Ruoli per Org: **Owner** (unique, non-removable), **Member**, **Viewer** (read-only).
-- [ ] **AUTH-09**: Owner può invitare membri via email con ruolo Member o Viewer; invito ha token expiry 7g.
+- [x] **AUTH-09**: Owner può invitare membri via email con ruolo Member o Viewer; invito ha token expiry 7g.
 - [x] **AUTH-10**: Isolation multi-tenant: ogni entity tenant-scoped ha FK `org_id`; repository layer enforcea filtro `org_id` su ogni query; test fixture multi-org copre tutte le repo function.
 - [x] **AUTH-11**: Email transport pluggable (nodemailer abstract transport); default SMTP configurabile via env var; template email in source.
 - [x] **AUTH-12**: Logout invalida la sessione DB-side; nessuna riusabilità del cookie dopo logout.
@@ -334,7 +334,7 @@ Quali fasi coprono quali requirement.
 | AUTH-06 | 07-database-auth | Complete |
 | AUTH-07 | 07-database-auth | Complete |
 | AUTH-08 | 07-database-auth | Complete |
-| AUTH-09 | 07-database-auth | Pending |
+| AUTH-09 | 07-database-auth | Complete |
 | AUTH-10 | 07-database-auth | Complete |
 | AUTH-11 | 07-database-auth | Complete |
 | AUTH-12 | 07-database-auth | Complete |
