@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { generateToken, generateId } from '../tokens.js';
+import { describe, expect, it } from 'vitest';
+import { generateId, generateToken } from '../tokens.js';
 
 describe('generateToken (D-33)', () => {
   it('returns a 43-char base64url string (32 bytes unpadded)', () => {
@@ -19,7 +19,16 @@ describe('generateId (D-25)', () => {
     const id = generateId('usr');
     expect(id).toMatch(/^xci_usr_[A-Za-z0-9_-]{20}$/);
   });
-  it.each(['org', 'usr', 'mem', 'ses', 'inv', 'ver', 'pwr', 'plan'] as const)('accepts prefix %s', (p) => {
+  it.each([
+    'org',
+    'usr',
+    'mem',
+    'ses',
+    'inv',
+    'ver',
+    'pwr',
+    'plan',
+  ] as const)('accepts prefix %s', (p) => {
     const id = generateId(p);
     expect(id.startsWith(`xci_${p}_`)).toBe(true);
   });

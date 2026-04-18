@@ -1,8 +1,8 @@
 // packages/server/src/test-utils/two-org-fixture.ts
 import { randomBytes } from 'node:crypto';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { orgMembers, orgPlans, orgs, users } from '../db/schema.js';
 import { generateId } from '../crypto/tokens.js';
+import { orgMembers, orgPlans, orgs, users } from '../db/schema.js';
 
 export interface TwoOrgFixture {
   orgA: { id: string; ownerUser: { id: string; email: string } };

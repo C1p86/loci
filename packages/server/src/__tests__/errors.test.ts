@@ -1,38 +1,38 @@
 // src/__tests__/errors.test.ts
 import { describe, expect, it } from 'vitest';
 import {
-  // Abstract bases
-  XciServerError,
-  ValidationError,
   AuthnError,
   AuthzError,
-  NotFoundError,
   ConflictError,
-  RateLimitError,
-  InternalError,
-  // Concrete subclasses
-  SchemaValidationError,
-  WeakPasswordError,
-  InvalidCredentialsError,
-  SessionRequiredError,
-  SessionExpiredError,
-  TokenInvalidError,
-  EmailNotVerifiedError,
-  OrgMembershipRequiredError,
-  RoleInsufficientError,
   CsrfTokenError,
-  UserNotFoundError,
-  OrgNotFoundError,
-  InviteNotFoundError,
-  EmailAlreadyRegisteredError,
-  InviteAlreadyAcceptedError,
-  OwnerRoleImmutableError,
-  RateLimitExceededError,
   DatabaseError,
+  EmailAlreadyRegisteredError,
+  EmailNotVerifiedError,
   EmailTransportError,
   // HTTP status mapping
   HttpStatus,
   httpStatusFor,
+  InternalError,
+  InvalidCredentialsError,
+  InviteAlreadyAcceptedError,
+  InviteNotFoundError,
+  NotFoundError,
+  OrgMembershipRequiredError,
+  OrgNotFoundError,
+  OwnerRoleImmutableError,
+  RateLimitError,
+  RateLimitExceededError,
+  RoleInsufficientError,
+  // Concrete subclasses
+  SchemaValidationError,
+  SessionExpiredError,
+  SessionRequiredError,
+  TokenInvalidError,
+  UserNotFoundError,
+  ValidationError,
+  WeakPasswordError,
+  // Abstract bases
+  XciServerError,
 } from '../errors.js';
 
 /**

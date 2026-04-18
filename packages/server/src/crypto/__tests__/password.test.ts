@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { hashPassword, verifyPassword, argon2SelfTest } from '../password.js';
+import { describe, expect, it } from 'vitest';
+import { argon2SelfTest, hashPassword, verifyPassword } from '../password.js';
 
 describe('hashPassword / verifyPassword (D-31)', () => {
   it('produces an argon2id encoded hash with m=19456,t=2,p=1', async () => {
