@@ -1,17 +1,9 @@
 import { and, eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import {
-  decryptSecret,
-  encryptSecret,
-  getOrCreateOrgDek,
-} from '../crypto/secrets.js';
+import { decryptSecret, encryptSecret, getOrCreateOrgDek } from '../crypto/secrets.js';
 import { generateId } from '../crypto/tokens.js';
 import { type NewSecret, secrets } from '../db/schema.js';
-import {
-  DatabaseError,
-  SecretNameConflictError,
-  SecretNotFoundError,
-} from '../errors.js';
+import { DatabaseError, SecretNameConflictError, SecretNotFoundError } from '../errors.js';
 import { writeSecretAuditEntry } from './secret-audit-log.js';
 
 /**
@@ -101,8 +93,7 @@ export function makeSecretsRepo(db: PostgresJsDatabase, orgId: string, mek: Buff
           await tx.insert(secrets).values(payload);
         } catch (err) {
           const pgCode =
-            (err as { code?: string })?.code ??
-            (err as { cause?: { code?: string } })?.cause?.code;
+            (err as { code?: string })?.code ?? (err as { cause?: { code?: string } })?.cause?.code;
           if (pgCode === '23505') {
             throw new SecretNameConflictError();
           }
@@ -192,9 +183,7 @@ export function makeSecretsRepo(db: PostgresJsDatabase, orgId: string, mek: Buff
           throw new SecretNotFoundError();
         }
 
-        await tx
-          .delete(secrets)
-          .where(and(eq(secrets.orgId, orgId), eq(secrets.id, secretId)));
+        await tx.delete(secrets).where(and(eq(secrets.orgId, orgId), eq(secrets.id, secretId)));
 
         // D-21 tombstone: secretId is NULL because the row is gone; secretName is preserved
         await writeSecretAuditEntry(

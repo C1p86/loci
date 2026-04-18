@@ -2,11 +2,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { generateId } from '../crypto/tokens.js';
 import { type NewTask, tasks } from '../db/schema.js';
-import {
-  DatabaseError,
-  TaskNameConflictError,
-  TaskNotFoundError,
-} from '../errors.js';
+import { DatabaseError, TaskNameConflictError } from '../errors.js';
 
 /**
  * D-29: Org-scoped repo for task definitions.

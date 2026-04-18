@@ -81,26 +81,107 @@
               "level": "error",
               "options": {
                 "paths": {
-                  "./repos/users.js": { "message": "D-01: import { forOrg, admin } from '../repos/index.js' — never import a specific repo file. See 07-CONTEXT.md D-01." },
-                  "./repos/sessions.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "./repos/email-verifications.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "./repos/password-resets.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "./repos/org-invites.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "./repos/org-plans.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "./repos/for-org.js": { "message": "D-01: internal; use makeRepos() from ../repos/index.js" },
-                  "../repos/users.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "../repos/sessions.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "../repos/email-verifications.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "../repos/password-resets.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "../repos/org-invites.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "../repos/org-plans.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "../repos/for-org.js": { "message": "D-01: internal; use makeRepos() from ../repos/index.js" },
-                  "./repos/agents.js": { "message": "D-01: import { forOrg, admin } from '../repos/index.js' — never import a specific repo file. See 07-CONTEXT.md D-01." },
-                  "./repos/agent-credentials.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "./repos/registration-tokens.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "../repos/agents.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "../repos/agent-credentials.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
-                  "../repos/registration-tokens.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" }
+                  "./repos/users.js": {
+                    "message": "D-01: import { forOrg, admin } from '../repos/index.js' — never import a specific repo file. See 07-CONTEXT.md D-01."
+                  },
+                  "./repos/sessions.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "./repos/email-verifications.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "./repos/password-resets.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "./repos/org-invites.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "./repos/org-plans.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "./repos/for-org.js": {
+                    "message": "D-01: internal; use makeRepos() from ../repos/index.js"
+                  },
+                  "../repos/users.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "../repos/sessions.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "../repos/email-verifications.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "../repos/password-resets.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "../repos/org-invites.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "../repos/org-plans.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "../repos/for-org.js": {
+                    "message": "D-01: internal; use makeRepos() from ../repos/index.js"
+                  },
+                  "./repos/agents.js": {
+                    "message": "D-01: import { forOrg, admin } from '../repos/index.js' — never import a specific repo file. See 07-CONTEXT.md D-01."
+                  },
+                  "./repos/agent-credentials.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "./repos/registration-tokens.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "../repos/agents.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "../repos/agent-credentials.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "../repos/registration-tokens.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/server/src/**/*.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "xci": {
+                    "message": "D-37: @xci/server must import from 'xci/dsl' only, never the CLI entry point."
+                  },
+                  "xci/agent": {
+                    "message": "D-37: @xci/server must not import from the agent subpath. Only 'xci/dsl' is permitted."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/xci/src/**/*.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@xci/server": {
+                    "message": "D-38: packages/xci must never import from @xci/server. Reverse dependency is forbidden."
+                  }
                 }
               }
             }

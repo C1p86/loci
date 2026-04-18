@@ -1,6 +1,7 @@
 import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { hashPassword } from '../crypto/password.js';
+import { getOrCreateOrgDek, unwrapDek, wrapDek } from '../crypto/secrets.js';
 import { generateId, generateToken, hashToken } from '../crypto/tokens.js';
 import {
   agentCredentials,
@@ -9,6 +10,7 @@ import {
   type NewAgent,
   type NewAgentCredential,
   type NewUser,
+  orgDeks,
   orgInvites,
   orgMembers,
   orgPlans,
@@ -21,6 +23,7 @@ import {
 import {
   DatabaseError,
   EmailAlreadyRegisteredError,
+  MekRotationError,
   OwnerRoleImmutableError,
   RegistrationTokenExpiredError,
   UserNotFoundError,
@@ -466,6 +469,80 @@ export function makeAdminRepo(db: PostgresJsDatabase) {
         throw new DatabaseError('issueAgentCredential failed', err);
       }
       return credentialPlaintext;
+    },
+    // ---- D-30 cross-org DEK/MEK helpers (Phase 9) ----
+
+    /**
+     * Cross-org: get (or create) the DEK for an org, returned as a plaintext Buffer.
+     * Thin wrapper over getOrCreateOrgDek — exposes the cross-org intent at the adminRepo surface.
+     * Used by Phase 10 dispatch and the MEK rotation flow.
+     * NEVER log the returned Buffer.
+     */
+    async getOrgDek(orgId: string, mek: Buffer): Promise<Buffer> {
+      return getOrCreateOrgDek(db, orgId, mek);
+    },
+
+    /**
+     * Atomic MEK rotation: re-wraps ALL org_deks rows under newMek in a single transaction.
+     * Uses SELECT FOR UPDATE to prevent concurrent rotation races.
+     * Idempotent: rows already at mek_version >= newVersion are skipped (D-28).
+     * Returns { rotated, mekVersion } where mekVersion is the new version applied.
+     *
+     * D-25 / D-26 / D-28: DEK plaintext unchanged — only wrapping changes.
+     * NEVER log oldMek, newMek, or any unwrapped DEK.
+     */
+    async rotateMek(
+      oldMek: Buffer,
+      newMek: Buffer,
+    ): Promise<{ rotated: number; mekVersion: number }> {
+      let rotated = 0;
+      let mekVersion = 1;
+
+      try {
+        await db.transaction(async (tx) => {
+          // SELECT FOR UPDATE: lock all org_deks rows for the duration of this transaction
+          const rows = await tx.select().from(orgDeks).for('update');
+
+          if (rows.length === 0) {
+            mekVersion = 1;
+            return;
+          }
+
+          const firstRow = rows[0];
+          const currentVersion = firstRow !== undefined ? firstRow.mekVersion : 0;
+          const newVersion = currentVersion + 1;
+          mekVersion = newVersion;
+
+          for (const row of rows) {
+            // D-28 idempotency: skip rows already at this version or newer
+            if (row.mekVersion >= newVersion) {
+              continue;
+            }
+
+            // Unwrap DEK with old MEK, re-wrap with new MEK (new IV per SEC-02)
+            const dek = unwrapDek(oldMek, row.wrappedDek, row.wrapIv, row.wrapTag);
+            const { wrapped, iv, tag } = wrapDek(newMek, dek);
+
+            await tx
+              .update(orgDeks)
+              .set({
+                wrappedDek: wrapped,
+                wrapIv: iv,
+                wrapTag: tag,
+                mekVersion: newVersion,
+                updatedAt: sql`now()`,
+              })
+              .where(eq(orgDeks.orgId, row.orgId));
+
+            rotated++;
+          }
+        });
+      } catch (err) {
+        // Do NOT include key bytes or DEK fragments in the error message
+        throw new MekRotationError('rotateMek transaction failed', err);
+      }
+
+      return { rotated, mekVersion };
     },
   };
 }
