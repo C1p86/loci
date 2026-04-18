@@ -35,7 +35,7 @@
 - [ ] **AUTH-08**: Ruoli per Org: **Owner** (unique, non-removable), **Member**, **Viewer** (read-only).
 - [ ] **AUTH-09**: Owner può invitare membri via email con ruolo Member o Viewer; invito ha token expiry 7g.
 - [ ] **AUTH-10**: Isolation multi-tenant: ogni entity tenant-scoped ha FK `org_id`; repository layer enforcea filtro `org_id` su ogni query; test fixture multi-org copre tutte le repo function.
-- [ ] **AUTH-11**: Email transport pluggable (nodemailer abstract transport); default SMTP configurabile via env var; template email in source.
+- [x] **AUTH-11**: Email transport pluggable (nodemailer abstract transport); default SMTP configurabile via env var; template email in source.
 - [ ] **AUTH-12**: Logout invalida la sessione DB-side; nessuna riusabilità del cookie dopo logout.
 
 ### Agent Authentication (ATOK)
@@ -134,7 +134,7 @@
 - [ ] **QUOTA-04**: Enforcement concurrent: dispatch oltre `max_concurrent_tasks` → task in coda standard; se coda > threshold → error UI "quota exceeded, retry later".
 - [ ] **QUOTA-05**: Retention cleanup (LOG-08) usa `log_retention_days` del Plan corrente dell'org.
 - [ ] **QUOTA-06**: Settings Org mostra uso corrente: `agents N/5`, `concurrent X/5`, `retention Y days`.
-- [ ] **QUOTA-07**: Nessuna integrazione Stripe in v2.0; nessuna UI di upgrade; piano "Free" è l'unico disponibile.
+- [x] **QUOTA-07**: Nessuna integrazione Stripe in v2.0; nessuna UI di upgrade; piano "Free" è l'unico disponibile.
 
 ### Build-Status Badge (BADGE)
 
@@ -336,11 +336,11 @@ Quali fasi coprono quali requirement.
 | AUTH-08 | 07-database-auth | Pending |
 | AUTH-09 | 07-database-auth | Pending |
 | AUTH-10 | 07-database-auth | Pending |
-| AUTH-11 | 07-database-auth | Pending |
+| AUTH-11 | 07-database-auth | Complete |
 | AUTH-12 | 07-database-auth | Pending |
 | QUOTA-01 | 07-database-auth | Pending |
 | QUOTA-02 | 07-database-auth | Pending |
-| QUOTA-07 | 07-database-auth | Pending |
+| QUOTA-07 | 07-database-auth | Complete |
 | ATOK-01 | 08-agent-ws-protocol | Pending |
 | ATOK-02 | 08-agent-ws-protocol | Pending |
 | ATOK-03 | 08-agent-ws-protocol | Pending |

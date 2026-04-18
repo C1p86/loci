@@ -138,7 +138,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A repository function queried without `org_id` scope is unreachable by design — the two-org integration fixture verifies that org A's data never appears in org B's responses across all repo functions
   5. Password reset flow sends a single-use link that expires in 1 hour and cannot be reused
 **Plans**: 9 plans
-- [ ] 07-01-PLAN.md — Server package bootstrap: real package.json (private:false), tsconfig, drizzle.config, vitest unit+integration configs, biome overrides, .env.example, first changeset
+- [x] 07-01-PLAN.md — Server package bootstrap: real package.json (private:false), tsconfig, drizzle.config, vitest unit+integration configs, biome overrides, .env.example, first changeset
 - [ ] 07-02-PLAN.md — Database foundation: Drizzle schema (8 tables) + relations + programmatic migrator + db plugin + testcontainers harness + two-org fixture + generated SQL migration
 - [ ] 07-03-PLAN.md — XciServerError hierarchy (mirror v1 LociError) + crypto primitives (Argon2id + tokens) + @fastify/env JSON schema + email transport (log/stub/smtp) + 5 templates
 - [ ] 07-04-PLAN.md — Scoped repos (6 files + forOrg + adminRepo + index barrel) + D-04 two-org isolation tests per repo + auto-discovery meta-test

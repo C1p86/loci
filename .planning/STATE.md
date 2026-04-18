@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: executing
-stopped_at: Phase 7 context gathered (auto-mode)
-last_updated: "2026-04-18T18:12:48.787Z"
-last_activity: 2026-04-18 -- Phase 7 planning complete
+stopped_at: Completed 07-database-schema-auth plan 01 (07-01-PLAN.md)
+last_updated: "2026-04-18T18:27:40.446Z"
+last_activity: 2026-04-18
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 28
-  completed_plans: 19
-  percent: 68
+  completed_plans: 20
+  percent: 71
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Phase 07 (next — v2.0 Remote CI milestone)
+**Current focus:** Phase 7 — Database Schema & Auth
 
 ## Current Position
 
-Phase: 06 (Monorepo Setup & Backward-Compat Fence) — COMPLETE ✓
-Plan: 6 of 6 (all plans merged to main, verification passed)
+Phase: 7 (Database Schema & Auth) — EXECUTING
+Plan: 2 of 9
 Status: Ready to execute
-Last activity: 2026-04-18 -- Phase 7 planning complete
+Last activity: 2026-04-18
 
 Progress (Phase 06): [██████████] 100%
 Progress (v2.0 milestone): [█░░░░░░░░░] 11% (1/9 phases)
@@ -85,6 +85,7 @@ Progress (v2.0 milestone): [█░░░░░░░░░] 11% (1/9 phases)
 | Phase 05-init-distribution P02 | 1m | 1 tasks | 1 files |
 | Phase 05-init-distribution P03 | 1m | 1 tasks | 2 files |
 | Phase 05-init-distribution P03 | 1 | 2 tasks | 2 files |
+| Phase 07-database-schema-auth P01 | 15 | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -135,6 +136,8 @@ Recent decisions affecting current work:
 - [Phase 06]: Pitfall 1 handled — tsup `noExternal` regex changed to `/^(?!ws$|reconnecting-websocket$).*/` (not `[/.*/]`) so `external` takes effect
 - [Phase 06]: Pitfall 2 handled — Biome `overrides[].includes` (PLURAL) key used, scoped to `packages/xci/src/**`
 - [Phase 06]: release.yml has job-scoped `permissions: { contents: write, pull-requests: write }` per plan-checker recommendation
+- [Phase 07-database-schema-auth]: Build tool is tsc -b (not tsup) for @xci/server — servers have no cold-start pressure
+- [Phase 07-database-schema-auth]: passWithNoTests:true in both vitest configs so zero-test bootstrap exits 0
 
 ### Pending Todos
 
@@ -158,6 +161,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T17:08:04.413Z
-Stopped at: Phase 7 context gathered (auto-mode)
-Resume file: .planning/phases/07-database-schema-auth/07-CONTEXT.md
+Last session: 2026-04-18T18:27:40.414Z
+Stopped at: Completed 07-database-schema-auth plan 01 (07-01-PLAN.md)
+Resume file: None
