@@ -5,5 +5,5 @@ coverage/
 .vscode/
 .idea/
 # Project-specific
-.loci/secrets.yml
-.loci/local.yml
+.xci/secrets.yml
+.xci/local.yml
