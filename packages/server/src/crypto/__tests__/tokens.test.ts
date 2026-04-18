@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateId, generateToken } from '../tokens.js';
+import { compareToken, generateId, generateToken, hashToken } from '../tokens.js';
 
 describe('generateToken (D-33)', () => {
   it('returns a 43-char base64url string (32 bytes unpadded)', () => {
@@ -36,5 +36,46 @@ describe('generateId (D-25)', () => {
     const ids = new Set<string>();
     for (let i = 0; i < 100; i++) ids.add(generateId('usr'));
     expect(ids.size).toBe(100);
+  });
+});
+
+describe('compareToken (ATOK-06)', () => {
+  it('returns true for equal strings', () => {
+    expect(compareToken('abc', 'abc')).toBe(true);
+  });
+  it('returns false for equal-length different strings', () => {
+    expect(compareToken('abc', 'abd')).toBe(false);
+  });
+  it('returns false (does not throw) for different-length strings', () => {
+    expect(() => compareToken('abc', 'abcd')).not.toThrow();
+    expect(compareToken('abc', 'abcd')).toBe(false);
+  });
+  it('returns true for empty strings', () => {
+    expect(compareToken('', '')).toBe(true);
+  });
+});
+
+describe('hashToken', () => {
+  it('returns 64-char lowercase hex', () => {
+    const h = hashToken('abc');
+    expect(h).toMatch(/^[0-9a-f]{64}$/);
+  });
+  it('is deterministic', () => {
+    expect(hashToken('abc')).toBe(hashToken('abc'));
+  });
+  it('differs for different inputs', () => {
+    expect(hashToken('abc')).not.toBe(hashToken('abd'));
+  });
+  it('hash is not the plaintext', () => {
+    const plain = 'mysecrettoken';
+    expect(hashToken(plain)).not.toBe(plain);
+  });
+});
+
+describe('generateId (Phase 8 prefixes)', () => {
+  it.each(['agt', 'crd', 'rtk'] as const)('generates xci_%s_... id', (prefix) => {
+    const id = generateId(prefix);
+    expect(id).toMatch(new RegExp(`^xci_${prefix}_[A-Za-z0-9_-]+$`));
+    expect(id.length).toBeGreaterThanOrEqual(25);
   });
 });

@@ -1,6 +1,10 @@
 // src/__tests__/errors.test.ts
 import { describe, expect, it } from 'vitest';
 import {
+  AgentFrameInvalidError,
+  AgentHandshakeTimeoutError,
+  AgentRevokedError,
+  AgentTokenInvalidError,
   AuthnError,
   AuthzError,
   ConflictError,
@@ -23,6 +27,7 @@ import {
   OwnerRoleImmutableError,
   RateLimitError,
   RateLimitExceededError,
+  RegistrationTokenExpiredError,
   RoleInsufficientError,
   // Concrete subclasses
   SchemaValidationError,
@@ -62,6 +67,11 @@ function oneOfEachConcrete(): readonly XciServerError[] {
     new RateLimitExceededError(60),
     new DatabaseError('db failure'),
     new EmailTransportError('smtp failure'),
+    new AgentTokenInvalidError(),
+    new AgentRevokedError(),
+    new RegistrationTokenExpiredError(),
+    new AgentHandshakeTimeoutError(),
+    new AgentFrameInvalidError('test reason'),
   ];
 }
 

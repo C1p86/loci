@@ -240,6 +240,54 @@ export class EmailTransportError extends InternalError {
   }
 }
 
+// Phase 8 — agent authentication
+export class AgentTokenInvalidError extends AuthnError {
+  constructor() {
+    super('Agent token invalid or expired', {
+      code: 'AUTHN_AGENT_TOKEN_INVALID',
+      suggestion: 'Request a new registration token from an Owner or Member',
+    });
+  }
+}
+
+export class AgentRevokedError extends AuthnError {
+  constructor() {
+    super('Agent credential has been revoked', {
+      code: 'AUTHN_AGENT_REVOKED',
+      suggestion: 'The agent must re-register with a new registration token',
+    });
+    // D-10 discipline: no plaintext credential or agent_id in the message
+  }
+}
+
+export class RegistrationTokenExpiredError extends AuthnError {
+  constructor() {
+    super('Registration token expired or already consumed', {
+      code: 'AUTHN_REGISTRATION_TOKEN_EXPIRED',
+      suggestion: 'Generate a new registration token (valid 24h, single-use)',
+    });
+  }
+}
+
+export class AgentHandshakeTimeoutError extends AuthnError {
+  constructor() {
+    super('Agent handshake timed out (no first frame within 5s)', {
+      code: 'AUTHN_HANDSHAKE_TIMEOUT',
+      suggestion: 'Agent must send register or reconnect frame within 5s of WS open',
+    });
+  }
+}
+
+// Phase 8 — agent frame validation
+export class AgentFrameInvalidError extends ValidationError {
+  constructor(reason: string) {
+    super(`Agent frame invalid: ${reason}`, {
+      code: 'VAL_AGENT_FRAME',
+    });
+    // D-10: `reason` is a short tag (e.g. 'json', 'missing type', 'unknown type: X') — never a token
+  }
+}
+
 /* ---------- Category → HTTP status exhaustive mapping ---------- */
 
 /**
