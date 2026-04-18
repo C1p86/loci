@@ -1,0 +1,12 @@
+{
+  "name": "@xci/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo '@xci/web Phase 6 stub — build is a noop'",
+    "test": "echo '@xci/web Phase 6 stub — no tests yet'",
+    "lint": "echo '@xci/web Phase 6 stub — no lint yet'",
+    "typecheck": "echo '@xci/web Phase 6 stub — no typecheck yet'"
+  }
+}
