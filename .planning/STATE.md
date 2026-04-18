@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: executing
-stopped_at: Phase 8 context gathered (auto-mode)
-last_updated: "2026-04-18T20:51:07.849Z"
-last_activity: 2026-04-18 -- Phase 8 planning complete
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-04-18T21:00:36.860Z"
+last_activity: 2026-04-18
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 33
-  completed_plans: 28
-  percent: 85
+  completed_plans: 29
+  percent: 88
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Phase 8 — Agent Registration & WebSocket Protocol (next)
+**Current focus:** Phase 8 — Agent Registration & WebSocket Protocol
 
 ## Current Position
 
-Phase: 07 (Database Schema & Auth) — COMPLETE ✓
-Plan: 9 of 9 (all plans merged to main, verification passed)
+Phase: 8 (Agent Registration & WebSocket Protocol) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-04-18 -- Phase 8 planning complete
+Last activity: 2026-04-18
 
 Progress (Phase 07): [██████████] 100%
 Progress (v2.0 milestone): [██░░░░░░░░] 22% (2/9 phases)
@@ -94,6 +94,7 @@ Progress (v2.0 milestone): [██░░░░░░░░] 22% (2/9 phases)
 | Phase 07-database-schema-auth P07 | ~10m | 2 tasks | 10 files |
 | Phase 07-database-schema-auth P08 | 5m | 1 tasks | 3 files |
 | Phase 07-database-schema-auth P09 | ~10m | 2 tasks | 3 files |
+| Phase 08 P01 | 20 | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -173,6 +174,9 @@ Recent decisions affecting current work:
 - [Phase 07]: @xci/server package.json private:false flip completed (Phase 6 D-12 commitment fulfilled); first publish remains Phase 14
 - [Phase 07]: Drizzle migrations produced by `drizzle-kit generate` committed as single `drizzle/0000_volatile_mad_thinker.sql` (Pitfall 10); programmatic migrator at boot reads from drizzle/ per D-28
 - [Phase 07]: packages/xci/ untouched throughout Phase 07 (D-39); v1 302-test suite still green; Phase 6 ws-exclusion + hyperfine gates still pass
+- [Phase 08]: ws/rws kept external in tsup (D-01); agent.mjs is the separate bundle entry
+- [Phase 08]: argv pre-scan before imports ensures zero cold-start cost for non-agent paths (D-02, D-29)
+- [Phase 08]: Drizzle partial uniqueIndex enforces at-most-one active credential per agent at DB level (T-08-01-06)
 
 ### Pending Todos
 
@@ -198,6 +202,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T19:54:03.737Z
-Stopped at: Phase 8 context gathered (auto-mode)
-Resume file: .planning/phases/08-agent-registration-websocket-protocol/08-CONTEXT.md
+Last session: 2026-04-18T21:00:36.821Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: None

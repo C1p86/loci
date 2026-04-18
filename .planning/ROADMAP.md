@@ -160,7 +160,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. An agent in drain mode receives no new dispatches; current tasks complete to their natural end state before the agent stops
   5. Graceful shutdown (SIGTERM) sends a `goodbye` frame, waits for in-flight tasks to complete, and exits 0 with no orphaned task runs in the DB
 **Plans**: 5 plans
-- [ ] 08-01-PLAN.md — Phase 6 fence reversal + schema foundation (tsup multi-entry + xci deps + biome narrow + CI grep removal + 3 Drizzle tables + 0001 migration + agent stub)
+- [x] 08-01-PLAN.md — Phase 6 fence reversal + schema foundation (tsup multi-entry + xci deps + biome narrow + CI grep removal + 3 Drizzle tables + 0001 migration + agent stub)
 - [ ] 08-02-PLAN.md — Server data layer (crypto compareToken/hashToken + 5 new error subclasses + 3 org-scoped repos + adminRepo D-37 helpers + isolation tests)
 - [ ] 08-03-PLAN.md — Server WS endpoint + 5 REST routes (handshake + heartbeat + registry + frames + agents routes with CSRF/rate-limit + integration tests)
 - [ ] 08-04-PLAN.md — xci agent daemon (AgentClient + credential load/save with TOFU + labels + SIGINT/SIGTERM shutdown + cold-start test + Linux E2E)
@@ -256,7 +256,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 5. Init & Distribution | 3/3 | Complete | 2026-04-15 |
 | 6. Monorepo Setup & Backward-Compat Fence | 0/? | Not started | - |
 | 7. Database Schema & Auth | 8/9 | In Progress|  |
-| 8. Agent Registration & WebSocket Protocol | 0/? | Not started | - |
+| 8. Agent Registration & WebSocket Protocol | 1/5 | In Progress|  |
 | 9. Task Definitions & Secrets Management | 0/? | Not started | - |
 | 10. Dispatch Pipeline & Quota Enforcement | 0/? | Not started | - |
 | 11. Log Streaming & Persistence | 0/? | Not started | - |

@@ -7,10 +7,10 @@
 
 ### Backward Compatibility (non-negotiable)
 
-- [ ] **BC-01**: `xci` senza `--agent` è osservabilmente identico a v1.0: config loading a 4 livelli, esecuzione (single/sequential/parallel), exit code, flag `--list` / `--dry-run` / `--verbose`, pass-through args.
-- [ ] **BC-02**: La suite di test v1 (202 test) passa invariata come required check CI su ogni PR che tocchi `packages/xci/`.
-- [ ] **BC-03**: Il bundle `packages/xci/dist/cli.mjs` resta sotto 200KB (attualmente ~130KB); `ws` e `reconnecting-websocket` sono `external[]` per l'entry CLI e non entrano mai in `cli.mjs`. Check di bundle-size nella CI.
-- [ ] **BC-04**: Cold-start `xci --version` senza `--agent` resta sotto 300ms su hardware moderno.
+- [x] **BC-01**: `xci` senza `--agent` è osservabilmente identico a v1.0: config loading a 4 livelli, esecuzione (single/sequential/parallel), exit code, flag `--list` / `--dry-run` / `--verbose`, pass-through args.
+- [x] **BC-02**: La suite di test v1 (202 test) passa invariata come required check CI su ogni PR che tocchi `packages/xci/`.
+- [x] **BC-03**: Il bundle `packages/xci/dist/cli.mjs` resta sotto 200KB (attualmente ~130KB); `ws` e `reconnecting-websocket` sono `external[]` per l'entry CLI e non entrano mai in `cli.mjs`. Check di bundle-size nella CI.
+- [x] **BC-04**: Cold-start `xci --version` senza `--agent` resta sotto 300ms su hardware moderno.
 
 ### Packaging & Distribution (PKG)
 
@@ -40,7 +40,7 @@
 
 ### Agent Authentication (ATOK)
 
-- [ ] **ATOK-01**: Owner/Member-con-permission può generare Registration Token dalla UI; token single-use, expiry 24h, scoped all'org.
+- [x] **ATOK-01**: Owner/Member-con-permission può generare Registration Token dalla UI; token single-use, expiry 24h, scoped all'org.
 - [ ] **ATOK-02**: `xci --agent <url> --token <registration-token>` usa il token nell'handshake; server emette Agent Credential permanente (TOFU) e lo restituisce all'agente che lo persiste locale.
 - [ ] **ATOK-03**: Agent Credential (reg-token e credential permanente) trasmessa nel body del frame WS di handshake, mai nella URL di connessione.
 - [ ] **ATOK-04**: Owner/Member può revocare l'Agent Credential di un agente specifico dalla UI; revoke immediato (chiude WS attiva).
@@ -319,10 +319,10 @@ Quali fasi coprono quali requirement.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BC-01 | 06-monorepo-setup | Pending |
-| BC-02 | 06-monorepo-setup | Pending |
-| BC-03 | 06-monorepo-setup | Pending |
-| BC-04 | 06-monorepo-setup | Pending |
+| BC-01 | 06-monorepo-setup | Complete |
+| BC-02 | 06-monorepo-setup | Complete |
+| BC-03 | 06-monorepo-setup | Complete |
+| BC-04 | 06-monorepo-setup | Complete |
 | PKG-01 | 06-monorepo-setup | Pending |
 | PKG-02 | 06-monorepo-setup | Pending |
 | PKG-03 | 06-monorepo-setup | Pending |
@@ -341,7 +341,7 @@ Quali fasi coprono quali requirement.
 | QUOTA-01 | 07-database-auth | Complete |
 | QUOTA-02 | 07-database-auth | Complete |
 | QUOTA-07 | 07-database-auth | Complete |
-| ATOK-01 | 08-agent-ws-protocol | Pending |
+| ATOK-01 | 08-agent-ws-protocol | Complete |
 | ATOK-02 | 08-agent-ws-protocol | Pending |
 | ATOK-03 | 08-agent-ws-protocol | Pending |
 | ATOK-04 | 08-agent-ws-protocol | Pending |
