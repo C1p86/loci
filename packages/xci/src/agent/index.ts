@@ -4,7 +4,12 @@
 
 import { AgentModeArgsError } from '../errors.js';
 import { AgentClient } from './client.js';
-import { credentialPath, loadCredential, saveCredential, type StoredCredential } from './credential.js';
+import {
+  credentialPath,
+  loadCredential,
+  type StoredCredential,
+  saveCredential,
+} from './credential.js';
 import { detectLabels } from './labels.js';
 import { createAgentState } from './state.js';
 import type { AgentFrame } from './types.js';
@@ -123,9 +128,7 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
         try {
           await saveCredential(cred, flags.configDir);
         } catch (err) {
-          process.stderr.write(
-            `[agent] failed to save credential: ${(err as Error).message}\n`,
-          );
+          process.stderr.write(`[agent] failed to save credential: ${(err as Error).message}\n`);
           // Server-side registration already happened; credential is lost locally.
           // Must re-register. Exit non-zero.
           client?.close();

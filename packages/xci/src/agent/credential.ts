@@ -56,10 +56,7 @@ export async function loadCredential(configDir?: string): Promise<StoredCredenti
   }
   for (const key of ['server_url', 'agent_id', 'credential', 'registered_at'] as const) {
     if (typeof p[key] !== 'string') {
-      throw new AgentCredentialReadError(
-        path,
-        new Error(`missing/invalid field: ${key}`),
-      );
+      throw new AgentCredentialReadError(path, new Error(`missing/invalid field: ${key}`));
     }
   }
   return {
@@ -77,10 +74,7 @@ export async function loadCredential(configDir?: string): Promise<StoredCredenti
  * Returns the resolved file path.
  * Throws AgentCredentialWriteError if write fails.
  */
-export async function saveCredential(
-  cred: StoredCredential,
-  configDir?: string,
-): Promise<string> {
+export async function saveCredential(cred: StoredCredential, configDir?: string): Promise<string> {
   const path = credentialPath(configDir);
   const dir = join(path, '..');
   try {

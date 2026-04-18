@@ -6,8 +6,8 @@ import { AgentCredentialReadError } from '../../errors.js';
 import {
   credentialPath,
   loadCredential,
-  saveCredential,
   type StoredCredential,
+  saveCredential,
 } from '../credential.js';
 
 describe('agent/credential', () => {

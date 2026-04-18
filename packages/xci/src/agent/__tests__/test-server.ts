@@ -2,7 +2,7 @@
 // Used by client.integration.test.ts to simulate the server side.
 
 import type { AddressInfo } from 'node:net';
-import { WebSocket, WebSocketServer } from 'ws';
+import { type WebSocket, WebSocketServer } from 'ws';
 
 export interface TestServer {
   port: number;

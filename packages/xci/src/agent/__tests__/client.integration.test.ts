@@ -48,7 +48,11 @@ describe('AgentClient integration (mock server)', () => {
     server.onFrame((sock) => {
       // Reply with register_ack when agent connects
       sock.send(
-        JSON.stringify({ type: 'register_ack', agent_id: 'xci_agt_test', credential: 'cred-plain' }),
+        JSON.stringify({
+          type: 'register_ack',
+          agent_id: 'xci_agt_test',
+          credential: 'cred-plain',
+        }),
       );
     });
 
