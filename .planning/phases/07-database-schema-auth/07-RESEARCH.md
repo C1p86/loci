@@ -1365,32 +1365,22 @@ fastify.post('/login', {
 
 All other claims in this document are tagged `[VERIFIED: npm registry]` (version numbers) or `[CITED: <url>]` (documented patterns).
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should the D-01 scoped-repo Biome rule block `import from './repos/users.js'` outside `src/repos/`?**
-   - What we know: Biome v2 supports `noRestrictedImports` with path scoping (Phase 6 uses this for `ws`). Exact syntax for "allow from A but not from B" is confirmed.
-   - What's unclear: Whether pattern matching can express "only `./index.js` exported, other files internal". Fallback is a one-file custom lint script.
-   - Recommendation: Planner picks Biome rule in task 1; if pattern insufficient, add a 20-line `scripts/check-repo-imports.mjs` consumed by CI lint step.
+   - **RESOLVED:** Plan 07-01 Task 2 implements `noRestrictedImports` in `biome.json` overrides scoped to `src/{routes,plugins,app.ts}`, enumerating all 12 repo file paths (6 repos × 2 prefixes `./repos/x` and `../repos/x`) as forbidden. The fallback `scripts/check-repo-imports.mjs` is NOT added in Phase 7 — Biome's pattern blocking is sufficient per Phase 6 precedent. If a future regression slips through, add the script in a follow-up.
 
 2. **Do we pre-create the test-utils testcontainers harness once globally, or per-suite?**
-   - What we know: D-20 says "per test suite". Vitest's `globalSetup` runs once per vitest invocation (which is one suite in most configs).
-   - What's unclear: When Phase 8 adds a second integration suite (agent WS tests), should they share one container or each spin their own?
-   - Recommendation: Phase 7 plans ONE container per `pnpm --filter @xci/server test:integration` invocation. If Phase 8+ has multiple suites, parallelize via `.vitest-projects` later.
+   - **RESOLVED:** ONE container per `pnpm --filter @xci/server test:integration` invocation, lifecycle managed by Vitest `globalSetup` per Plan 07-02. Phase 8+ (agent WS tests) will share the same container; if scaling becomes a concern, switch to vitest projects later. Per-suite isolation is achieved via `TRUNCATE … RESTART IDENTITY CASCADE` between tests (D-22).
 
 3. **How do we handle the "invitee goes through signup then accepts invite" flow (D-17)?**
-   - What we know: Invite token survives signup via the session or URL parameter.
-   - What's unclear: Does the invite link redirect to signup-with-invite-token? Or does signup accept an optional `inviteToken` that auto-accepts on email verification?
-   - Recommendation: Planner refines route shape. Suggested: invite link is `/api/invites/:token/accept`. If no session, redirect to signup with `?inviteToken=<t>`. After signup + verify, POST back to accept endpoint. All state in the token, no server-side "pending invite session" concept.
+   - **RESOLVED:** Plan 07-07 implements `POST /api/invites/:token/accept` requiring an authenticated session. The invite link in the email is `<APP_URL>/invites/<token>` — server-rendered redirect logic is Phase 13 (web SPA). For Phase 7, an invitee with no account hits `/api/invites/:token/preview` (unauth, returns invite metadata if token valid+unexpired+email-pinned), then signs up via `/api/auth/signup` (passing `?inviteToken=<t>` as a query so the client can call accept after verification). All state lives in the token + DB row — no "pending invite session" concept on the server.
 
 4. **Does the email transport `stub` need a getter exported to tests, or do tests construct their own stub?**
-   - What we know: D-29 says "captures messages in an in-memory array, exposed to tests via `getCapturedEmails()`".
-   - What's unclear: Whether `getCapturedEmails()` is a global singleton (bad for test isolation) or scoped to the `app` instance.
-   - Recommendation: Expose via `app.emailTransport.captured` when `EMAIL_TRANSPORT=stub`. Tests inject via `buildApp({ emailTransport: createTransport('stub', ...) })` and read `.captured`. No global state.
+   - **RESOLVED:** Per Plan 07-03 + 07-05, the stub transport is constructed at `buildApp({ emailTransport })` time. Tests pass `createTransport('stub', ...)` and read `app.emailTransport.captured` (an array exposed on the transport instance). NO global singleton — each `buildApp` call gets a fresh stub for test isolation.
 
 5. **What's the session refresh behavior on the same second as the 1h throttle boundary?**
-   - What we know: D-13 is "refresh if `last_seen_at < now() - 1h`".
-   - What's unclear: Clock skew between Postgres and Node — UPDATE predicate uses Postgres `now()`, read earlier used Node `new Date()`. Is the compare time consistent?
-   - Recommendation: All time comparisons use Postgres `NOW()` (the UPDATE's own predicate, not a Node-computed value). The Node-side `new Date()` is only for setting the NEW values (`last_seen_at`, `expires_at`) — Postgres accepts timestamp literal. Minor quibble; not a phase blocker.
+   - **RESOLVED:** Per Plan 07-04 (sessions.ts) + Plan 07-05 (auth plugin): all time comparisons happen inside the SQL UPDATE predicate using Postgres `NOW()` — `WHERE id = $1 AND revoked_at IS NULL AND expires_at > NOW() AND last_seen_at < NOW() - INTERVAL '1 hour'`. Node-side `new Date()` is only used to compute the NEW `last_seen_at` and `expires_at` values written by the UPDATE. No Node↔Postgres clock-skew exposure on the throttle predicate (Pitfall 6).
 
 ## Environment Availability
 
