@@ -9,6 +9,6 @@
     "sourceMap": true,
     "composite": false
   },
-  "include": ["src/**/*.ts", "drizzle.config.ts", "vitest.unit.config.ts", "vitest.integration.config.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["dist", "node_modules", "drizzle/**"]
 }

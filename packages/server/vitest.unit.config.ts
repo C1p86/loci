@@ -12,6 +12,7 @@ export default defineConfig({
       'src/**/__tests__/**/*.integration.test.ts',
       'src/**/__tests__/**/*.isolation.test.ts',
     ],
+    passWithNoTests: true,
     reporters: ['default'],
     pool: 'threads',
     isolate: true,

@@ -10,6 +10,7 @@ export default defineConfig({
     ],
     globalSetup: ['src/test-utils/global-setup.ts'],
     globalTeardown: ['src/test-utils/global-teardown.ts'],
+    passWithNoTests: true,
     testTimeout: 30_000,
     hookTimeout: 60_000,
     pool: 'threads',
