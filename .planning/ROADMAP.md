@@ -176,7 +176,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Two consecutive encrypt calls for the same secret value produce different IVs and different ciphertexts, and decryption of either produces the original value
   4. An agent-local `.xci/secrets.yml` value for the same key wins over an org-level secret at dispatch time — the correct merged value reaches the subprocess
   5. The MEK-rotation endpoint re-wraps all org DEKs under the new MEK without changing any plaintext secret values; all secrets remain decryptable after rotation
-**Plans**: TBD
+**Plans**: 6 plans
+- [ ] 09-01-PLAN.md — DSL subpath facade (xci/dsl) + cross-package workspace dep + Drizzle schema for 4 tables + [BLOCKING] 0002 migration
+- [ ] 09-02-PLAN.md — Server env (XCI_MASTER_KEY + PLATFORM_ADMIN_EMAIL) + crypto/secrets.ts (AES-256-GCM) + 7 new error classes + Pino redaction + MEK decorator
+- [ ] 09-03-PLAN.md — forOrg repos (tasks, secrets, secret-audit-log) + adminRepo getOrgDek/rotateMek + Biome D-37/D-38 cross-package fence + isolation tests
+- [ ] 09-04-PLAN.md — Task CRUD routes + 4-step D-12 validation pipeline (parse, structure, cycle, unknown-alias with suggest) + integration tests
+- [ ] 09-05-PLAN.md — Secret CRUD routes + secret-audit-log endpoint + SEC-04 no-plaintext invariant guard (grep + runtime test)
+- [ ] 09-06-PLAN.md — rotate-mek admin endpoint (SEC-08, D-26 + D-28 verified) + dispatch-resolver service (TASK-06) + Phase closeout
 **UI hint**: yes
 
 ### Phase 10: Dispatch Pipeline & Quota Enforcement
