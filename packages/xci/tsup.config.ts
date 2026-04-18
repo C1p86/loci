@@ -16,6 +16,15 @@ export default defineConfig({
   // See: .planning/phases/06-monorepo-setup-backward-compat-fence/06-RESEARCH.md §Pitfall 1.
   noExternal: [/^(?!ws$|reconnecting-websocket$).*/],
   external: ['ws', 'reconnecting-websocket'],
+  // Phase 8 Pitfall 6: prevent tsup/esbuild from inlining the agent entry into cli.mjs.
+  // The dynamic `await import('./agent/index.js')` in cli.ts must remain a true runtime
+  // import pointing to dist/agent.mjs (the separate entry). Using esbuildOptions to mark
+  // the relative path as external for the cli entry only.
+  esbuildOptions(options, context) {
+    if (context.format === 'esm') {
+      options.external = [...(options.external ?? []), './agent/index.js'];
+    }
+  },
   clean: true,
   dts: false,
   sourcemap: false,
