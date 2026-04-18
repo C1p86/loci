@@ -67,10 +67,7 @@ export function decryptSecret(
  * Uses constant DEK_WRAP_AAD (no per-call AAD; org binding comes from org_deks.org_id).
  * iv is 12 random bytes per call (SEC-02).
  */
-export function wrapDek(
-  mek: Buffer,
-  dek: Buffer,
-): { wrapped: Buffer; iv: Buffer; tag: Buffer } {
+export function wrapDek(mek: Buffer, dek: Buffer): { wrapped: Buffer; iv: Buffer; tag: Buffer } {
   const iv = randomBytes(12); // SEC-02: random IV per wrap call
   const cipher = createCipheriv('aes-256-gcm', mek, iv);
   cipher.setAAD(DEK_WRAP_AAD);
@@ -112,9 +109,9 @@ export async function getOrCreateOrgDek(
 ): Promise<Buffer> {
   const rows = await db.select().from(orgDeks).where(eq(orgDeks.orgId, orgId)).limit(1);
 
-  if (rows.length > 0) {
-    const row = rows[0]!;
-    return unwrapDek(mek, row.wrappedDek, row.wrapIv, row.wrapTag);
+  const existingRow = rows[0];
+  if (existingRow !== undefined) {
+    return unwrapDek(mek, existingRow.wrappedDek, existingRow.wrapIv, existingRow.wrapTag);
   }
 
   // First secret for this org — generate a fresh DEK and store it wrapped

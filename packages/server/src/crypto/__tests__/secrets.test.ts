@@ -4,12 +4,7 @@
 import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { SecretDecryptError } from '../../errors.js';
-import {
-  decryptSecret,
-  encryptSecret,
-  unwrapDek,
-  wrapDek,
-} from '../secrets.js';
+import { decryptSecret, encryptSecret, unwrapDek, wrapDek } from '../secrets.js';
 
 describe('encryptSecret / decryptSecret', () => {
   it('round-trip returns original plaintext', () => {
@@ -42,7 +37,7 @@ describe('encryptSecret / decryptSecret', () => {
 
     // Flip first byte of tag
     const tamperedTag = Buffer.from(tag);
-    tamperedTag.writeUInt8((tamperedTag.readUInt8(0) ^ 0xff), 0);
+    tamperedTag.writeUInt8(tamperedTag.readUInt8(0) ^ 0xff, 0);
 
     expect(() => decryptSecret(dek, ciphertext, iv, tamperedTag, aad)).toThrowError(
       SecretDecryptError,
@@ -55,7 +50,7 @@ describe('encryptSecret / decryptSecret', () => {
     const { ciphertext, iv, tag } = encryptSecret(dek, 'value', aad);
 
     const tamperedIv = Buffer.from(iv);
-    tamperedIv.writeUInt8((tamperedIv.readUInt8(0) ^ 0xff), 0);
+    tamperedIv.writeUInt8(tamperedIv.readUInt8(0) ^ 0xff, 0);
 
     expect(() => decryptSecret(dek, ciphertext, tamperedIv, tag, aad)).toThrowError(
       SecretDecryptError,
@@ -79,7 +74,7 @@ describe('encryptSecret / decryptSecret', () => {
     const { ciphertext, iv, tag } = encryptSecret(dek, 'hello world', aad);
 
     const tamperedCt = Buffer.from(ciphertext);
-    tamperedCt.writeUInt8((tamperedCt.readUInt8(0) ^ 0xff), 0);
+    tamperedCt.writeUInt8(tamperedCt.readUInt8(0) ^ 0xff, 0);
 
     expect(() => decryptSecret(dek, tamperedCt, iv, tag, aad)).toThrowError(SecretDecryptError);
   });
@@ -116,7 +111,7 @@ describe('SecretDecryptError discipline', () => {
     const { ciphertext, iv, tag } = encryptSecret(dek, plaintext, aad);
 
     const tamperedTag = Buffer.from(tag);
-    tamperedTag.writeUInt8((tamperedTag.readUInt8(0) ^ 0xff), 0);
+    tamperedTag.writeUInt8(tamperedTag.readUInt8(0) ^ 0xff, 0);
 
     let caught: SecretDecryptError | undefined;
     try {
@@ -127,7 +122,8 @@ describe('SecretDecryptError discipline', () => {
 
     expect(caught).toBeDefined();
     // Error message must not contain hex-encoded iv, tag, or plaintext fragments
-    const msg = caught!.message;
+    if (caught === undefined) throw new Error('Expected SecretDecryptError to be thrown');
+    const msg = caught.message;
     expect(msg).not.toContain(iv.toString('hex'));
     expect(msg).not.toContain(tag.toString('hex'));
     expect(msg).not.toContain(plaintext);

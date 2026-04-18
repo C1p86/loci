@@ -110,7 +110,7 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
   if (mek.length !== 32) {
     throw new Error(
       `XCI_MASTER_KEY must decode to exactly 32 bytes (got ${mek.length}). ` +
-        'Generate a valid key with: node -e "console.log(require(\'node:crypto\').randomBytes(32).toString(\'base64\'))"',
+        "Generate a valid key with: node -e \"console.log(require('node:crypto').randomBytes(32).toString('base64'))\"",
     );
   }
   app.decorate('mek', mek);

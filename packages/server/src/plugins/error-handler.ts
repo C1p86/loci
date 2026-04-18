@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
-import { TaskValidationError, httpStatusFor, XciServerError } from '../errors.js';
+import { httpStatusFor, TaskValidationError, XciServerError } from '../errors.js';
 
 const errorHandlerPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.setErrorHandler(
