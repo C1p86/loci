@@ -100,3 +100,42 @@ jobs:
         with:
           name: hyperfine-results
           path: hyperfine.json
+
+  integration-tests:
+    # Linux-only (D-23) — testcontainers needs Docker, preinstalled on ubuntu-latest.
+    # Gates on build-test-lint matrix passing first (no point running integration if unit/build is broken).
+    needs: [build-test-lint]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build @xci/server
+        run: pnpm --filter @xci/server build
+
+      - name: Run integration suite (testcontainers Postgres 16-alpine)
+        run: pnpm --filter @xci/server test:integration
+        # First run: ~30-45s container pull + boot + full suite
+        # Subsequent runs: ~15-20s (Docker layer cache on ubuntu-latest is ephemeral between jobs,
+        # but postgres:16-alpine image is usually cached at the runner host level)
+
+      - name: Upload vitest results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-integration-results
+          path: packages/server/.vitest-output/
+          if-no-files-found: ignore
+          retention-days: 7
