@@ -13,7 +13,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../app.js';
 import { makeRepos } from '../repos/index.js';
 import { makeRegistrationTokensRepo } from '../repos/registration-tokens.js';
-import { getTestDb, resetDb } from '../test-utils/db-harness.js';
+import { getTestDb, resetDb, TEST_MEK } from '../test-utils/db-harness.js';
 import { seedTwoOrgs } from '../test-utils/two-org-fixture.js';
 
 const isLinux = process.platform === 'linux';
@@ -91,7 +91,7 @@ describe.runIf(canRun)('agent E2E (D-33, Linux-only, real xci subprocess)', () =
       expect(cred['server_url']).toContain(`ws://127.0.0.1:${port}`);
 
       // Verify agent appears in DB via adminRepo
-      const repos = makeRepos(db);
+      const repos = makeRepos(db, TEST_MEK);
       const dbCred = await repos.admin.findActiveAgentCredential(cred['credential'] as string);
       expect(dbCred, 'agent credential not found in DB').not.toBeNull();
       expect(dbCred?.agentId).toBe(cred['agent_id']);

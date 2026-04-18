@@ -3,11 +3,11 @@ import { buildApp } from '../../../app.js';
 import { sessions } from '../../../db/schema.js';
 import { createTransport } from '../../../email/transport.js';
 import { makeRepos } from '../../../repos/index.js';
-import { getTestDb, resetDb } from '../../../test-utils/db-harness.js';
+import { getTestDb, resetDb, TEST_MEK } from '../../../test-utils/db-harness.js';
 
 async function signupAndVerify(email: string, password: string) {
   const db = getTestDb();
-  const repos = makeRepos(db);
+  const repos = makeRepos(db, TEST_MEK);
   const { user, org } = await repos.admin.signupTx({ email, password });
   await repos.admin.markUserEmailVerified(user.id);
   return { user, org };
@@ -86,7 +86,7 @@ describe('POST /api/auth/login (AUTH-03)', () => {
       emailTransport: createTransport('stub', { logger: { info: () => {} } }),
     });
     const db = getTestDb();
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
     await repos.admin.signupTx({ email: 'unv@example.com', password: 'long-enough-password' });
     // Deliberately do NOT mark verified
     const res = await app.inject({

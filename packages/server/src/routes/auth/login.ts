@@ -36,7 +36,7 @@ export const loginRoute: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (req, reply) => {
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       const userRows = await repos.admin.findUserByEmail(req.body.email);
       const user = userRows[0];
 

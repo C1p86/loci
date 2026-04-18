@@ -9,7 +9,7 @@ export const logoutRoute: FastifyPluginAsync = async (fastify) => {
       preHandler: [fastify.requireAuth],
     },
     async (req, reply) => {
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       // req.session is guaranteed non-null here — requireAuth preHandler already validated it
       const sessionId = req.session?.id;
       if (sessionId) {

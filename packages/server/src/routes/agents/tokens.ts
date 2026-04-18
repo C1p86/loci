@@ -45,7 +45,7 @@ export const agentTokensRoute: FastifyPluginAsync = async (fastify) => {
       const userId = req.user?.id;
       if (!orgId || !userId) throw new SessionRequiredError();
 
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       const orgRows = await repos.admin.findOrgById(orgId);
       if (!orgRows[0]) throw new OrgNotFoundError(orgId);
 

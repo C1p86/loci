@@ -14,7 +14,21 @@ export function generateToken(): string {
  * 15 bytes → 20 base64url chars; total length ~28 chars for "xci_usr_..."
  */
 export function generateId(
-  prefix: 'org' | 'usr' | 'mem' | 'ses' | 'inv' | 'ver' | 'pwr' | 'plan' | 'agt' | 'crd' | 'rtk',
+  prefix:
+    | 'org'
+    | 'usr'
+    | 'mem'
+    | 'ses'
+    | 'inv'
+    | 'ver'
+    | 'pwr'
+    | 'plan'
+    | 'agt'
+    | 'crd'
+    | 'rtk'
+    | 'tsk'
+    | 'sec'
+    | 'sal',
 ): string {
   return `xci_${prefix}_${randomBytes(15).toString('base64url')}`;
 }

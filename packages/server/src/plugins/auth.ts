@@ -31,7 +31,7 @@ const authPlugin: FastifyPluginAsync<AuthPluginOpts> = async (fastify, opts) => 
     const sid = req.cookies?.xci_sid;
     if (!sid) return;
     const db = fastify.db;
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, fastify.mek);
 
     // Look up session cross-org (we don't know orgId yet — auth plugin discovers it)
     const sessionRows = await db

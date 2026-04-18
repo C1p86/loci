@@ -54,7 +54,7 @@ export const invitesRoute: FastifyPluginAsync = async (fastify) => {
       const userEmail = req.user?.email;
       if (!orgId || !userId || !userEmail) throw new SessionRequiredError();
 
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
 
       const orgRows = await repos.admin.findOrgById(orgId);
       const org = orgRows[0];
@@ -98,7 +98,7 @@ export const invitesRoute: FastifyPluginAsync = async (fastify) => {
       const orgId = req.org?.id;
       if (!orgId) throw new SessionRequiredError();
 
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       const rows = await repos.forOrg(orgId).invites.listPending();
       return rows.map((r) => ({
         id: r.id,
@@ -123,7 +123,7 @@ export const invitesRoute: FastifyPluginAsync = async (fastify) => {
       const userEmail = req.user?.email;
       if (!orgId || !userEmail) throw new SessionRequiredError();
 
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       const orgScoped = repos.forOrg(orgId);
 
       // Fetch first to get invite details for notification
@@ -176,7 +176,7 @@ export const membersRoute: FastifyPluginAsync = async (fastify) => {
       const userEmail = req.user?.email;
       if (!orgId || !userEmail) throw new SessionRequiredError();
 
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
 
       await repos.admin.changeRole({
         orgId,

@@ -7,14 +7,14 @@ import { makeAdminRepo } from '../../../repos/admin.js';
 import { makeAgentCredentialsRepo } from '../../../repos/agent-credentials.js';
 import { makeAgentsRepo } from '../../../repos/agents.js';
 import { makeRepos } from '../../../repos/index.js';
-import { getTestDb, resetDb } from '../../../test-utils/db-harness.js';
+import { getTestDb, resetDb, TEST_MEK } from '../../../test-utils/db-harness.js';
 import { seedTwoOrgs } from '../../../test-utils/two-org-fixture.js';
 
 type App = Awaited<ReturnType<typeof buildApp>>;
 
 async function makeSession(app: App, userId: string, orgId: string) {
   const db = getTestDb();
-  const repos = makeRepos(db);
+  const repos = makeRepos(db, TEST_MEK);
   const s = await repos.admin.createSession({ userId, activeOrgId: orgId });
   const csrfRes = await app.inject({
     method: 'GET',
@@ -93,7 +93,7 @@ describe('DELETE /api/orgs/:orgId/agents/:agentId', () => {
       hostname: 'h',
       labels: {},
     });
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
     const memberEmail = `member-${Date.now()}@example.com`;
     const memberSignup = await repos.admin.signupTx({
       email: memberEmail,
@@ -125,7 +125,7 @@ describe('DELETE /api/orgs/:orgId/agents/:agentId', () => {
       hostname: 'h',
       labels: {},
     });
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
     const s = await repos.admin.createSession({
       userId: f.orgA.ownerUser.id,
       activeOrgId: f.orgA.id,

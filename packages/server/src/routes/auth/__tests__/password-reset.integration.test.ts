@@ -4,7 +4,7 @@ import { buildApp } from '../../../app.js';
 import { passwordResets, sessions, users } from '../../../db/schema.js';
 import { createTransport, type EmailTransport } from '../../../email/transport.js';
 import { makeRepos } from '../../../repos/index.js';
-import { getTestDb, resetDb } from '../../../test-utils/db-harness.js';
+import { getTestDb, resetDb, TEST_MEK } from '../../../test-utils/db-harness.js';
 
 function makeStub(): EmailTransport {
   return createTransport('stub', { logger: { info: () => {} } });
@@ -12,7 +12,7 @@ function makeStub(): EmailTransport {
 
 async function signupAndVerify(email: string, password: string) {
   const db = getTestDb();
-  const repos = makeRepos(db);
+  const repos = makeRepos(db, TEST_MEK);
   const { user } = await repos.admin.signupTx({ email, password });
   await repos.admin.markUserEmailVerified(user.id);
   return user;
@@ -54,7 +54,7 @@ describe('password reset (AUTH-04)', () => {
     const stub = makeStub();
     const app = await buildApp({ logLevel: 'error', emailTransport: stub });
     const db = getTestDb();
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
     await repos.admin.signupTx({ email: 'uv@example.com', password: 'long-enough-password' });
     const res = await app.inject({
       method: 'POST',
@@ -70,7 +70,7 @@ describe('password reset (AUTH-04)', () => {
     const app = await buildApp({ logLevel: 'error', emailTransport: makeStub() });
     const user = await signupAndVerify('rs@example.com', 'old-long-enough-password');
     const db = getTestDb();
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
 
     // Create an active session first
     await repos.admin.createSession({
@@ -114,7 +114,7 @@ describe('password reset (AUTH-04)', () => {
   it('reset with same token twice → second call 401 AUTHN_TOKEN_INVALID', async () => {
     const app = await buildApp({ logLevel: 'error', emailTransport: makeStub() });
     const user = await signupAndVerify('tw@example.com', 'old-long-enough-password');
-    const repos = makeRepos(getTestDb());
+    const repos = makeRepos(getTestDb(), TEST_MEK);
     const pr = await repos.admin.createPasswordReset({ userId: user.id });
 
     const r1 = await app.inject({
@@ -138,7 +138,7 @@ describe('password reset (AUTH-04)', () => {
     const app = await buildApp({ logLevel: 'error', emailTransport: makeStub() });
     const user = await signupAndVerify('ex@example.com', 'long-enough-password');
     const db = getTestDb();
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
     const pr = await repos.admin.createPasswordReset({ userId: user.id });
     await db
       .update(passwordResets)
@@ -157,7 +157,7 @@ describe('password reset (AUTH-04)', () => {
   it('reset with short new password → 400 VAL_SCHEMA', async () => {
     const app = await buildApp({ logLevel: 'error', emailTransport: makeStub() });
     const user = await signupAndVerify('sp@example.com', 'long-enough-password');
-    const repos = makeRepos(getTestDb());
+    const repos = makeRepos(getTestDb(), TEST_MEK);
     const pr = await repos.admin.createPasswordReset({ userId: user.id });
 
     const res = await app.inject({

@@ -4,7 +4,7 @@ import { buildApp } from '../../../app.js';
 import { sessions } from '../../../db/schema.js';
 import { createTransport } from '../../../email/transport.js';
 import { makeRepos } from '../../../repos/index.js';
-import { getTestDb, resetDb } from '../../../test-utils/db-harness.js';
+import { getTestDb, resetDb, TEST_MEK } from '../../../test-utils/db-harness.js';
 
 async function loginAndGetCookies(
   app: Awaited<ReturnType<typeof buildApp>>,
@@ -12,7 +12,7 @@ async function loginAndGetCookies(
   password: string,
 ) {
   const db = getTestDb();
-  const repos = makeRepos(db);
+  const repos = makeRepos(db, TEST_MEK);
   await repos.admin.signupTx({ email, password });
   const userRows = await repos.admin.findUserByEmail(email);
   const userId = userRows[0]?.id;

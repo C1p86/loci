@@ -6,14 +6,14 @@ import { buildApp } from '../../../app.js';
 import { makeAdminRepo } from '../../../repos/admin.js';
 import { makeAgentsRepo } from '../../../repos/agents.js';
 import { makeRepos } from '../../../repos/index.js';
-import { getTestDb, resetDb } from '../../../test-utils/db-harness.js';
+import { getTestDb, resetDb, TEST_MEK } from '../../../test-utils/db-harness.js';
 import { seedTwoOrgs } from '../../../test-utils/two-org-fixture.js';
 
 type App = Awaited<ReturnType<typeof buildApp>>;
 
 async function makeSession(app: App, userId: string, orgId: string) {
   const db = getTestDb();
-  const repos = makeRepos(db);
+  const repos = makeRepos(db, TEST_MEK);
   const s = await repos.admin.createSession({ userId, activeOrgId: orgId });
   const csrfRes = await app.inject({
     method: 'GET',
@@ -53,7 +53,7 @@ describe('GET /api/orgs/:orgId/agents', () => {
   it('Viewer can list agents (read-only)', async () => {
     const db = getTestDb();
     const f = await seedTwoOrgs(db);
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
     const admin = makeAdminRepo(db);
 
     // Create agent

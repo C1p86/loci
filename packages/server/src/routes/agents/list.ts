@@ -24,7 +24,7 @@ export const agentListRoute: FastifyPluginAsync = async (fastify) => {
       const orgId = req.org?.id;
       if (!orgId) throw new SessionRequiredError();
 
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       const rows = await repos.forOrg(orgId).agents.list();
       const now = Date.now();
 

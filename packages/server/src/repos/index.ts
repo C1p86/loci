@@ -6,9 +6,9 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { type AdminRepo, makeAdminRepo } from './admin.js';
 import { type ForOrgFactory, makeForOrg } from './for-org.js';
 
-export function makeRepos(db: PostgresJsDatabase) {
+export function makeRepos(db: PostgresJsDatabase, mek: Buffer) {
   return {
-    forOrg: makeForOrg(db),
+    forOrg: makeForOrg(db, mek),
     admin: makeAdminRepo(db),
   };
 }

@@ -29,7 +29,7 @@ export const agentDeleteRoute: FastifyPluginAsync = async (fastify) => {
       const orgId = req.org?.id;
       if (!orgId) throw new SessionRequiredError();
 
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       const scoped = repos.forOrg(orgId);
       const agent = await scoped.agents.getById(req.params.agentId);
       if (!agent) return reply.status(404).send({ error: 'agent not found' });

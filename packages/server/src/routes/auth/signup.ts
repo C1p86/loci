@@ -31,7 +31,7 @@ export const signupRoute: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (req, reply) => {
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       const result = await repos.admin.signupTx({
         email: req.body.email,
         password: req.body.password,

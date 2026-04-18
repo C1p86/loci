@@ -63,7 +63,7 @@ export function handleAgentConnection(
     // Authenticated frames: update last_seen_at on every message (D-16)
     if (conn) {
       try {
-        const repos = makeRepos(fastify.db);
+        const repos = makeRepos(fastify.db, fastify.mek);
         await repos.forOrg(conn.orgId).agents.recordHeartbeat(conn.agentId);
       } catch (err) {
         fastify.log.warn({ err, agentId: conn.agentId }, 'recordHeartbeat on message failed');
@@ -85,7 +85,7 @@ export function handleAgentConnection(
       stopHeartbeat(conn);
       fastify.agentRegistry.delete(conn.agentId);
       try {
-        const repos = makeRepos(fastify.db);
+        const repos = makeRepos(fastify.db, fastify.mek);
         await repos.forOrg(conn.orgId).agents.updateState(conn.agentId, 'offline');
       } catch (err) {
         fastify.log.warn({ err, agentId: conn.agentId }, 'offline-mark failed on WS close');
@@ -104,7 +104,7 @@ async function handleHandshake(
   socket: WebSocket,
   frame: ReturnType<typeof parseAgentFrame>,
 ): Promise<AgentConnection | null> {
-  const repos = makeRepos(fastify.db);
+  const repos = makeRepos(fastify.db, fastify.mek);
 
   if (frame.type === 'register') {
     const tokenRow = await repos.admin.findValidRegistrationToken(frame.token);

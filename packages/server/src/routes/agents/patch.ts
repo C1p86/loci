@@ -56,7 +56,7 @@ export const agentPatchRoute: FastifyPluginAsync = async (fastify) => {
         throw new AgentPatchEmptyError();
       }
 
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       const scoped = repos.forOrg(orgId);
       const existing = await scoped.agents.getById(req.params.agentId);
       if (!existing) return reply.status(404).send({ error: 'agent not found' });

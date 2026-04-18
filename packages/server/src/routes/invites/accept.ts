@@ -29,7 +29,7 @@ export const acceptInviteRoute: FastifyPluginAsync = async (fastify) => {
       // requireAuth preHandler guarantees user is non-null; guard for type narrowing
       if (!userEmail || !userId) throw new SessionRequiredError();
 
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       const rows = await repos.admin.findInviteByToken(req.params.token);
       const invite = rows[0];
       if (!invite) throw new InviteNotFoundError();

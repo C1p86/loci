@@ -4,14 +4,14 @@ import { buildApp } from '../../../app.js';
 import { emailVerifications, users } from '../../../db/schema.js';
 import { createTransport } from '../../../email/transport.js';
 import { makeRepos } from '../../../repos/index.js';
-import { getTestDb, resetDb } from '../../../test-utils/db-harness.js';
+import { getTestDb, resetDb, TEST_MEK } from '../../../test-utils/db-harness.js';
 
 describe('POST /api/auth/verify-email (AUTH-02)', () => {
   beforeEach(async () => resetDb());
 
   async function signupAndGetToken(email: string, password: string) {
     const db = getTestDb();
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
     const { user } = await repos.admin.signupTx({ email, password });
     const v = await repos.admin.createEmailVerification({ userId: user.id });
     return { userId: user.id, token: v.token };

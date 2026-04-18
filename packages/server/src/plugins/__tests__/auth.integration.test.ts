@@ -4,7 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../../app.js';
 import { sessions } from '../../db/schema.js';
 import { makeRepos } from '../../repos/index.js';
-import { getTestDb, resetDb } from '../../test-utils/db-harness.js';
+import { getTestDb, resetDb, TEST_MEK } from '../../test-utils/db-harness.js';
 
 // Environment set by globalSetup (global-setup.ts sets DATABASE_URL etc.)
 beforeAll(async () => {
@@ -51,7 +51,7 @@ describe('auth plugin (D-02 + D-09)', () => {
   it('valid xci_sid cookie populates user, org, session', async () => {
     const app = await buildTestApp();
     const db = getTestDb();
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
     const { user, org } = await repos.admin.signupTx({
       email: 'u@example.com',
       password: 'long-enough-password',
@@ -83,7 +83,7 @@ describe('auth plugin (D-02 + D-09)', () => {
   it('revoked session rejected (AUTH-12 irreversible)', async () => {
     const app = await buildTestApp();
     const db = getTestDb();
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
     const { user, org } = await repos.admin.signupTx({
       email: 'r@example.com',
       password: 'long-enough-password',
@@ -105,7 +105,7 @@ describe('auth plugin (D-02 + D-09)', () => {
   it('expired session rejected', async () => {
     const app = await buildTestApp();
     const db = getTestDb();
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
     const { user, org } = await repos.admin.signupTx({
       email: 'e@example.com',
       password: 'long-enough-password',
@@ -130,7 +130,7 @@ describe('auth plugin (D-02 + D-09)', () => {
   it('sliding expiry updates last_seen_at after 1h throttle (Pitfall 6 atomic)', async () => {
     const app = await buildTestApp();
     const db = getTestDb();
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
     const { user, org } = await repos.admin.signupTx({
       email: 'slide@example.com',
       password: 'long-enough-password',

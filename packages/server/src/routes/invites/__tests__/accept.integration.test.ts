@@ -4,11 +4,11 @@ import { buildApp } from '../../../app.js';
 import { orgInvites, orgMembers } from '../../../db/schema.js';
 import { createTransport } from '../../../email/transport.js';
 import { makeRepos } from '../../../repos/index.js';
-import { getTestDb, resetDb } from '../../../test-utils/db-harness.js';
+import { getTestDb, resetDb, TEST_MEK } from '../../../test-utils/db-harness.js';
 
 async function setupOwnerAndSession(app: Awaited<ReturnType<typeof buildApp>>) {
   const db = getTestDb();
-  const repos = makeRepos(db);
+  const repos = makeRepos(db, TEST_MEK);
   const { user, org } = await repos.admin.signupTx({
     email: 'owner@ex.com',
     password: 'long-enough-password',
@@ -29,7 +29,7 @@ async function setupOwnerAndSession(app: Awaited<ReturnType<typeof buildApp>>) {
 
 async function setupInviteeAndSession(app: Awaited<ReturnType<typeof buildApp>>, email: string) {
   const db = getTestDb();
-  const repos = makeRepos(db);
+  const repos = makeRepos(db, TEST_MEK);
   const { user, org } = await repos.admin.signupTx({
     email,
     password: 'long-enough-password',

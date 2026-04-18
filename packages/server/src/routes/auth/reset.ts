@@ -27,7 +27,7 @@ export const resetRoute: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (req, reply) => {
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       const rows = await repos.admin.findPasswordResetByToken(req.body.token);
       const row = rows[0];
       if (!row) throw new TokenInvalidError();

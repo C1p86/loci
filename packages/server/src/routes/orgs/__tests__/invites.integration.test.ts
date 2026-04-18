@@ -4,11 +4,11 @@ import { buildApp } from '../../../app.js';
 import { orgMembers } from '../../../db/schema.js';
 import { createTransport } from '../../../email/transport.js';
 import { makeRepos } from '../../../repos/index.js';
-import { getTestDb, resetDb } from '../../../test-utils/db-harness.js';
+import { getTestDb, resetDb, TEST_MEK } from '../../../test-utils/db-harness.js';
 
 async function ownerSession(app: Awaited<ReturnType<typeof buildApp>>, email = 'o@example.com') {
   const db = getTestDb();
-  const repos = makeRepos(db);
+  const repos = makeRepos(db, TEST_MEK);
   const { user, org } = await repos.admin.signupTx({ email, password: 'long-enough-password' });
   await repos.admin.markUserEmailVerified(user.id);
   const s = await repos.admin.createSession({ userId: user.id, activeOrgId: org.id });
@@ -62,7 +62,7 @@ describe('POST /api/orgs/:orgId/invites (AUTH-09)', () => {
       emailTransport: createTransport('stub', { logger: { info: () => {} } }),
     });
     const db = getTestDb();
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
     const owner = await repos.admin.signupTx({
       email: 'own@example.com',
       password: 'long-enough-password',
@@ -214,7 +214,7 @@ describe('POST /api/orgs/:orgId/invites (AUTH-09)', () => {
     const app = await buildApp({ logLevel: 'error', emailTransport: stub });
     const { org, sid, csrfToken, csrfCookie } = await ownerSession(app);
     const db = getTestDb();
-    const repos = makeRepos(db);
+    const repos = makeRepos(db, TEST_MEK);
     const other = await repos.admin.signupTx({
       email: 'mbr@ex.com',
       password: 'long-enough-password',

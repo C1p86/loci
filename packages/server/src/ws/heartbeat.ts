@@ -28,7 +28,7 @@ export function startHeartbeat(fastify: FastifyInstance, conn: AgentConnection):
     }
     conn.lastPongAt = Date.now();
     try {
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       await repos.forOrg(conn.orgId).agents.recordHeartbeat(conn.agentId);
     } catch (err) {
       fastify.log.warn({ err, agentId: conn.agentId }, 'heartbeat recordHeartbeat failed');

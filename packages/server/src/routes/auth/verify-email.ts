@@ -23,7 +23,7 @@ export const verifyEmailRoute: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (req, reply) => {
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       const rows = await repos.admin.findEmailVerificationByToken(req.body.token);
       const row = rows[0];
       if (!row) throw new TokenInvalidError();

@@ -31,7 +31,7 @@ export const requestResetRoute: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (req, reply) => {
-      const repos = makeRepos(fastify.db);
+      const repos = makeRepos(fastify.db, fastify.mek);
       const rows = await repos.admin.findUserByEmail(req.body.email);
       const user = rows[0];
 

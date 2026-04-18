@@ -1,4 +1,5 @@
 // packages/server/src/test-utils/db-harness.ts
+import { randomBytes } from 'node:crypto';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { sql } from 'drizzle-orm';
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
@@ -46,6 +47,13 @@ export function getTestDb(): PostgresJsDatabase {
  * Enumerates from information_schema so new tables added in Phase 8+ are auto-included.
  * Never hardcodes a table list to avoid drift.
  */
+/**
+ * A stable 32-byte test MEK for integration tests that call makeRepos(db, mek).
+ * Tests that only use repos.admin.* don't interact with secrets/DEKs, so any
+ * valid 32-byte Buffer is sufficient. Reused across the test session for consistency.
+ */
+export const TEST_MEK: Buffer = randomBytes(32);
+
 export async function resetDb(): Promise<void> {
   if (!db) throw new Error('resetDb called before setupTestDb');
   await db.execute(sql`
