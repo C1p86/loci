@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: — Local CLI
-status: executing
-stopped_at: Completed 08-04-PLAN.md — xci agent daemon complete
-last_updated: "2026-04-18T21:44:28.141Z"
-last_activity: 2026-04-18
+milestone: v2.0
+milestone_name: — Remote CI
+status: Phase 08 closed 2026-04-18; ready for Phase 09
+stopped_at: Phase 08 complete — agent + WS protocol active; Phase 6 fence formally reversed
+last_updated: "2026-04-18T22:00:00.000Z"
+last_activity: 2026-04-18 -- Phase 08 complete (ATOK-01..06, AGENT-01..08 all green)
 progress:
-  total_phases: 8
-  completed_phases: 7
+  total_phases: 14
+  completed_phases: 8
   total_plans: 33
-  completed_plans: 32
-  percent: 97
+  completed_plans: 33
+  percent: 100
 ---
 
 # Project State
@@ -25,13 +25,13 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 
 ## Current Position
 
-Phase: 8 (Agent Registration & WebSocket Protocol) — EXECUTING
-Plan: 5 of 5
-Status: Ready to execute
-Last activity: 2026-04-18
+Phase: 08 (Agent Registration & WebSocket Protocol) — COMPLETE ✓
+Plan: 5 of 5 (all plans merged to main, verification passed)
+Status: Phase 08 closed 2026-04-18; ready for Phase 09
+Last activity: 2026-04-18 -- Phase 08 complete (ATOK-01..06, AGENT-01..08 all green)
 
-Progress (Phase 07): [██████████] 100%
-Progress (v2.0 milestone): [██░░░░░░░░] 22% (2/9 phases)
+Progress (Phase 08): [██████████] 100%
+Progress (v2.0 milestone): [███░░░░░░░] 33% (3/9 phases)
 
 ## Performance Metrics
 
@@ -98,6 +98,7 @@ Progress (v2.0 milestone): [██░░░░░░░░] 22% (2/9 phases)
 | Phase 08-agent-registration-websocket-protocol P02 | 489 | 3 tasks | 12 files |
 | Phase 08 P03 | 13 | 3 tasks | 26 files |
 | Phase 08-agent-registration-websocket-protocol P04 | 12 | 3 tasks | 12 files |
+| Phase 08 P05 | ~15 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -187,16 +188,42 @@ Recent decisions affecting current work:
 - [Phase 08-03]: Hand-rolled parseAgentFrame — no zod; validates required fields per type (D-15)
 - [Phase 08-agent-registration-websocket-protocol]: tsup esbuildOptions external for ./agent/index.js required to prevent Pitfall 6 (agent code inlining into cli.mjs); external:[] array alone does not match relative paths
 - [Phase 08-agent-registration-websocket-protocol]: E2E test uses describe.runIf(canRun) where canRun = isLinux && distExists — never fails spuriously on non-Linux or when build missing
+- [Phase 08]: Phase 6 ws-fence formally reversed in Plan 01 — CI grep gate removed, Biome narrowed to packages/xci/src/cli.ts, new agent module is legitimate user of ws + reconnecting-websocket
+- [Phase 08]: Agent mode lazy-loaded via argv pre-scan + dynamic import('./agent/index.js'); tsup multi-entry produces dist/cli.mjs (no ws) + dist/agent.mjs (ws external)
+- [Phase 08]: Cold-start gate <300ms preserved; new packages/xci/src/__tests__/cold-start.test.ts as unit-level guard alongside hyperfine CI gate
+- [Phase 08]: Frame envelope hand-rolled in ws/frames.ts (no zod dep added); server frames.ts validates register/reconnect/goodbye only — dispatch/log_chunk/result reserved for Phase 10/11
+- [Phase 08]: Open-then-handshake auth pattern (D-14) — WS upgrade is unauth, first frame within 5s carries token or credential; 4005 close on timeout
+- [Phase 08]: crypto/tokens.ts centralized compareToken() with timingSafeEqual + length pre-check (Pitfall 3); ATOK-06 enforced by absence of === on token/credential variables (grep-verified)
+- [Phase 08]: Credential storage uses env-paths(xci, {suffix:''}).config per OS — macOS picks ~/Library/Preferences/xci NOT ~/.config (RESEARCH Pitfall 5); --config-dir overrides
+- [Phase 08]: Heartbeat server-driven at 25s interval + 10s pong timeout; last_seen_at updated on every pong + every incoming frame; D-12 state computed read-side (online = last_seen_at < 60s)
+- [Phase 08]: agentRegistry Map<agentId, WebSocket> decorated BEFORE @fastify/websocket register (Pitfall 8); superseding pattern closes prior connection with code 4004
+- [Phase 08]: 3 new org-scoped repos (agents, agent-credentials, registration-tokens) follow Phase 7 D-01 forOrg discipline; 3 new isolation tests; D-04 auto-discovery meta-test auto-picks up
+- [Phase 08]: adminRepo gained 5 D-37 cross-org helpers (findValidRegistrationToken, consumeRegistrationToken, findActiveAgentCredential, registerNewAgent, issueAgentCredential); all token-comparing paths use hashToken + SQL eq or timingSafeEqual
+- [Phase 08]: Single Drizzle migration 0001_agents_websocket.sql committed; partial unique index ON agent_credentials WHERE revoked_at IS NULL enforces at-most-one active cred per agent
+- [Phase 08]: reconnecting-websocket on Node.js REQUIRES { WebSocket: WS } option (Pitfall 2); backoff 1.0-1.5s jittered → 30s cap with 1.5x growth
+- [Phase 08]: All 5 REST routes use Phase 7 requireAuth + per-route CSRF (Owner/Member except DELETE which is Owner-only); token issue rate-limited 10/h per org+user (D-40)
+- [Phase 08]: WS URL-token-rejection test (ATOK-03) explicit security regression guard — token in URL is IGNORED, server still requires first-frame handshake
+- [Phase 08]: Graceful shutdown: SIGINT/SIGTERM → goodbye frame → 500ms flush → rws.close() → process.exit(0) (AGENT-08)
+- [Phase 08]: E2E test (Linux-only, D-33) spawns real xci --agent process against real Fastify server via execa/spawn; credential file written + SIGTERM exit 0 verified
+- [Phase 08]: Phase 7 server Biome ws-restriction (lines 70-91 of pre-Phase-8 biome.json) REMOVED — @fastify/websocket legitimately imports ws; third-override paths map EXTENDED with 3 new repo file entries
+- [Phase 08]: 302 v1 xci tests still green (BC-02); hyperfine cold-start gate still green (BC-04); dist/cli.mjs contains zero ReconnectingWebSocket strings (BC-03 spirit preserved even without CI grep gate)
+- [Phase 08]: reconnect_ack reconciliation returns [] stub (D-18) — Phase 10 populates with real task run reconciliation data
+- [Phase 08]: QUOTA-03 (max_agents=5 registration gate) deferred to Phase 10 per roadmap — Phase 8 registration has no quota check
 
 ### Pending Todos
 
-- Branch protection on main: ensure `integration-tests` (Phase 07), `fence-gates` (Phase 06), and all 6 `build-test-lint` matrix checks are marked as required status checks before next PR merge. Once set, AUTH-10 SC-4 is gated at merge time.
+- Branch protection on main: ensure `integration-tests` (Phase 07/08), `fence-gates` (Phase 06), and all 6 `build-test-lint` matrix checks are marked as required status checks before next PR merge. Once set, AUTH-10 SC-4 is gated at merge time.
 - Repo Settings > Actions > General: enable "Allow GitHub Actions to create and approve pull requests" before Phase 14
 - Add `NPM_TOKEN` repo secret (needed starting Phase 14 for first publish)
 - Future: re-evaluate bundle-size baseline — consider dynamic-imports for TUI, slimmer execa alternative, or accept monorepo-era size
 - Future (optional): quick task to clean up 68 pre-existing Biome style errors in packages/xci/src/ (useTemplate, useLiteralKeys, etc. — byte-identical to v1 tag)
 - Future (Phase 11): session token hashing at rest (deferred per D-12) — hash sha256 the token before DB insert; compare in auth plugin
 - Future (post-v2.0): haveibeenpwned password check (deferred per D-32) — add to signup/reset flows
+- Future (Phase 10): populate reconnect_ack reconciliation[] with real task run state (currently returns [] stub per D-18)
+- Future (Phase 10): implement quota enforcement at registration time (max_agents=5 Free plan) — QUOTA-03 assigned here but deferred to Phase 10 per roadmap
+- Future (post-v2.0): multi-instance scaling via Redis pub/sub for agentRegistry (currently in-memory single-process only)
+- Future (post-v2.0): agent audit log (register/revoke events) — paired with Phase 7 audit log deferral
+- Future (Phase 11): WS log_chunk frame type (reserved in D-15); backpressure handling revisit at that time
 
 ### Blockers/Concerns
 
