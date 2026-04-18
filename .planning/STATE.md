@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: executing
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-04-18T21:11:31.592Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-04-18T21:27:44.162Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 33
-  completed_plans: 30
-  percent: 91
+  completed_plans: 31
+  percent: 94
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 8 (Agent Registration & WebSocket Protocol) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-04-18
 
@@ -96,6 +96,7 @@ Progress (v2.0 milestone): [██░░░░░░░░] 22% (2/9 phases)
 | Phase 07-database-schema-auth P09 | ~10m | 2 tasks | 3 files |
 | Phase 08 P01 | 20 | 2 tasks | 14 files |
 | Phase 08-agent-registration-websocket-protocol P02 | 489 | 3 tasks | 12 files |
+| Phase 08 P03 | 13 | 3 tasks | 26 files |
 
 ## Accumulated Context
 
@@ -180,6 +181,9 @@ Recent decisions affecting current work:
 - [Phase 08]: Drizzle partial uniqueIndex enforces at-most-one active credential per agent at DB level (T-08-01-06)
 - [Phase 08-agent-registration-websocket-protocol]: compareToken uses timingSafeEqual with byteLength pre-check (ATOK-06); returns false not throw on length mismatch
 - [Phase 08-agent-registration-websocket-protocol]: agent_credentials partial unique index requires tx revoke-then-insert; adminRepo D-37 helpers are sole cross-org WS auth path
+- [Phase 08-03]: WS route registered at /ws/agent outside /api prefix — no session cookie on upgrade; auth via first frame (D-13/ATOK-03)
+- [Phase 08-03]: agentRegistry decorator placed BEFORE fastifyWebsocket plugin (Pitfall 8); Map<string, WebSocket> on FastifyInstance
+- [Phase 08-03]: Hand-rolled parseAgentFrame — no zod; validates required fields per type (D-15)
 
 ### Pending Todos
 
@@ -205,6 +209,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T21:11:31.558Z
-Stopped at: Completed 08-02-PLAN.md
+Last session: 2026-04-18T21:27:44.125Z
+Stopped at: Completed 08-03-PLAN.md
 Resume file: None
