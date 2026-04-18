@@ -3,6 +3,7 @@ import { registerAgentRoutes } from './agents/index.js';
 import { registerAuthRoutes } from './auth/index.js';
 import { registerInviteRoutes } from './invites/index.js';
 import { registerOrgRoutes } from './orgs/index.js';
+import { registerTaskRoutes } from './tasks/index.js';
 
 export const registerRoutes: FastifyPluginAsync = async (fastify) => {
   // Healthcheck — no auth, no CSRF, no rate-limit override
@@ -21,4 +22,7 @@ export const registerRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Phase 8: Agent management REST routes (mounted under /orgs like invites)
   await fastify.register(registerAgentRoutes, { prefix: '/orgs' });
+
+  // Phase 9: Task CRUD routes (mounted under /orgs — paths: /api/orgs/:orgId/tasks[/...])
+  await fastify.register(registerTaskRoutes, { prefix: '/orgs' });
 };
