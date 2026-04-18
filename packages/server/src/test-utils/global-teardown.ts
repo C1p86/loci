@@ -1,2 +1,5 @@
-// TEMPORARY STUB — Plan 02 replaces this with container teardown.
-export default async function (): Promise<void> {}
+import { teardownTestDb } from './db-harness.js';
+
+export default async function (): Promise<void> {
+  await teardownTestDb();
+}
