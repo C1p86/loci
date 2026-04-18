@@ -95,7 +95,7 @@
 - [x] **SEC-01**: Org-level secrets cifrati con envelope encryption: MEK dal process env (`XCI_MASTER_KEY`, 32 bytes base64) cifra DEK per-org; DEK cifra il valore con AES-256-GCM.
 - [x] **SEC-02**: IV random per ogni encrypt call (mai riusato); unit test verifica `notDeepEqual(encrypt(k,"x").iv, encrypt(k,"x").iv)`.
 - [x] **SEC-03**: Auth tag AES-GCM validato al decrypt; fallimento → errore esplicito, no partial read.
-- [ ] **SEC-04**: UI Owner/Member per CRUD secrets (Viewer non può); nessun ruolo vede i valori decifrati in UI, solo metadata (nome, created_at, last_used_at).
+- [x] **SEC-04**: UI Owner/Member per CRUD secrets (Viewer non può); nessun ruolo vede i valori decifrati in UI, solo metadata (nome, created_at, last_used_at).
 - [x] **SEC-05**: Per-agent secrets restano locali in `.xci/secrets.yml` come v1 (nessuna modifica a quel percorso).
 - [x] **SEC-06**: Dispatch: server decifra org secrets → invia nel param bundle all'agente (WS-TLS) → agente merge con `.xci/secrets.yml` locale (agent-local wins su collision).
 - [x] **SEC-07**: Audit log org-scoped: create / update / rotate / delete di ogni secret (solo metadata, mai valori).
@@ -364,7 +364,7 @@ Quali fasi coprono quali requirement.
 | SEC-01 | 09-task-definitions-secrets | Complete |
 | SEC-02 | 09-task-definitions-secrets | Complete |
 | SEC-03 | 09-task-definitions-secrets | Complete |
-| SEC-04 | 09-task-definitions-secrets | Pending |
+| SEC-04 | 09-task-definitions-secrets | Complete |
 | SEC-05 | 09-task-definitions-secrets | Complete |
 | SEC-06 | 09-task-definitions-secrets | Complete |
 | SEC-07 | 09-task-definitions-secrets | Complete |
