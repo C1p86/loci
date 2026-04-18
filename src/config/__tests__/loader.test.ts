@@ -4,11 +4,37 @@
 // Tasks 2 and 3: happy paths, merge logic, error paths, and YAML 1.2 semantics.
 
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ConfigReadError, YamlParseError } from '../../errors.js';
-import { configLoader } from '../index.js';
+import {
+  ConfigReadError,
+  ExitCode,
+  MachineConfigInvalidError,
+  YamlParseError,
+  exitCodeFor,
+} from '../../errors.js';
+import { configLoader, resolveMachineConfigDir } from '../index.js';
+
+// Mutable mock target for node:os.homedir.
+// vitest runs tests in worker threads (pool: 'threads'), where libuv caches the
+// real user's home dir and does NOT re-read process.env.HOME. We therefore replace
+// node:os.homedir at module-load via vi.mock, and steer it per-test via this
+// hoisted ref. The default delegates to the REAL homedir so every existing test
+// in this file keeps behaving exactly as before.
+const osMocks = vi.hoisted(() => {
+  // Eager-load the real homedir once at hoist time (before vi.mock rewrites the module).
+  const { homedir: realHomedir } = require('node:os') as typeof import('node:os');
+  return { homedirImpl: realHomedir as () => string };
+});
+
+vi.mock('node:os', async () => {
+  const actual = await vi.importActual<typeof import('node:os')>('node:os');
+  return {
+    ...actual,
+    homedir: () => osMocks.homedirImpl(),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -637,6 +663,136 @@ describe('configLoader.load', () => {
     it('ConfigReadError has code CFG_READ', () => {
       const err = new ConfigReadError('/path/to/file', new Error('EACCES'));
       expect(err.code).toBe('CFG_READ');
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Quick task 260418-lav: home-dir fallback + hard error for invalid env path
+// ---------------------------------------------------------------------------
+
+describe('machine config resolution', () => {
+  // See top-of-file vi.mock('node:os') + osMocks.homedirImpl comment for why we
+  // mock homedir here instead of setting process.env.HOME (libuv caches the home
+  // dir inside vitest's worker threads).
+  let cwd: string | undefined;
+  let homeTmp: string;
+  let savedMachineConfig: string | undefined;
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+  const realHomedir = osMocks.homedirImpl;
+
+  beforeEach(async () => {
+    savedMachineConfig = process.env['XCI_MACHINE_CONFIGS'];
+    delete process.env['XCI_MACHINE_CONFIGS'];
+    cwd = undefined;
+    homeTmp = await mkdtemp(join(tmpdir(), 'xci-home-'));
+    osMocks.homedirImpl = () => homeTmp;
+    stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+  });
+
+  afterEach(async () => {
+    stderrSpy.mockRestore();
+    osMocks.homedirImpl = realHomedir;
+    if (cwd) await cleanup(cwd);
+    await cleanup(homeTmp);
+    if (savedMachineConfig === undefined) delete process.env['XCI_MACHINE_CONFIGS'];
+    else process.env['XCI_MACHINE_CONFIGS'] = savedMachineConfig;
+  });
+
+  it('uses home fallback when env var is unset and ~/.xci/ exists', async () => {
+    await mkdir(join(homeTmp, '.xci'));
+    await writeFile(
+      join(homeTmp, '.xci', 'config.yml'),
+      'machine: "fallback-value"',
+      'utf8',
+    );
+    cwd = await setupFixture({});
+    const result = await configLoader.load(cwd);
+    expect(result.values['machine']).toBe('fallback-value');
+    expect(result.provenance['machine']).toBe('machine');
+  });
+
+  it('skips silently when env var unset and ~/.xci/ missing', async () => {
+    cwd = await setupFixture({ 'config.yml': 'project: demo' });
+    const result = await configLoader.load(cwd);
+    // No machine-provenance keys
+    for (const [, prov] of Object.entries(result.provenance)) {
+      expect(prov).not.toBe('machine');
+    }
+    // No env-var or home-fallback NOTE in stderr
+    const stderrCalls: string[] = stderrSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(
+      stderrCalls.some((s: string) =>
+        /XCI_MACHINE_CONFIGS|home fallback|~\/\.xci/.test(s),
+      ),
+    ).toBe(false);
+  });
+
+  it('throws MachineConfigInvalidError when XCI_MACHINE_CONFIGS points at a file', async () => {
+    cwd = await setupFixture({});
+    const filePath = join(cwd, 'not-a-dir.yml');
+    await writeFile(filePath, 'whatever: 1', 'utf8');
+    process.env['XCI_MACHINE_CONFIGS'] = filePath;
+    await expect(configLoader.load(cwd)).rejects.toBeInstanceOf(MachineConfigInvalidError);
+    // Assert error shape
+    try {
+      await configLoader.load(cwd);
+    } catch (e) {
+      const err = e as MachineConfigInvalidError;
+      expect(err.path).toBe(filePath);
+      expect(err.code).toBe('CONFIG_MACHINE_INVALID');
+      expect(exitCodeFor(err)).toBe(ExitCode.CONFIG_ERROR);
+    }
+  });
+
+  it('throws MachineConfigInvalidError when XCI_MACHINE_CONFIGS points at a nonexistent path', async () => {
+    cwd = await setupFixture({});
+    process.env['XCI_MACHINE_CONFIGS'] = `/nonexistent-${Math.random().toString(36).slice(2)}`;
+    await expect(configLoader.load(cwd)).rejects.toBeInstanceOf(MachineConfigInvalidError);
+  });
+
+  it('env var takes precedence over home fallback when both exist', async () => {
+    // ~/.xci/config.yml with foo: home
+    await mkdir(join(homeTmp, '.xci'));
+    await writeFile(join(homeTmp, '.xci', 'config.yml'), 'foo: "home"', 'utf8');
+    // env var points at a different dir with foo: env
+    cwd = await setupFixture({});
+    const envDir = join(cwd, 'env-machine-conf');
+    await mkdir(envDir);
+    await writeFile(join(envDir, 'config.yml'), 'foo: "env"', 'utf8');
+    process.env['XCI_MACHINE_CONFIGS'] = envDir;
+
+    const result = await configLoader.load(cwd);
+    expect(result.values['foo']).toBe('env');
+    expect(result.provenance['foo']).toBe('machine');
+  });
+
+  describe('resolveMachineConfigDir unit', () => {
+    it('returns env source when var is set and path is a directory', () => {
+      const res = resolveMachineConfigDir({ XCI_MACHINE_CONFIGS: '/x' }, () => true);
+      expect(res).toEqual({ dir: '/x', source: 'env' });
+    });
+
+    it('throws MachineConfigInvalidError when env var set but not a directory', () => {
+      expect(() =>
+        resolveMachineConfigDir({ XCI_MACHINE_CONFIGS: '/x' }, () => false),
+      ).toThrow(MachineConfigInvalidError);
+    });
+
+    it('treats empty string as unset and falls through to home', () => {
+      const res = resolveMachineConfigDir({ XCI_MACHINE_CONFIGS: '' }, () => true);
+      expect(res.source).toBe('home');
+      expect(res.dir).toBe(join(homedir(), '.xci'));
+    });
+
+    it('returns home when env unset and home exists', () => {
+      const res = resolveMachineConfigDir({}, () => true);
+      expect(res).toEqual({ dir: join(homedir(), '.xci'), source: 'home' });
+    });
+
+    it('returns none when env unset and home missing', () => {
+      const res = resolveMachineConfigDir({}, () => false);
+      expect(res).toEqual({ dir: null, source: 'none' });
     });
   });
 });
