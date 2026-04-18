@@ -1,0 +1,20 @@
+greet:
+  description: "Stampa un saluto"
+  cmd: echo hello
+fail:
+  description: "Esce con codice 42"
+  cmd: node -e "process.exit(42)"
+chain:
+  description: "Catena sequenziale - step 2 fallisce"
+  steps:
+    - echo step-1-ok
+    - node -e "process.exit(7)"
+    - echo step-3-should-not-run
+both:
+  description: "Due comandi in parallelo"
+  parallel:
+    - echo AAA
+    - echo BBB
+args:
+    description: "Mostra gli argomenti ricevuti"
+    cmd: node print-args.mjs
