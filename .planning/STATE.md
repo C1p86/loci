@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: — Local CLI
 status: executing
 stopped_at: Phase 6 context gathered
-last_updated: "2026-04-18T15:02:44.678Z"
-last_activity: 2026-04-18 -- Phase 06 planning complete
+last_updated: "2026-04-18T15:58:56.858Z"
+last_activity: 2026-04-18 -- Phase 06 execution started
 progress:
   total_phases: 6
   completed_phases: 5
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Milestone v2.0 — Phase 06: Monorepo Setup & Backward-Compat Fence
+**Current focus:** Phase 06 — Monorepo Setup & Backward-Compat Fence
 
 ## Current Position
 
-Phase: 06-monorepo-setup
-Plan: —
-Status: Ready to execute
-Last activity: 2026-04-18 -- Completed quick task 260418-lav: Add home-dir fallback for XCI_MACHINE_CONFIGS + hard-error on invalid env path
+Phase: 06 (Monorepo Setup & Backward-Compat Fence) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 06
+Last activity: 2026-04-18 -- Phase 06 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
