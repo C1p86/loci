@@ -220,6 +220,44 @@ export class NotImplementedError extends CliError {
   }
 }
 
+export class AgentModeArgsError extends CliError {
+  constructor(detail: string) {
+    super(`Agent mode argument error: ${detail}`, {
+      code: 'CLI_AGENT_MODE_ARGS',
+      suggestion: 'Use --agent on its own (daemon-only), or run an alias without --agent',
+    });
+  }
+}
+
+export class AgentRegistrationFailedError extends CliError {
+  constructor(reason: string) {
+    super(`Agent registration failed: ${reason}`, {
+      code: 'CLI_AGENT_REGISTRATION_FAILED',
+      suggestion: 'Check the --token value and server URL; logs on the server may have more detail',
+    });
+  }
+}
+
+export class AgentCredentialReadError extends CliError {
+  constructor(path: string, cause: unknown) {
+    super(`Failed to read agent credential at ${path}`, {
+      code: 'CLI_AGENT_CREDENTIAL_READ',
+      cause,
+      suggestion: 'Check file permissions (expected 0600) and that the file is valid JSON',
+    });
+  }
+}
+
+export class AgentCredentialWriteError extends CliError {
+  constructor(path: string, cause: unknown) {
+    super(`Failed to write agent credential to ${path}`, {
+      code: 'CLI_AGENT_CREDENTIAL_WRITE',
+      cause,
+      suggestion: 'Check the parent directory exists and is writable',
+    });
+  }
+}
+
 /* ---------- Category → exit code mapping (single source of truth) ---------- */
 
 /**

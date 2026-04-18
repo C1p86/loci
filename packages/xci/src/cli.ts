@@ -704,6 +704,29 @@ async function handleGetCompletions(argv: readonly string[]): Promise<string[]> 
 /* ------------------------------------------------------------------ */
 
 async function main(argv: readonly string[]): Promise<number> {
+  // D-02: argv pre-scan for agent mode — MUST be the very first check, before any heavy import.
+  // Keeps cold-start <300ms (D-29): non-agent runs never load ws/reconnecting-websocket.
+  if (argv.includes('--agent')) {
+    // D-06: --agent + positional alias is a daemon-vs-run conflict
+    const takesValue = new Set(['--agent', '--token', '--label', '--hostname', '--config-dir']);
+    const filtered: string[] = [];
+    for (let i = 2; i < argv.length; i++) {
+      const a = argv[i];
+      if (a === undefined) continue;
+      if (a.startsWith('-')) { if (takesValue.has(a)) i++; continue; }
+      filtered.push(a);
+    }
+    if (filtered.length > 0) {
+      process.stderr.write(
+        'error [CLI_AGENT_MODE_ARGS]: --agent is daemon-only. Remove the alias argument(s): ' +
+        filtered.join(', ') + '\n'
+      );
+      return 50; // cli category exit code
+    }
+    const { runAgent } = await import('./agent/index.js');
+    return runAgent(argv);
+  }
+
   // Handle --get-completions early, before commander parsing
   if (argv[2] === '--get-completions') {
     const completions = await handleGetCompletions(argv);

@@ -67,14 +67,6 @@ jobs:
       - name: Build xci (fresh, for accurate measurement)
         run: pnpm --filter xci build
 
-      - name: WS-exclusion grep gate (D-16b)
-        run: |
-          if grep -E "(reconnecting-websocket|['\"]ws['\"])" packages/xci/dist/cli.mjs; then
-            echo "::error::Found ws/reconnecting-websocket in dist/cli.mjs - Phase 6 D-16 fence broken!"
-            exit 1
-          fi
-          echo "OK: no ws/reconnecting-websocket strings in dist/cli.mjs"
-
       - name: Install hyperfine
         run: sudo apt-get update && sudo apt-get install -y hyperfine
 

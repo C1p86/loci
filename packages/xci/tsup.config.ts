@@ -4,7 +4,7 @@ import { defineConfig } from 'tsup';
 const pkg = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: string };
 
 export default defineConfig({
-  entry: ['src/cli.ts'],
+  entry: { cli: 'src/cli.ts', agent: 'src/agent/index.ts' },
   format: ['esm'],
   target: 'node20.5',
   outDir: 'dist',
