@@ -50,13 +50,13 @@
 ### Agent Lifecycle (AGENT)
 
 - [x] **AGENT-01**: Agente apre WS persistente al server dopo registrazione; keepalive ping ogni 25s, pong timeout 10s.
-- [ ] **AGENT-02**: Auto-reconnect con exponential backoff (min 1s, max 30s, jitter) via `reconnecting-websocket`.
-- [ ] **AGENT-03**: Agente pubblica label all'handshake: `os`, `arch`, `node_version`, `hostname` (default) + custom via flag `--label key=value` (ripetibile).
+- [x] **AGENT-02**: Auto-reconnect con exponential backoff (min 1s, max 30s, jitter) via `reconnecting-websocket`.
+- [x] **AGENT-03**: Agente pubblica label all'handshake: `os`, `arch`, `node_version`, `hostname` (default) + custom via flag `--label key=value` (ripetibile).
 - [x] **AGENT-04**: Hostname default = `os.hostname()`; overridable dalla UI (soft-override lato server, no cambio sistemico).
 - [x] **AGENT-05**: UI mostra stato agente: **online** (heartbeat < 60s), **offline** (heartbeat stale), **draining**.
 - [x] **AGENT-06**: Drain mode: admin segna l'agente "draining" → server non dispatcha nuove task → task correnti completano → agente può spegnersi senza orphaning.
 - [x] **AGENT-07**: Task-state reconciliation al reconnect: agente dichiara run_id in esecuzione; server confronta con DB e sincronizza (se agente dice "finita" e server dice "dispatched", applica il result dell'agente).
-- [ ] **AGENT-08**: Graceful shutdown (SIGINT/SIGTERM): invia `goodbye` frame, completa run correnti o li marca come terminati, chiude WS, exit 0.
+- [x] **AGENT-08**: Graceful shutdown (SIGINT/SIGTERM): invia `goodbye` frame, completa run correnti o li marca come terminati, chiude WS, exit 0.
 
 ### Task Definitions (TASK)
 
@@ -348,13 +348,13 @@ Quali fasi coprono quali requirement.
 | ATOK-05 | 08-agent-ws-protocol | Complete |
 | ATOK-06 | 08-agent-ws-protocol | Complete |
 | AGENT-01 | 08-agent-ws-protocol | Complete |
-| AGENT-02 | 08-agent-ws-protocol | Pending |
-| AGENT-03 | 08-agent-ws-protocol | Pending |
+| AGENT-02 | 08-agent-ws-protocol | Complete |
+| AGENT-03 | 08-agent-ws-protocol | Complete |
 | AGENT-04 | 08-agent-ws-protocol | Complete |
 | AGENT-05 | 08-agent-ws-protocol | Complete |
 | AGENT-06 | 08-agent-ws-protocol | Complete |
 | AGENT-07 | 08-agent-ws-protocol | Complete |
-| AGENT-08 | 08-agent-ws-protocol | Pending |
+| AGENT-08 | 08-agent-ws-protocol | Complete |
 | TASK-01 | 09-task-definitions-secrets | Pending |
 | TASK-02 | 09-task-definitions-secrets | Pending |
 | TASK-03 | 09-task-definitions-secrets | Pending |

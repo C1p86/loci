@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: executing
-stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-04-18T21:27:44.162Z"
+stopped_at: Completed 08-04-PLAN.md — xci agent daemon complete
+last_updated: "2026-04-18T21:44:28.141Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 33
-  completed_plans: 31
-  percent: 94
+  completed_plans: 32
+  percent: 97
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 8 (Agent Registration & WebSocket Protocol) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-04-18
 
@@ -97,6 +97,7 @@ Progress (v2.0 milestone): [██░░░░░░░░] 22% (2/9 phases)
 | Phase 08 P01 | 20 | 2 tasks | 14 files |
 | Phase 08-agent-registration-websocket-protocol P02 | 489 | 3 tasks | 12 files |
 | Phase 08 P03 | 13 | 3 tasks | 26 files |
+| Phase 08-agent-registration-websocket-protocol P04 | 12 | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -184,6 +185,8 @@ Recent decisions affecting current work:
 - [Phase 08-03]: WS route registered at /ws/agent outside /api prefix — no session cookie on upgrade; auth via first frame (D-13/ATOK-03)
 - [Phase 08-03]: agentRegistry decorator placed BEFORE fastifyWebsocket plugin (Pitfall 8); Map<string, WebSocket> on FastifyInstance
 - [Phase 08-03]: Hand-rolled parseAgentFrame — no zod; validates required fields per type (D-15)
+- [Phase 08-agent-registration-websocket-protocol]: tsup esbuildOptions external for ./agent/index.js required to prevent Pitfall 6 (agent code inlining into cli.mjs); external:[] array alone does not match relative paths
+- [Phase 08-agent-registration-websocket-protocol]: E2E test uses describe.runIf(canRun) where canRun = isLinux && distExists — never fails spuriously on non-Linux or when build missing
 
 ### Pending Todos
 
@@ -209,6 +212,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T21:27:44.125Z
-Stopped at: Completed 08-03-PLAN.md
+Last session: 2026-04-18T21:44:28.108Z
+Stopped at: Completed 08-04-PLAN.md — xci agent daemon complete
 Resume file: None
