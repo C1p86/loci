@@ -1,7 +1,13 @@
 // D-07: @fastify/env JSON schema; server fails to boot on missing/invalid env.
 export const envSchema = {
   type: 'object',
-  required: ['DATABASE_URL', 'SESSION_COOKIE_SECRET', 'EMAIL_TRANSPORT'],
+  required: [
+    'DATABASE_URL',
+    'SESSION_COOKIE_SECRET',
+    'EMAIL_TRANSPORT',
+    'XCI_MASTER_KEY',
+    'PLATFORM_ADMIN_EMAIL',
+  ],
   properties: {
     NODE_ENV: {
       type: 'string',
@@ -23,6 +29,21 @@ export const envSchema = {
     SMTP_USER: { type: 'string' },
     SMTP_PASS: { type: 'string' },
     SMTP_FROM: { type: 'string', format: 'email' },
+    // Phase 9 D-13: 32-byte MEK base64-encoded (44 chars: 43 alphabet + '=').
+    // Runtime length check (Buffer.length === 32) happens in app.ts (Pitfall 8).
+    XCI_MASTER_KEY: {
+      type: 'string',
+      minLength: 44,
+      maxLength: 44,
+      pattern: '^[A-Za-z0-9+/]{43}=$',
+    },
+    // Phase 9 D-24: email of the single platform admin who may call POST /admin/rotate-mek.
+    PLATFORM_ADMIN_EMAIL: {
+      type: 'string',
+      format: 'email',
+      minLength: 3,
+      maxLength: 254,
+    },
   },
   additionalProperties: false,
 } as const;
@@ -42,6 +63,10 @@ declare module 'fastify' {
       SMTP_USER?: string;
       SMTP_PASS?: string;
       SMTP_FROM?: string;
+      // Phase 9 D-13
+      XCI_MASTER_KEY: string;
+      // Phase 9 D-24
+      PLATFORM_ADMIN_EMAIL: string;
     };
   }
 }

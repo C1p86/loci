@@ -22,18 +22,27 @@ import {
   InviteAlreadyAcceptedError,
   InviteEmailMismatchError,
   InviteNotFoundError,
+  // Phase 9 new subclasses
+  MekRotationError,
   NotFoundError,
   OrgMembershipRequiredError,
   OrgNotFoundError,
   OwnerRoleImmutableError,
+  PlatformAdminRequiredError,
   RateLimitError,
   RateLimitExceededError,
   RegistrationTokenExpiredError,
   RoleInsufficientError,
   // Concrete subclasses
   SchemaValidationError,
+  SecretDecryptError,
+  SecretNameConflictError,
+  SecretNotFoundError,
   SessionExpiredError,
   SessionRequiredError,
+  TaskNameConflictError,
+  TaskNotFoundError,
+  TaskValidationError,
   TokenInvalidError,
   UserNotFoundError,
   ValidationError,
@@ -74,6 +83,15 @@ function oneOfEachConcrete(): readonly XciServerError[] {
     new AgentHandshakeTimeoutError(),
     new AgentFrameInvalidError('test reason'),
     new AgentPatchEmptyError(),
+    // Phase 9 new subclasses
+    new TaskValidationError([]),
+    new TaskNotFoundError(),
+    new TaskNameConflictError(),
+    new SecretNotFoundError(),
+    new SecretNameConflictError(),
+    new SecretDecryptError(),
+    new MekRotationError('test'),
+    new PlatformAdminRequiredError(),
   ];
 }
 

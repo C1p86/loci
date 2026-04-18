@@ -1,11 +1,23 @@
 import type { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
-import { httpStatusFor, XciServerError } from '../errors.js';
+import { TaskValidationError, httpStatusFor, XciServerError } from '../errors.js';
 
 const errorHandlerPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.setErrorHandler(
     (err: Error & { validation?: unknown; statusCode?: number }, req, reply) => {
       const requestId = req.id;
+
+      // D-11: TaskValidationError special-case — include structured errors[] array for UI editor.
+      // Must precede the generic XciServerError branch.
+      if (err instanceof TaskValidationError) {
+        fastify.log.info({ requestId, code: err.code }, 'handled TaskValidationError');
+        return reply.status(400).send({
+          code: err.code,
+          message: err.message,
+          requestId,
+          errors: err.validationErrors,
+        });
+      }
 
       if (err instanceof XciServerError) {
         const status = httpStatusFor(err);

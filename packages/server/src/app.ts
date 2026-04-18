@@ -46,6 +46,12 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
           '*.password',
           '*.token',
           '*.credential',
+          // Phase 9 D-20: secret-specific redaction (SEC-04 architectural invariant)
+          'req.body.value',
+          'req.body.newMekBase64',
+          '*.ciphertext',
+          '*.dek',
+          '*.mek',
         ],
         censor: '[REDACTED]',
       },
@@ -98,6 +104,17 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
   await app.register(authPlugin, opts.clock !== undefined ? { clock: opts.clock } : {});
   await app.register(errorHandlerPlugin);
 
+  // Phase 9 D-13 + Pitfall 8: parse XCI_MASTER_KEY ONCE at boot as a Buffer; never re-parse per-request.
+  // Buffer.from(base64, 'base64') always returns a Buffer, but we must verify it decodes to exactly 32 bytes.
+  const mek = Buffer.from(app.config.XCI_MASTER_KEY, 'base64');
+  if (mek.length !== 32) {
+    throw new Error(
+      `XCI_MASTER_KEY must decode to exactly 32 bytes (got ${mek.length}). ` +
+        'Generate a valid key with: node -e "console.log(require(\'node:crypto\').randomBytes(32).toString(\'base64\'))"',
+    );
+  }
+  app.decorate('mek', mek);
+
   // Phase 8 D-17 + Pitfall 8: decorate BEFORE registering fastifyWebsocket.
   app.decorate('agentRegistry', new Map<string, WebSocket>());
 
@@ -114,10 +131,11 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
   return app;
 }
 
-// Type augmentation so `app.emailTransport` and `app.agentRegistry` are typed
+// Type augmentation so `app.emailTransport`, `app.agentRegistry`, and `app.mek` are typed
 declare module 'fastify' {
   interface FastifyInstance {
     emailTransport: EmailTransport;
     agentRegistry: Map<string, WebSocket>; // Phase 8 D-17
+    mek: Buffer; // Phase 9 D-13: 32-byte MEK Buffer, parsed once at boot
   }
 }

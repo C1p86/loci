@@ -296,6 +296,79 @@ export class AgentFrameInvalidError extends ValidationError {
   }
 }
 
+/* ---------- Concrete subclasses (Phase 9) ---------- */
+
+/**
+ * Detail record for a single validation error within a TaskValidationError.
+ * D-11: contains only line/column/message/suggestion — never raw YAML content.
+ */
+export interface TaskValidationDetail {
+  line?: number;
+  column?: number;
+  message: string;
+  suggestion?: string;
+}
+
+// ValidationError subclasses (Phase 9 tasks)
+export class TaskValidationError extends ValidationError {
+  public readonly validationErrors: TaskValidationDetail[];
+  constructor(errors: TaskValidationDetail[]) {
+    super('Task YAML validation failed', { code: 'XCI_SRV_TASK_VALIDATION' });
+    this.validationErrors = errors;
+  }
+}
+
+// NotFoundError subclasses (Phase 9)
+export class TaskNotFoundError extends NotFoundError {
+  constructor() {
+    super('Task not found', { code: 'NF_TASK' });
+  }
+}
+
+export class SecretNotFoundError extends NotFoundError {
+  constructor() {
+    super('Secret not found', { code: 'NF_SECRET' });
+  }
+}
+
+// ConflictError subclasses (Phase 9)
+export class TaskNameConflictError extends ConflictError {
+  constructor() {
+    super('A task with this name already exists in this org', { code: 'CONFLICT_TASK_NAME' });
+  }
+}
+
+export class SecretNameConflictError extends ConflictError {
+  constructor() {
+    super('A secret with this name already exists in this org', { code: 'CONFLICT_SECRET_NAME' });
+  }
+}
+
+// InternalError subclasses (Phase 9 crypto/secrets)
+export class SecretDecryptError extends InternalError {
+  constructor() {
+    // CRITICAL: zero-arg constructor — never accept key/tag/iv/ciphertext (SEC-03 / D-10 discipline).
+    // Keeping zero args prevents any caller from accidentally including crypto material.
+    super('Secret decryption failed — data may be corrupted or tampered', {
+      code: 'INT_SECRET_DECRYPT',
+    });
+  }
+}
+
+export class MekRotationError extends InternalError {
+  constructor(message: string, cause?: unknown) {
+    // `message` must be a short operator-facing string. Do NOT put key bytes or DEK fragments here.
+    super(message, { code: 'INT_MEK_ROTATION', cause });
+  }
+}
+
+// AuthzError subclasses (Phase 9 platform admin)
+export class PlatformAdminRequiredError extends AuthzError {
+  constructor() {
+    super('Platform admin privileges required', { code: 'AUTHZ_PLATFORM_ADMIN_REQUIRED' });
+  }
+}
+
 /* ---------- Category → HTTP status exhaustive mapping ---------- */
 
 /**
