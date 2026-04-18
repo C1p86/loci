@@ -1,7 +1,0 @@
-# .loci/config.yml
-# Project-level parameters. Safe to commit.
-# These values are available as ${PARAM_NAME} in commands.yml.
-#
-# Example:
-# registry: https://my-registry.example.com
-# app_name: my-app

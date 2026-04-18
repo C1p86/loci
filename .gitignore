@@ -8,3 +8,10 @@ coverage/
 # Project-specific
 .xci/secrets.yml
 .xci/local.yml
+
+# Phase 6 monorepo additions
+dist/
+.turbo/
+packages/*/dist/
+packages/*/.turbo/
+packages/*/coverage/

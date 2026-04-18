@@ -1,5 +1,0 @@
-# .loci/local.yml.example
-# Copy this file to local.yml for per-machine overrides.
-# local.yml is gitignored and never committed.
-#
-# registry: http://localhost:5000
