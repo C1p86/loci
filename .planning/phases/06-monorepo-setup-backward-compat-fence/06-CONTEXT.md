@@ -34,7 +34,7 @@ This phase does NOT deliver:
 
 ### Package Manager Migration (npm → pnpm)
 - **D-06:** Clean cut: delete `package-lock.json` in the same commit that introduces `pnpm-workspace.yaml` and runs `pnpm install` to generate `pnpm-lock.yaml`. No parallel npm branch, no fallback. v1.0 code is already shipped and tagged; anyone needing v1 toolchain checks out the v1 tag.
-- **D-07:** pnpm version pinned via `packageManager` field in root `package.json` (`"packageManager": "pnpm@<latest-v9>"`). CI uses `pnpm/action-setup@v4` without an explicit `version:` — it reads from `packageManager` so local and CI stay in lockstep. Corepack enforces locally.
+- **D-07:** pnpm version pinned via `packageManager` field in root `package.json` (`"packageManager": "pnpm@10.33.0"` — confirmed during research 2026-04-18; v10 has been GA since Jan 2025, supersedes the earlier "<latest-v9>" placeholder). CI uses `pnpm/action-setup@v4` without an explicit `version:` — it reads from `packageManager` so local and CI stay in lockstep. Corepack enforces locally.
 - **D-08:** `.nvmrc` stays pointing at Node 22 (current LTS). Engines floor in all package.jsons remains `>=20.5.0` (keeps execa 9 compat; matches CLAUDE.md §Technology Stack). CI matrix already covers both 20 and 22.
 
 ### Turborepo Pipeline
@@ -43,7 +43,7 @@ This phase does NOT deliver:
 
 ### Changesets & Versioning
 - **D-11:** Fixed versioning: `.changeset/config.json` declares `"fixed": [["xci", "@xci/server", "@xci/web"]]`. All three packages always release at the same version (e.g., `2.0.0` → `2.0.1` → `2.1.0`). Narrative for users: "xci@2.0.0 is compatible with @xci/server@2.0.0, always".
-- **D-12:** Root `package.json` is `"private": true`. `xci`, `@xci/server`, `@xci/web` are all publishable (not private). **Caveat (D-11 vs D-12):** In Phase 6, `@xci/server` and `@xci/web` have empty `src/index.ts` stubs — they are technically publishable but nothing is called from them yet. First real publish happens in Phase 14; Phase 6 just wires the machinery.
+- **D-12:** Root `package.json` is `"private": true`. `xci` is publishable in Phase 6. `@xci/server` and `@xci/web` **are `"private": true` in Phase 6** (confirmed 2026-04-18) — they flip to `"private": false` when they get real code (Phase 9 for server, Phase 13 for web). This keeps Changesets' fixed-versioning honest (D-11 still applies: when a stub flips to public and publishes at `2.x.y`, all three align) but prevents accidental empty publishes in Phase 6. First real `@xci/server` publish happens in Phase 9+; `@xci/web` in Phase 13+; Phase 6 just wires the machinery.
 - **D-13:** Publish flow: `changesets/action@v1` GitHub Action on main branch. On merge, action creates/updates a "Version PR" with the pending bumps; when that PR is merged, action runs `pnpm -r publish` with `NPM_TOKEN` secret. Manual local publish is explicitly NOT the flow.
 - **D-14:** npm scope `@xci` — availability NOT yet verified. Phase 6 must include an early task: `npm view @xci/server` + `npm view @xci/web` (expect 404 = available). If taken, fallback to `@xcihq` or similar — treat as a blocking pre-flight. Planner: add a `verify-npm-scope` task before any `@xci/*` package is committed with that name.
 
