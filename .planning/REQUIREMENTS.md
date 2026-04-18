@@ -60,10 +60,10 @@
 
 ### Task Definitions (TASK)
 
-- [ ] **TASK-01**: Task server-side usa lo stesso YAML DSL di xci: alias + single / sequential / parallel + placeholder `${NAME}` + blocchi `linux:` / `windows:` / `macos:`.
-- [ ] **TASK-02**: Parser YAML condiviso tra `xci` e `@xci/server` (estratto in sub-module di `xci` importato da `@xci/server`), per garantire parità di semantica.
-- [ ] **TASK-03**: Task ha: `name`, `description`, `yaml_definition`, `label_requirements` (lista `key=value`), `org_id` (FK).
-- [ ] **TASK-04**: Task validata al salvataggio: YAML parseable, composizione ciclica rilevata (stesso engine v1 CMD-06), placeholder resolution al dispatch-time (stesso engine v1 INT-02).
+- [x] **TASK-01**: Task server-side usa lo stesso YAML DSL di xci: alias + single / sequential / parallel + placeholder `${NAME}` + blocchi `linux:` / `windows:` / `macos:`.
+- [x] **TASK-02**: Parser YAML condiviso tra `xci` e `@xci/server` (estratto in sub-module di `xci` importato da `@xci/server`), per garantire parità di semantica.
+- [x] **TASK-03**: Task ha: `name`, `description`, `yaml_definition`, `label_requirements` (lista `key=value`), `org_id` (FK).
+- [x] **TASK-04**: Task validata al salvataggio: YAML parseable, composizione ciclica rilevata (stesso engine v1 CMD-06), placeholder resolution al dispatch-time (stesso engine v1 INT-02).
 - [ ] **TASK-05**: Editor task nella UI con syntax highlighting YAML e validation error inline (nome, riga, suggerimento).
 - [ ] **TASK-06**: Risoluzione `${VAR}` al dispatch-time con precedenza: 1) param override del run (UI), 2) org-level secrets, 3) agent-local `.xci/secrets.yml` (precedenza più alta, applicata dall'agente).
 
@@ -92,13 +92,13 @@
 
 ### Secrets Management (SEC)
 
-- [ ] **SEC-01**: Org-level secrets cifrati con envelope encryption: MEK dal process env (`XCI_MASTER_KEY`, 32 bytes base64) cifra DEK per-org; DEK cifra il valore con AES-256-GCM.
+- [x] **SEC-01**: Org-level secrets cifrati con envelope encryption: MEK dal process env (`XCI_MASTER_KEY`, 32 bytes base64) cifra DEK per-org; DEK cifra il valore con AES-256-GCM.
 - [ ] **SEC-02**: IV random per ogni encrypt call (mai riusato); unit test verifica `notDeepEqual(encrypt(k,"x").iv, encrypt(k,"x").iv)`.
 - [ ] **SEC-03**: Auth tag AES-GCM validato al decrypt; fallimento → errore esplicito, no partial read.
 - [ ] **SEC-04**: UI Owner/Member per CRUD secrets (Viewer non può); nessun ruolo vede i valori decifrati in UI, solo metadata (nome, created_at, last_used_at).
-- [ ] **SEC-05**: Per-agent secrets restano locali in `.xci/secrets.yml` come v1 (nessuna modifica a quel percorso).
+- [x] **SEC-05**: Per-agent secrets restano locali in `.xci/secrets.yml` come v1 (nessuna modifica a quel percorso).
 - [ ] **SEC-06**: Dispatch: server decifra org secrets → invia nel param bundle all'agente (WS-TLS) → agente merge con `.xci/secrets.yml` locale (agent-local wins su collision).
-- [ ] **SEC-07**: Audit log org-scoped: create / update / rotate / delete di ogni secret (solo metadata, mai valori).
+- [x] **SEC-07**: Audit log org-scoped: create / update / rotate / delete di ogni secret (solo metadata, mai valori).
 - [ ] **SEC-08**: Endpoint admin per rotate MEK senza cambio DEK (ri-cifra i DEK con nuova MEK); gancio per KMS integration in v2.1.
 
 ### Trigger Plugins (PLUG)
@@ -355,19 +355,19 @@ Quali fasi coprono quali requirement.
 | AGENT-06 | 08-agent-ws-protocol | Complete |
 | AGENT-07 | 08-agent-ws-protocol | Complete |
 | AGENT-08 | 08-agent-ws-protocol | Complete |
-| TASK-01 | 09-task-definitions-secrets | Pending |
-| TASK-02 | 09-task-definitions-secrets | Pending |
-| TASK-03 | 09-task-definitions-secrets | Pending |
-| TASK-04 | 09-task-definitions-secrets | Pending |
+| TASK-01 | 09-task-definitions-secrets | Complete |
+| TASK-02 | 09-task-definitions-secrets | Complete |
+| TASK-03 | 09-task-definitions-secrets | Complete |
+| TASK-04 | 09-task-definitions-secrets | Complete |
 | TASK-05 | 09-task-definitions-secrets | Pending |
 | TASK-06 | 09-task-definitions-secrets | Pending |
-| SEC-01 | 09-task-definitions-secrets | Pending |
+| SEC-01 | 09-task-definitions-secrets | Complete |
 | SEC-02 | 09-task-definitions-secrets | Pending |
 | SEC-03 | 09-task-definitions-secrets | Pending |
 | SEC-04 | 09-task-definitions-secrets | Pending |
-| SEC-05 | 09-task-definitions-secrets | Pending |
+| SEC-05 | 09-task-definitions-secrets | Complete |
 | SEC-06 | 09-task-definitions-secrets | Pending |
-| SEC-07 | 09-task-definitions-secrets | Pending |
+| SEC-07 | 09-task-definitions-secrets | Complete |
 | SEC-08 | 09-task-definitions-secrets | Pending |
 | DISP-01 | 10-dispatch-quota | Pending |
 | DISP-02 | 10-dispatch-quota | Pending |
