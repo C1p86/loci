@@ -159,7 +159,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. After a network partition (simulated disconnect), the agent reconnects with exponential backoff and the server reconciles any in-flight task state declared in the handshake
   4. An agent in drain mode receives no new dispatches; current tasks complete to their natural end state before the agent stops
   5. Graceful shutdown (SIGTERM) sends a `goodbye` frame, waits for in-flight tasks to complete, and exits 0 with no orphaned task runs in the DB
-**Plans**: TBD
+**Plans**: 5 plans
+- [ ] 08-01-PLAN.md — Phase 6 fence reversal + schema foundation (tsup multi-entry + xci deps + biome narrow + CI grep removal + 3 Drizzle tables + 0001 migration + agent stub)
+- [ ] 08-02-PLAN.md — Server data layer (crypto compareToken/hashToken + 5 new error subclasses + 3 org-scoped repos + adminRepo D-37 helpers + isolation tests)
+- [ ] 08-03-PLAN.md — Server WS endpoint + 5 REST routes (handshake + heartbeat + registry + frames + agents routes with CSRF/rate-limit + integration tests)
+- [ ] 08-04-PLAN.md — xci agent daemon (AgentClient + credential load/save with TOFU + labels + SIGINT/SIGTERM shutdown + cold-start test + Linux E2E)
+- [ ] 08-05-PLAN.md — Phase closeout (READMEs + STATE.md + traceability matrix + human-verify checkpoint)
 
 ### Phase 9: Task Definitions & Secrets Management
 **Goal**: Org admins can define tasks using the same YAML DSL as v1 (validated by the shared parser), and org-level secrets are stored with envelope encryption and resolved at dispatch time without ever appearing in logs
