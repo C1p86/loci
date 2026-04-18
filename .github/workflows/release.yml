@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+# Concurrency ensures we do not run two release attempts at once (e.g. two merges in quick succession)
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Job-level permissions (least-privilege, explicit grant per RESEARCH.md Pitfall 4).
+    # Required by changesets/action@v1:
+    #   contents: write        push the Version PR branch
+    #   pull-requests: write   create/update the Version PR
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Changesets needs full history to generate changelog entries since the last release
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages (required before publish)
+        run: pnpm turbo run build
+
+      - name: Create Release Pull Request or Publish
+        uses: changesets/action@v1
+        with:
+          # version input runs during Version PR creation/update. Default `changeset version` is fine.
+          version: pnpm changeset version
+          # publish input runs when Version PR merges. Calls the release script in root package.json.
+          # The release script is: pnpm -r publish --access=public (per D-11 / D-13)
+          publish: pnpm release
+        env:
+          # Auto-provided by GitHub Actions; needed for changesets to interact with GH API
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Must be added to repo secrets before first publish (Phase 14+).
+          # Phase 6 workflow runs without triggering publish (no changesets authored yet),
+          # but the env var must be declared so the action is wired correctly for later.
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
