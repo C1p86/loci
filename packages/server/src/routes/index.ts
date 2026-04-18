@@ -3,6 +3,7 @@ import { registerAgentRoutes } from './agents/index.js';
 import { registerAuthRoutes } from './auth/index.js';
 import { registerInviteRoutes } from './invites/index.js';
 import { registerOrgRoutes } from './orgs/index.js';
+import { registerSecretsRoutes } from './secrets/index.js';
 import { registerTaskRoutes } from './tasks/index.js';
 
 export const registerRoutes: FastifyPluginAsync = async (fastify) => {
@@ -25,4 +26,8 @@ export const registerRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Phase 9: Task CRUD routes (mounted under /orgs — paths: /api/orgs/:orgId/tasks[/...])
   await fastify.register(registerTaskRoutes, { prefix: '/orgs' });
+
+  // Phase 9: Secrets CRUD + audit-log routes (mounted under /orgs)
+  // Paths: /api/orgs/:orgId/secrets[/...] and /api/orgs/:orgId/secret-audit-log
+  await fastify.register(registerSecretsRoutes, { prefix: '/orgs' });
 };
