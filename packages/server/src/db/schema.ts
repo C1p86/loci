@@ -4,6 +4,7 @@
 import { sql } from 'drizzle-orm';
 import {
   boolean,
+  customType,
   index,
   integer,
   jsonb,
@@ -256,3 +257,109 @@ export type AgentCredential = typeof agentCredentials.$inferSelect;
 export type NewAgentCredential = typeof agentCredentials.$inferInsert;
 export type RegistrationToken = typeof registrationTokens.$inferSelect;
 export type NewRegistrationToken = typeof registrationTokens.$inferInsert;
+
+// Phase 9 D-14/D-16: Postgres BYTEA <-> Node Buffer for envelope-encryption material.
+// Pitfall 5: some driver versions return Uint8Array; wrap with Buffer.from for crypto API safety.
+export const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return 'bytea';
+  },
+  toDriver(value: Buffer): Buffer {
+    return Buffer.from(value);
+  },
+  fromDriver(value: Buffer | Uint8Array): Buffer {
+    return Buffer.from(value);
+  },
+});
+
+// Phase 9 D-07: Task definitions (org-scoped; yaml_definition kept as text per D-09).
+export const tasks = pgTable(
+  'tasks',
+  {
+    id: text('id').primaryKey(), // xci_tsk_<rand>
+    orgId: text('org_id')
+      .notNull()
+      .references(() => orgs.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description').notNull().default(''),
+    yamlDefinition: text('yaml_definition').notNull(),
+    labelRequirements: jsonb('label_requirements')
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    createdByUserId: text('created_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('tasks_org_name_unique').on(t.orgId, t.name)],
+);
+
+// Phase 9 D-14: per-org wrapped DEK (one row per org; mek_version tracks rotation state).
+export const orgDeks = pgTable('org_deks', {
+  orgId: text('org_id')
+    .primaryKey()
+    .references(() => orgs.id, { onDelete: 'cascade' }),
+  wrappedDek: bytea('wrapped_dek').notNull(),
+  wrapIv: bytea('wrap_iv').notNull(),
+  wrapTag: bytea('wrap_tag').notNull(),
+  mekVersion: integer('mek_version').notNull().default(1),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Phase 9 D-16: secret ciphertexts with AAD = `${orgId}:${name}` location binding.
+// No plaintext column exists; no API returns plaintext (architectural invariant).
+export const secrets = pgTable(
+  'secrets',
+  {
+    id: text('id').primaryKey(), // xci_sec_<rand>
+    orgId: text('org_id')
+      .notNull()
+      .references(() => orgs.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    ciphertext: bytea('ciphertext').notNull(),
+    iv: bytea('iv').notNull(),
+    authTag: bytea('auth_tag').notNull(),
+    aad: text('aad').notNull(),
+    createdByUserId: text('created_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('secrets_org_name_unique').on(t.orgId, t.name)],
+);
+
+// Phase 9 D-21: secret action audit log (metadata only; survives secret deletion via
+// nullable secret_id + denormalized secret_name).
+export const secretAuditLog = pgTable(
+  'secret_audit_log',
+  {
+    id: text('id').primaryKey(), // xci_sal_<rand>
+    orgId: text('org_id')
+      .notNull()
+      .references(() => orgs.id, { onDelete: 'cascade' }),
+    secretId: text('secret_id'), // nullable — tombstone after delete
+    secretName: text('secret_name').notNull(),
+    action: text('action', {
+      enum: ['create', 'update', 'rotate', 'delete', 'resolve'],
+    }).notNull(),
+    actorUserId: text('actor_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('secret_audit_log_org_created_idx').on(t.orgId, t.createdAt)],
+);
+
+export type Task = typeof tasks.$inferSelect;
+export type NewTask = typeof tasks.$inferInsert;
+export type OrgDek = typeof orgDeks.$inferSelect;
+export type NewOrgDek = typeof orgDeks.$inferInsert;
+export type Secret = typeof secrets.$inferSelect;
+export type NewSecret = typeof secrets.$inferInsert;
+export type SecretAuditLogEntry = typeof secretAuditLog.$inferSelect;
+export type NewSecretAuditLogEntry = typeof secretAuditLog.$inferInsert;

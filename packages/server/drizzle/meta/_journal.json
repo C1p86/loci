@@ -15,6 +15,13 @@
       "when": 1776545814834,
       "tag": "0001_agents_websocket",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776553070654,
+      "tag": "0002_tasks_secrets",
+      "breakpoints": true
     }
   ]
 }
