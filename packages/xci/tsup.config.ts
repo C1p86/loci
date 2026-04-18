@@ -10,7 +10,12 @@ export default defineConfig({
   outDir: 'dist',
   outExtension: () => ({ js: '.mjs' }),
   bundle: true,
-  noExternal: [/.*/],
+  // Bundle everything EXCEPT 'ws' and 'reconnecting-websocket' (Phase 6 D-16 fence).
+  // tsup evaluates `noExternal` BEFORE `external` — the regex below must NOT match
+  // either package, otherwise tsup would bundle them despite the `external` entry.
+  // See: .planning/phases/06-monorepo-setup-backward-compat-fence/06-RESEARCH.md §Pitfall 1.
+  noExternal: [/^(?!ws$|reconnecting-websocket$).*/],
+  external: ['ws', 'reconnecting-websocket'],
   clean: true,
   dts: false,
   sourcemap: false,
