@@ -1,10 +1,11 @@
 // D-05 + D-12 steps 3-4.
 // validateCommandMap wraps v1 validateGraph (cycles only).
 // validateAliasRefs is NEW: scans explicit alias refs for unknowns + suggests via levenshtein.
-import { CircularAliasError, CommandSchemaError } from '../errors.js';
+
 import { validateGraph } from '../commands/validate.js';
-import { suggest } from './levenshtein.js';
+import { CircularAliasError, CommandSchemaError } from '../errors.js';
 import type { CommandDef, CommandMap } from '../types.js';
+import { suggest } from './levenshtein.js';
 import type { ValidationError } from './types.js';
 
 export interface ValidateResult {

@@ -283,10 +283,7 @@ export const tasks = pgTable(
     name: text('name').notNull(),
     description: text('description').notNull().default(''),
     yamlDefinition: text('yaml_definition').notNull(),
-    labelRequirements: jsonb('label_requirements')
-      .$type<string[]>()
-      .notNull()
-      .default([]),
+    labelRequirements: jsonb('label_requirements').$type<string[]>().notNull().default([]),
     createdByUserId: text('created_by_user_id').references(() => users.id, {
       onDelete: 'set null',
     }),

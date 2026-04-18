@@ -2,7 +2,7 @@
 // D-12 step 1-2: YAML parse + structural normalize (errors collected, never thrown).
 // Pitfall 4: import normalizeCommands DIRECTLY from ../commands/normalize.js — NOT from
 // ../commands/index.js (that module pulls in the whole config stack and bloats dsl.mjs).
-import { YAMLParseError as YamlLibError, parse } from 'yaml';
+import { parse, YAMLParseError as YamlLibError } from 'yaml';
 import { normalizeCommands } from '../commands/normalize.js';
 import type { CommandMap } from '../types.js';
 import type { ParseError } from './types.js';
