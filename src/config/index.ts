@@ -4,9 +4,10 @@
 
 import { execSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { parse, YAMLParseError as YamlLibError } from 'yaml';
-import { ConfigReadError, YamlParseError } from '../errors.js';
+import { ConfigReadError, MachineConfigInvalidError, YamlParseError } from '../errors.js';
 import type { ConfigLayer, ConfigLoader, ResolvedConfig } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -275,6 +276,43 @@ function isSecretTrackedByGit(cwd: string): boolean {
     if (isEnoent(err)) return false;
     return false;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Machine config directory resolution
+// ---------------------------------------------------------------------------
+
+export type MachineDirResolution =
+  | { dir: string; source: 'env' | 'home' }
+  | { dir: null; source: 'none' };
+
+/**
+ * Resolve which directory (if any) to use for the machine-config layer.
+ *
+ *   1. If XCI_MACHINE_CONFIGS is set AND points to a directory → use it.
+ *   2. If XCI_MACHINE_CONFIGS is set AND does NOT point to a directory → throw.
+ *   3. Otherwise, if ~/.xci/ is a directory → use it.
+ *   4. Otherwise → no machine layer.
+ *
+ * env and isDirectoryFn are injected so unit tests can drive every branch
+ * without touching process.env or the real filesystem.
+ */
+export function resolveMachineConfigDir(
+  env: NodeJS.ProcessEnv = process.env,
+  isDirectoryFn: (p: string) => boolean = isDirectory,
+): MachineDirResolution {
+  const envPath = env['XCI_MACHINE_CONFIGS'];
+  if (envPath !== undefined && envPath !== '') {
+    if (!isDirectoryFn(envPath)) {
+      throw new MachineConfigInvalidError(envPath);
+    }
+    return { dir: envPath, source: 'env' };
+  }
+  const homeDir = join(homedir(), '.xci');
+  if (isDirectoryFn(homeDir)) {
+    return { dir: homeDir, source: 'home' };
+  }
+  return { dir: null, source: 'none' };
 }
 
 // ---------------------------------------------------------------------------

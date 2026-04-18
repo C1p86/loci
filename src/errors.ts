@@ -114,6 +114,18 @@ export class SecretsTrackedError extends ConfigError {
   }
 }
 
+export class MachineConfigInvalidError extends ConfigError {
+  public readonly path: string;
+  constructor(path: string) {
+    super(`XCI_MACHINE_CONFIGS="${path}" is not a directory`, {
+      code: 'CONFIG_MACHINE_INVALID',
+      suggestion:
+        'Point XCI_MACHINE_CONFIGS at a real directory or unset it to use the home fallback (~/.xci/)',
+    });
+    this.path = path;
+  }
+}
+
 // CommandError subclasses (for Phase 3)
 export class CircularAliasError extends CommandError {
   constructor(cyclePath: readonly string[]) {
