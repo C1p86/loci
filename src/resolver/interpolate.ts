@@ -81,35 +81,177 @@ function navigateJson(value: unknown, path: string): unknown | undefined {
 }
 
 /**
+ * Parse a placeholder key into the variable key and optional modifier.
+ * E.g. "AWS.LOCATIONS|map:Location=" → { key: "AWS.LOCATIONS", modifier: "map", arg: "Location=" }
+ */
+function parseModifier(raw: string): { key: string; modifier?: string; arg?: string } {
+  const pipeIdx = raw.indexOf('|');
+  if (pipeIdx < 0) return { key: raw };
+  const key = raw.substring(0, pipeIdx);
+  const modPart = raw.substring(pipeIdx + 1);
+  const colonIdx = modPart.indexOf(':');
+  if (colonIdx < 0) return { key, modifier: modPart };
+  return { key, modifier: modPart.substring(0, colonIdx), arg: modPart.substring(colonIdx + 1) };
+}
+
+/**
+ * Resolve a key to its raw string value (direct lookup or JSON path).
+ * Returns undefined if not found.
+ */
+function resolveKey(key: string, values: Readonly<Record<string, string>>): string | undefined {
+  if (Object.hasOwn(values, key)) return String(values[key]);
+  return resolveJsonPath(key, values);
+}
+
+/**
+ * Apply a modifier to a resolved value. Returns an array of strings.
+ * - map:prefix — parse value as JSON array, prepend prefix to each element
+ * - join:sep — parse value as JSON array, join with separator into one string
+ */
+function applyModifier(value: string, modifier: string, arg: string | undefined): string[] {
+  let arr: unknown[];
+  try {
+    const parsed = JSON.parse(value);
+    arr = Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    arr = [value];
+  }
+
+  switch (modifier) {
+    case 'map': {
+      const prefix = arg ?? '';
+      return arr.map((item) => `${prefix}${String(item)}`);
+    }
+    case 'join': {
+      const sep = arg ?? ',';
+      return [arr.map((item) => String(item)).join(sep)];
+    }
+    default:
+      return [value];
+  }
+}
+
+/**
+ * Single-pass placeholder replacement (strict mode).
+ */
+function interpolateTokenOnce(
+  token: string,
+  aliasName: string,
+  values: Readonly<Record<string, string>>,
+): string {
+  return token.replace(PLACEHOLDER_RE, (match, rawKey?: string) => {
+    if (rawKey === undefined) {
+      return match; // $${} escapes already handled by sentinel
+    }
+    const { key, modifier } = parseModifier(rawKey);
+    // If key contains nested ${, leave as-is for multi-pass resolution
+    if (key.includes('${')) return match;
+    const resolved = resolveKey(key, values);
+    if (resolved !== undefined) {
+      if (modifier === 'join') {
+        return applyModifier(resolved, modifier, parseModifier(rawKey).arg)[0];
+      }
+      return resolved;
+    }
+    throw new UndefinedPlaceholderError(key, aliasName);
+  });
+}
+
+// Sentinel to protect $${} escapes during multi-pass resolution
+const ESCAPE_SENTINEL = '\x00XCI_ESC\x00';
+const ESCAPE_SENTINEL_RE = /\x00XCI_ESC\x00/g;
+
+/**
+ * Resolve innermost ${...} placeholders first (those whose key contains no nested ${}).
+ * This handles ${outer.${inner}|mod} by resolving ${inner} first, then ${outer.resolved|mod}.
+ */
+function resolveInnermost(
+  token: string,
+  aliasName: string,
+  values: Readonly<Record<string, string>>,
+  strict: boolean,
+): string {
+  // Match ${...} where the content has no nested ${ (innermost placeholders)
+  const INNERMOST_RE = /\$\{([^{}]+)\}/g;
+  return token.replace(INNERMOST_RE, (match, rawKey: string) => {
+    const { key, modifier } = parseModifier(rawKey);
+    // Leave expanding modifiers (map) for expandToken to handle
+    if (modifier === 'map') return match;
+    const resolved = resolveKey(key, values);
+    if (resolved !== undefined) {
+      if (modifier === 'join') {
+        return applyModifier(resolved, modifier, parseModifier(rawKey).arg)[0];
+      }
+      return resolved;
+    }
+    if (strict) throw new UndefinedPlaceholderError(key, aliasName);
+    return match;
+  });
+}
+
+/**
  * Expand placeholders in a single argv token.
- * Throws UndefinedPlaceholderError if a referenced key is absent from values.
- * Supports JSON path access: ${var[0].field} navigates into JSON-valued variables.
+ * Multi-pass: resolves innermost ${} first, then outer ${} in subsequent passes.
+ * Protects $${} escapes with a sentinel so they survive multi-pass.
  */
 function interpolateToken(
   token: string,
   aliasName: string,
   values: Readonly<Record<string, string>>,
 ): string {
-  return token.replace(PLACEHOLDER_RE, (match, key?: string) => {
-    if (key === undefined) {
-      // Matched $${ ... } → strip one leading $ to produce ${ ... }
-      return match.slice(1);
+  // Replace $${...} escapes with sentinel before multi-pass
+  let result = token.replace(/\$\$\{([^}]+)\}/g, `${ESCAPE_SENTINEL}{$1}`);
+  for (let pass = 0; pass < 5; pass++) {
+    const next = resolveInnermost(result, aliasName, values, true);
+    if (next === result) break;
+    result = next;
+  }
+  // Restore sentinels to literal ${...}
+  return result.replace(ESCAPE_SENTINEL_RE, '$');
+}
+
+/**
+ * Check if a token contains an expanding modifier (map) that needs special handling.
+ * Uses simple string check since nested ${} makes regex unreliable.
+ */
+function hasExpandingModifier(token: string): boolean {
+  return token.includes('|map:');
+}
+
+/**
+ * Expand a token with a map modifier into multiple argv entries.
+ * Resolves inner placeholders first via lenient multi-pass before expanding.
+ */
+function expandToken(
+  token: string,
+  aliasName: string,
+  values: Readonly<Record<string, string>>,
+): string[] {
+  // Protect $${} escapes
+  let resolved = token.replace(/\$\$\{([^}]+)\}/g, `${ESCAPE_SENTINEL}{$1}`);
+  for (let pass = 0; pass < 5; pass++) {
+    // Check if we have a clean ${key|map:...} ready to expand
+    const m = /^\$\{([^{}]+)\}$/.exec(resolved);
+    if (m && m[1] && m[1].includes('|map:')) {
+      const { key, modifier, arg } = parseModifier(m[1]);
+      const val = resolveKey(key, values);
+      if (val === undefined) {
+        throw new UndefinedPlaceholderError(key, aliasName);
+      }
+      return applyModifier(val, modifier!, arg);
     }
-    // Direct key lookup
-    if (Object.hasOwn(values, key)) {
-      return String(values[key]);
-    }
-    // JSON path resolution: ${var[0].field} or ${var.nested.key}
-    const jsonResult = resolveJsonPath(key, values);
-    if (jsonResult !== undefined) {
-      return jsonResult;
-    }
-    throw new UndefinedPlaceholderError(key, aliasName);
-  });
+    // Resolve innermost placeholders first (e.g. ${Group} inside ${AWS.${Group}|map:X})
+    const next = resolveInnermost(resolved, aliasName, values, false);
+    if (next === resolved) break;
+    resolved = next;
+  }
+  // Fallback: no expanding modifier found after resolution
+  return [resolved.replace(ESCAPE_SENTINEL_RE, '$')];
 }
 
 /**
  * Interpolate all ${VAR} placeholders across every token in an argv array.
+ * Tokens with expanding modifiers (map) may produce multiple argv entries.
  * Returns a new readonly array with all placeholders resolved.
  */
 export function interpolateArgv(
@@ -117,38 +259,82 @@ export function interpolateArgv(
   aliasName: string,
   values: Readonly<Record<string, string>>,
 ): readonly string[] {
-  return argv.map((token) => interpolateToken(token, aliasName, values));
+  const result: string[] = [];
+  for (const token of argv) {
+    if (hasExpandingModifier(token)) {
+      result.push(...expandToken(token, aliasName, values));
+    } else {
+      result.push(interpolateToken(token, aliasName, values));
+    }
+  }
+  return result;
+}
+
+/**
+ * Single-pass lenient placeholder replacement.
+ */
+function interpolateTokenLenientOnce(
+  token: string,
+  values: Readonly<Record<string, string>>,
+): string {
+  return token.replace(PLACEHOLDER_RE, (match, rawKey?: string) => {
+    if (rawKey === undefined) {
+      return match; // $${} escapes already handled by sentinel
+    }
+    const { key, modifier } = parseModifier(rawKey);
+    const resolved = resolveKey(key, values);
+    if (resolved !== undefined) {
+      if (modifier === 'join') {
+        return applyModifier(resolved, modifier, parseModifier(rawKey).arg)[0];
+      }
+      return resolved;
+    }
+    return match;
+  });
 }
 
 /**
  * Lenient interpolation: resolve known placeholders, leave unknown ones as ${key}.
- * Used for sequential steps where some placeholders may be provided at runtime by capture.
+ * Multi-pass: resolves innermost ${} first, then outer ${} in subsequent passes.
  */
 function interpolateTokenLenient(
   token: string,
   values: Readonly<Record<string, string>>,
 ): string {
-  return token.replace(PLACEHOLDER_RE, (match, key?: string) => {
-    if (key === undefined) {
-      return match.slice(1); // $${ escape
-    }
-    if (Object.hasOwn(values, key)) {
-      return String(values[key]);
-    }
-    // Try JSON path resolution
-    const jsonResult = resolveJsonPath(key, values);
-    if (jsonResult !== undefined) return jsonResult;
-    return match; // leave as ${key}
-  });
+  let result = token.replace(/\$\$\{([^}]+)\}/g, `${ESCAPE_SENTINEL}{$1}`);
+  for (let pass = 0; pass < 5; pass++) {
+    const next = resolveInnermost(result, '(lenient)', values, false);
+    if (next === result) break;
+    result = next;
+  }
+  return result.replace(ESCAPE_SENTINEL_RE, '$');
 }
 
 /**
  * Lenient interpolation for an argv array.
  * Known values are replaced, unknown ${key} are left as-is for runtime resolution.
+ * Expanding modifiers (map) produce multiple entries when the value is available.
  */
 export function interpolateArgvLenient(
   argv: readonly string[],
   values: Readonly<Record<string, string>>,
 ): readonly string[] {
-  return argv.map((token) => interpolateTokenLenient(token, values));
+  const result: string[] = [];
+  for (const token of argv) {
+    if (hasExpandingModifier(token)) {
+      const m = /^\$\{([^}]+)\}$/.exec(token);
+      if (m && m[1]) {
+        const { key, modifier, arg } = parseModifier(m[1]);
+        const resolved = resolveKey(key, values);
+        if (resolved !== undefined && modifier) {
+          result.push(...applyModifier(resolved, modifier, arg));
+          continue;
+        }
+      }
+      result.push(interpolateTokenLenient(token, values));
+    } else {
+      result.push(interpolateTokenLenient(token, values));
+    }
+  }
+  return result;
 }

@@ -141,6 +141,19 @@ export class CommandSchemaError extends CommandError {
   }
 }
 
+export class MissingParamsError extends CommandError {
+  constructor(missing: ReadonlyArray<{ name: string; requiredBy: readonly string[]; description?: string }>) {
+    const lines = missing.map((p) => {
+      const desc = p.description ? ` — ${p.description}` : '';
+      return `  ${p.name} (required by: ${p.requiredBy.join(', ')})${desc}`;
+    });
+    super(`Missing required parameters:\n${lines.join('\n')}`, {
+      code: 'CMD_MISSING_PARAMS',
+      suggestion: `Pass them as CLI arguments, e.g.: ${missing.map((p) => `${p.name}=value`).join(' ')}`,
+    });
+  }
+}
+
 // InterpolationError subclasses (for Phase 3)
 export class UndefinedPlaceholderError extends InterpolationError {
   constructor(placeholder: string, aliasName: string) {

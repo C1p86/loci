@@ -2,6 +2,7 @@
 //
 // All output formatting for the executor and CLI (D-01 to D-10, D-27, D-28, D-30).
 
+import { appendFileSync } from 'node:fs';
 import { redactSecrets } from '../resolver/envvars.js';
 import type { CaptureConfig, CommandDef, ExecutionPlan, ResolvedConfig } from '../types.js';
 import type { CaptureValidationResult } from './capture.js';
@@ -102,8 +103,14 @@ export function printStepHeader(stepName: string, stepNum?: number, totalSteps?:
 /**
  * Print a step result summary to stderr after each sequential/parallel step.
  */
-export function printStepResult(stepName: string, exitCode: number, durationMs?: number): void {
+export function printStepResult(stepName: string, exitCode: number, durationMs?: number, statusOverride?: string): void {
   const useColor = shouldUseColor();
+  if (statusOverride) {
+    const dim = useColor ? '\x1b[2m' : '';
+    const reset = useColor ? '\x1b[0m' : '';
+    process.stderr.write(`${dim}⊘ ${stepName} ${statusOverride}${reset}\n`);
+    return;
+  }
   const ok = exitCode === 0;
   const icon = ok
     ? (useColor ? '\x1b[32m\u2713\x1b[0m' : '\u2713')
@@ -177,9 +184,16 @@ export function printDryRun(
       for (let i = 0; i < plan.steps.length; i++) {
         const step = plan.steps[i];
         if (step) {
-          const redacted = redactArgv(step.argv, secretValues);
-          const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
-          process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}\n`);
+          if (step.kind === 'ini') {
+            process.stderr.write(`${prefix}   ${i + 1}. ini:${step.mode} ${step.file}\n`);
+          } else if (step.kind === 'set') {
+            const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(', ');
+            process.stderr.write(`${prefix}   ${i + 1}. set ${assignments}\n`);
+          } else {
+            const redacted = redactArgv(step.argv, secretValues);
+            const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
+            process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}\n`);
+          }
         }
       }
       break;
@@ -294,9 +308,16 @@ export function printVerboseCommand(
       for (let i = 0; i < plan.steps.length; i++) {
         const step = plan.steps[i];
         if (step) {
-          const redacted = redactArgv(step.argv, secretValues);
-          const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
-          process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}\n`);
+          if (step.kind === 'ini') {
+            process.stderr.write(`${prefix}   ${i + 1}. ini:${step.mode} ${step.file}\n`);
+          } else if (step.kind === 'set') {
+            const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(', ');
+            process.stderr.write(`${prefix}   ${i + 1}. set ${assignments}\n`);
+          } else {
+            const redacted = redactArgv(step.argv, secretValues);
+            const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
+            process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}\n`);
+          }
         }
       }
       break;
@@ -323,20 +344,33 @@ export function printStepPreview(
   rawArgv: readonly string[] | undefined,
   resolvedArgv: readonly string[],
   secretValues?: ReadonlySet<string>,
+  options?: { verbose?: boolean; logFile?: string },
 ): void {
-  const useColor = shouldUseColor();
-  const dim = useColor ? DIM : '';
-  const reset = useColor ? RESET : '';
-
   const rawStr = rawArgv ? rawArgv.join(' ') : undefined;
   const resArgv = secretValues ? redactArgv(resolvedArgv, secretValues) : resolvedArgv;
   const resStr = resArgv.join(' ');
 
-  if (rawStr && rawStr !== resStr) {
-    process.stderr.write(`${dim}  raw: ${rawStr}${reset}\n`);
-    process.stderr.write(`${dim}  run: ${resStr}${reset}\n`);
-  } else {
-    process.stderr.write(`${dim}  run: ${resStr}${reset}\n`);
+  // Write to stderr only in verbose mode
+  if (options?.verbose !== false) {
+    const useColor = shouldUseColor();
+    const dim = useColor ? DIM : '';
+    const reset = useColor ? RESET : '';
+
+    if (rawStr && rawStr !== resStr) {
+      process.stderr.write(`${dim}  raw: ${rawStr}${reset}\n`);
+      process.stderr.write(`${dim}  run: ${resStr}${reset}\n`);
+    } else {
+      process.stderr.write(`${dim}  run: ${resStr}${reset}\n`);
+    }
+  }
+
+  // Always write to log file if provided
+  if (options?.logFile) {
+    if (rawStr && rawStr !== resStr) {
+      appendFileSync(options.logFile, `  raw: ${rawStr}\n  run: ${resStr}\n`);
+    } else {
+      appendFileSync(options.logFile, `  run: ${resStr}\n`);
+    }
   }
 }
 

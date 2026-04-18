@@ -11,6 +11,7 @@ const IS_WINDOWS = process.platform === 'win32';
 import { interpolateArgv } from '../resolver/interpolate.js';
 import type { ExecutionResult, SequentialStep } from '../types.js';
 import { validateCapture } from './capture.js';
+import { writeIni, deleteIniKeys } from './ini.js';
 import { printCaptureResult, printStepHeader, printStepPreview, printStepResult } from './output.js';
 import { runSingle } from './single.js';
 
@@ -100,13 +101,77 @@ export async function runSequential(
   logFile?: string,
   showOutput = true,
   tailLines?: number,
+  fromStep?: string,
 ): Promise<ExecutionResult> {
   const capturedVars: Record<string, string> = {};
   const totalSteps = steps.length;
   let stepNum = 0;
+  let skipping = !!fromStep; // skip until we find the fromStep
 
   for (const step of steps) {
     stepNum++;
+
+    // Determine step label for --from matching
+    const stepLabel = step.kind === 'ini' ? `ini:${step.mode}`
+      : step.kind === 'set' ? 'set'
+      : (step.label ?? step.argv[0] ?? '(unknown)');
+
+    // Check if this is the --from target
+    if (skipping && stepLabel === fromStep) {
+      skipping = false;
+    }
+
+    // Print skipped steps
+    if (skipping) {
+      printStepHeader(stepLabel, stepNum, totalSteps);
+      printStepResult(stepLabel, 0, 0, 'SKIPPED');
+      continue;
+    }
+
+    // Handle variable assignment steps
+    if (step.kind === 'set') {
+      printStepHeader('set', stepNum, totalSteps);
+      const mergedValues = { ...env, ...capturedVars };
+      for (const [key, rawValue] of Object.entries(step.vars)) {
+        // Interpolate the value with available variables
+        let resolved = interpolateArgv([rawValue], '(set)', mergedValues)[0] ?? rawValue;
+        // Strip surrounding double quotes from JSON-resolved values
+        if (resolved.length >= 2 && resolved.startsWith('"') && resolved.endsWith('"')) {
+          resolved = resolved.slice(1, -1);
+        }
+        capturedVars[key] = resolved;
+        const envKey = key.toUpperCase().replace(/[.\-]/g, '_');
+        capturedVars[envKey] = resolved;
+        process.stderr.write(`  ${key}=${resolved}\n`);
+      }
+      printStepResult('set', 0, 0);
+      continue;
+    }
+
+    // Handle ini steps inline
+    if (step.kind === 'ini') {
+      const iniLabel = `ini:${step.mode}`;
+      printStepHeader(iniLabel, stepNum, totalSteps);
+      const startTime = Date.now();
+      try {
+        if (step.set) writeIni(step.file, step.set, step.mode);
+        if (step.delete) deleteIniKeys(step.file, step.delete as Record<string, string[]>);
+        process.stderr.write(`  ${step.file}\n`);
+        if (step.set) {
+          for (const [section, keys] of Object.entries(step.set)) {
+            for (const [k, v] of Object.entries(keys)) {
+              process.stderr.write(`    [${section}] ${k}=${v}\n`);
+            }
+          }
+        }
+        printStepResult(iniLabel, 0, Date.now() - startTime);
+      } catch (err) {
+        process.stderr.write(`  error: ${(err as Error).message}\n`);
+        printStepResult(iniLabel, 1, Date.now() - startTime);
+        return { exitCode: 1 };
+      }
+      continue;
+    }
 
     // Re-interpolate argv with captured vars from prior steps
     const mergedValues = { ...env, ...capturedVars };
@@ -114,9 +179,9 @@ export async function runSequential(
       ? interpolateArgv(step.rawArgv, '(step)', mergedValues)
       : step.argv;
 
-    const stepCmd = finalArgv[0] ?? '(unknown)';
+    const stepCmd = step.label ?? finalArgv[0] ?? '(unknown)';
     printStepHeader(stepCmd, stepNum, totalSteps);
-    printStepPreview(step.rawArgv, finalArgv);
+    printStepPreview(step.rawArgv, finalArgv, undefined, { verbose: env['XCI_VERBOSE'] === '1', logFile });
 
     // Merge captured variables into env for this step
     const stepEnv = { ...env, ...capturedVars };

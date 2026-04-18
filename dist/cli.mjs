@@ -29,8 +29,15 @@ var __require = /* @__PURE__ */ ((x) => typeof require$1 !== "undefined" ? requi
   if (typeof require$1 !== "undefined") return require$1.apply(this, arguments);
   throw Error('Dynamic require of "' + x + '" is not supported');
 });
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __commonJS = (cb, mod) => function __require2() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -10704,6 +10711,410 @@ var require_dist = __commonJS({
   }
 });
 
+// src/errors.ts
+function exitCodeFor(error) {
+  switch (error.category) {
+    case "config":
+      return ExitCode.CONFIG_ERROR;
+    case "command":
+      return ExitCode.COMMAND_ERROR;
+    case "interpolation":
+      return ExitCode.INTERPOLATION_ERROR;
+    case "executor":
+      return ExitCode.EXECUTOR_ERROR;
+    case "cli":
+      return ExitCode.CLI_ERROR;
+  }
+}
+var ExitCode, XciError, ConfigError, CommandError, InterpolationError, ExecutorError, CliError, YamlParseError, ConfigReadError, CircularAliasError, UnknownAliasError, CommandSchemaError, MissingParamsError, UndefinedPlaceholderError, SpawnError, UnknownFlagError;
+var init_errors = __esm({
+  "src/errors.ts"() {
+    ExitCode = {
+      SUCCESS: 0,
+      CONFIG_ERROR: 10,
+      COMMAND_ERROR: 20,
+      INTERPOLATION_ERROR: 30,
+      EXECUTOR_ERROR: 40,
+      CLI_ERROR: 50
+    };
+    XciError = class extends Error {
+      code;
+      suggestion;
+      constructor(message, options) {
+        super(message, options.cause !== void 0 ? { cause: options.cause } : void 0);
+        this.name = new.target.name;
+        this.code = options.code;
+        if (options.suggestion !== void 0) {
+          this.suggestion = options.suggestion;
+        }
+      }
+    };
+    ConfigError = class extends XciError {
+      category = "config";
+    };
+    CommandError = class extends XciError {
+      category = "command";
+    };
+    InterpolationError = class extends XciError {
+      category = "interpolation";
+    };
+    ExecutorError = class extends XciError {
+      category = "executor";
+    };
+    CliError = class extends XciError {
+      category = "cli";
+    };
+    YamlParseError = class extends ConfigError {
+      constructor(filePath, line, cause, rawContent) {
+        const lineInfo = line !== void 0 ? ` at line ${line}` : "";
+        let snippet = "";
+        const isSecret = /secrets/i.test(filePath);
+        if (line !== void 0 && rawContent && !isSecret) {
+          const lines = rawContent.split("\n");
+          const lineText = lines[line - 1];
+          if (lineText !== void 0) {
+            snippet = `
+  ${line} | ${lineText}`;
+          }
+        } else if (line !== void 0 && isSecret) {
+          snippet = "\n  (line content hidden \u2014 secrets file)";
+        }
+        super(`Invalid YAML in ${filePath}${lineInfo}${snippet}`, {
+          code: "CFG_YAML_PARSE",
+          cause,
+          suggestion: "Check the file for unmatched quotes or indentation errors"
+        });
+      }
+    };
+    ConfigReadError = class extends ConfigError {
+      constructor(filePath, cause) {
+        super(`Cannot read config file: ${filePath}`, {
+          code: "CFG_READ",
+          cause,
+          suggestion: "Check file permissions and that the path exists"
+        });
+      }
+    };
+    CircularAliasError = class extends CommandError {
+      constructor(cyclePath) {
+        super(`Circular alias reference: ${cyclePath.join(" \u2192 ")}`, {
+          code: "CMD_CIRCULAR_ALIAS",
+          suggestion: "Break the cycle by redefining one of the aliases in the chain"
+        });
+      }
+    };
+    UnknownAliasError = class extends CommandError {
+      constructor(aliasName) {
+        super(`Unknown alias: "${aliasName}"`, {
+          code: "CMD_UNKNOWN_ALIAS",
+          suggestion: "Run `xci --list` to see available aliases"
+        });
+      }
+    };
+    CommandSchemaError = class extends CommandError {
+      constructor(aliasName, details) {
+        super(`Invalid command definition for alias "${aliasName}": ${details}`, {
+          code: "CMD_SCHEMA"
+        });
+      }
+    };
+    MissingParamsError = class extends CommandError {
+      constructor(missing) {
+        const lines = missing.map((p) => {
+          const desc = p.description ? ` \u2014 ${p.description}` : "";
+          return `  ${p.name} (required by: ${p.requiredBy.join(", ")})${desc}`;
+        });
+        super(`Missing required parameters:
+${lines.join("\n")}`, {
+          code: "CMD_MISSING_PARAMS",
+          suggestion: `Pass them as CLI arguments, e.g.: ${missing.map((p) => `${p.name}=value`).join(" ")}`
+        });
+      }
+    };
+    UndefinedPlaceholderError = class extends InterpolationError {
+      constructor(placeholder, aliasName) {
+        super(`Undefined placeholder \${${placeholder}} in alias "${aliasName}"`, {
+          code: "INT_UNDEFINED_PLACEHOLDER",
+          suggestion: `Add ${placeholder} to one of your .xci config files`
+        });
+      }
+    };
+    SpawnError = class extends ExecutorError {
+      constructor(commandPath, cause) {
+        super(`Failed to spawn command: ${commandPath}`, {
+          code: "EXE_SPAWN",
+          cause,
+          suggestion: "Check the command exists in PATH"
+        });
+      }
+    };
+    UnknownFlagError = class extends CliError {
+      constructor(flag) {
+        super(`Unknown flag: ${flag}`, {
+          code: "CLI_UNKNOWN_FLAG",
+          suggestion: "Run `xci --help` for available flags"
+        });
+      }
+    };
+  }
+});
+
+// src/resolver/interpolate.ts
+var interpolate_exports = {};
+__export(interpolate_exports, {
+  interpolateArgv: () => interpolateArgv,
+  interpolateArgvLenient: () => interpolateArgvLenient
+});
+function resolveJsonPath(key, values) {
+  const bracketIdx = key.indexOf("[");
+  key.indexOf(".");
+  const splitPoints = [];
+  if (bracketIdx > 0) splitPoints.push(bracketIdx);
+  for (let i2 = 0; i2 < key.length; i2++) {
+    if (key[i2] === "." && i2 > 0) splitPoints.push(i2);
+  }
+  for (const sp of splitPoints) {
+    const base = key.slice(0, sp);
+    if (!Object.hasOwn(values, base)) continue;
+    const jsonStr = values[base];
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      continue;
+    }
+    const pathStr = key.slice(sp);
+    const result = navigateJson(parsed, pathStr);
+    if (result !== void 0) {
+      return typeof result === "string" ? result : JSON.stringify(result);
+    }
+  }
+  return void 0;
+}
+function navigateJson(value, path6) {
+  let current = value;
+  const segmentRe = /\[(\d+)\]|\.([^.[]+)/g;
+  let m;
+  while ((m = segmentRe.exec(path6)) !== null) {
+    if (current === null || current === void 0) return void 0;
+    if (m[1] !== void 0) {
+      if (!Array.isArray(current)) return void 0;
+      const idx = Number(m[1]);
+      current = current[idx];
+    } else if (m[2] !== void 0) {
+      if (typeof current !== "object" || Array.isArray(current)) return void 0;
+      current = current[m[2]];
+    }
+  }
+  return current;
+}
+function parseModifier(raw) {
+  const pipeIdx = raw.indexOf("|");
+  if (pipeIdx < 0) return { key: raw };
+  const key = raw.substring(0, pipeIdx);
+  const modPart = raw.substring(pipeIdx + 1);
+  const colonIdx = modPart.indexOf(":");
+  if (colonIdx < 0) return { key, modifier: modPart };
+  return { key, modifier: modPart.substring(0, colonIdx), arg: modPart.substring(colonIdx + 1) };
+}
+function resolveKey(key, values) {
+  if (Object.hasOwn(values, key)) return String(values[key]);
+  return resolveJsonPath(key, values);
+}
+function applyModifier(value, modifier, arg) {
+  let arr;
+  try {
+    const parsed = JSON.parse(value);
+    arr = Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    arr = [value];
+  }
+  switch (modifier) {
+    case "map": {
+      const prefix = arg ?? "";
+      return arr.map((item) => `${prefix}${String(item)}`);
+    }
+    case "join": {
+      const sep = arg ?? ",";
+      return [arr.map((item) => String(item)).join(sep)];
+    }
+    default:
+      return [value];
+  }
+}
+function resolveInnermost(token, aliasName, values, strict) {
+  const INNERMOST_RE = /\$\{([^{}]+)\}/g;
+  return token.replace(INNERMOST_RE, (match, rawKey) => {
+    const { key, modifier } = parseModifier(rawKey);
+    if (modifier === "map") return match;
+    const resolved = resolveKey(key, values);
+    if (resolved !== void 0) {
+      if (modifier === "join") {
+        return applyModifier(resolved, modifier, parseModifier(rawKey).arg)[0];
+      }
+      return resolved;
+    }
+    if (strict) throw new UndefinedPlaceholderError(key, aliasName);
+    return match;
+  });
+}
+function interpolateToken(token, aliasName, values) {
+  let result = token.replace(/\$\$\{([^}]+)\}/g, `${ESCAPE_SENTINEL}{$1}`);
+  for (let pass = 0; pass < 5; pass++) {
+    const next = resolveInnermost(result, aliasName, values, true);
+    if (next === result) break;
+    result = next;
+  }
+  return result.replace(ESCAPE_SENTINEL_RE, "$");
+}
+function hasExpandingModifier(token) {
+  return token.includes("|map:");
+}
+function expandToken(token, aliasName, values) {
+  let resolved = token.replace(/\$\$\{([^}]+)\}/g, `${ESCAPE_SENTINEL}{$1}`);
+  for (let pass = 0; pass < 5; pass++) {
+    const m = /^\$\{([^{}]+)\}$/.exec(resolved);
+    if (m && m[1] && m[1].includes("|map:")) {
+      const { key, modifier, arg } = parseModifier(m[1]);
+      const val = resolveKey(key, values);
+      if (val === void 0) {
+        throw new UndefinedPlaceholderError(key, aliasName);
+      }
+      return applyModifier(val, modifier, arg);
+    }
+    const next = resolveInnermost(resolved, aliasName, values, false);
+    if (next === resolved) break;
+    resolved = next;
+  }
+  return [resolved.replace(ESCAPE_SENTINEL_RE, "$")];
+}
+function interpolateArgv(argv, aliasName, values) {
+  const result = [];
+  for (const token of argv) {
+    if (hasExpandingModifier(token)) {
+      result.push(...expandToken(token, aliasName, values));
+    } else {
+      result.push(interpolateToken(token, aliasName, values));
+    }
+  }
+  return result;
+}
+function interpolateTokenLenient(token, values) {
+  let result = token.replace(/\$\$\{([^}]+)\}/g, `${ESCAPE_SENTINEL}{$1}`);
+  for (let pass = 0; pass < 5; pass++) {
+    const next = resolveInnermost(result, "(lenient)", values, false);
+    if (next === result) break;
+    result = next;
+  }
+  return result.replace(ESCAPE_SENTINEL_RE, "$");
+}
+function interpolateArgvLenient(argv, values) {
+  const result = [];
+  for (const token of argv) {
+    if (hasExpandingModifier(token)) {
+      const m = /^\$\{([^}]+)\}$/.exec(token);
+      if (m && m[1]) {
+        const { key, modifier, arg } = parseModifier(m[1]);
+        const resolved = resolveKey(key, values);
+        if (resolved !== void 0 && modifier) {
+          result.push(...applyModifier(resolved, modifier, arg));
+          continue;
+        }
+      }
+      result.push(interpolateTokenLenient(token, values));
+    } else {
+      result.push(interpolateTokenLenient(token, values));
+    }
+  }
+  return result;
+}
+var ESCAPE_SENTINEL, ESCAPE_SENTINEL_RE;
+var init_interpolate = __esm({
+  "src/resolver/interpolate.ts"() {
+    init_errors();
+    ESCAPE_SENTINEL = "\0XCI_ESC\0";
+    ESCAPE_SENTINEL_RE = /\x00XCI_ESC\x00/g;
+  }
+});
+
+// src/executor/ini.ts
+var ini_exports = {};
+__export(ini_exports, {
+  deleteIniKeys: () => deleteIniKeys,
+  parseIni: () => parseIni,
+  serializeIni: () => serializeIni,
+  writeIni: () => writeIni
+});
+function parseIni(content) {
+  const data = {};
+  let currentSection = "";
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (line === "" || line.startsWith(";") || line.startsWith("#")) continue;
+    const sectionMatch = /^\[(.+)\]$/.exec(line);
+    if (sectionMatch) {
+      currentSection = sectionMatch[1];
+      if (!data[currentSection]) data[currentSection] = {};
+      continue;
+    }
+    const kvMatch = /^(\+?[^=]+)=(.*)$/.exec(line);
+    if (kvMatch && currentSection) {
+      const key = kvMatch[1].trim();
+      const value = kvMatch[2].trim();
+      if (!data[currentSection]) data[currentSection] = {};
+      data[currentSection][key] = value;
+    }
+  }
+  return data;
+}
+function serializeIni(data) {
+  const lines = [];
+  for (const [section, keys] of Object.entries(data)) {
+    lines.push(`[${section}]`);
+    for (const [key, value] of Object.entries(keys)) {
+      lines.push(`${key}=${value}`);
+    }
+    lines.push("");
+  }
+  return lines.join("\r\n");
+}
+function writeIni(filePath, sections, mode = "overwrite") {
+  let data;
+  if (mode === "merge" && existsSync(filePath)) {
+    const existing = readFileSync(filePath, "utf8");
+    data = parseIni(existing);
+    for (const [section, keys] of Object.entries(sections)) {
+      if (!data[section]) data[section] = {};
+      for (const [key, value] of Object.entries(keys)) {
+        data[section][key] = value;
+      }
+    }
+  } else {
+    data = sections;
+  }
+  mkdirSync(dirname(filePath), { recursive: true });
+  writeFileSync(filePath, serializeIni(data), "utf8");
+}
+function deleteIniKeys(filePath, deletions) {
+  if (!existsSync(filePath)) return;
+  const existing = readFileSync(filePath, "utf8");
+  const data = parseIni(existing);
+  for (const [section, keys] of Object.entries(deletions)) {
+    if (!data[section]) continue;
+    for (const key of keys) {
+      delete data[section][key];
+    }
+    if (Object.keys(data[section]).length === 0) {
+      delete data[section];
+    }
+  }
+  writeFileSync(filePath, serializeIni(data), "utf8");
+}
+var init_ini = __esm({
+  "src/executor/ini.ts"() {
+  }
+});
+
 // node_modules/isexe/windows.js
 var require_windows = __commonJS({
   "node_modules/isexe/windows.js"(exports$1, module) {
@@ -11211,137 +11622,7 @@ var {
 
 // src/config/index.ts
 var import_yaml = __toESM(require_dist());
-
-// src/errors.ts
-var ExitCode = {
-  CONFIG_ERROR: 10,
-  COMMAND_ERROR: 20,
-  INTERPOLATION_ERROR: 30,
-  EXECUTOR_ERROR: 40,
-  CLI_ERROR: 50
-};
-var XciError = class extends Error {
-  code;
-  suggestion;
-  constructor(message, options) {
-    super(message, options.cause !== void 0 ? { cause: options.cause } : void 0);
-    this.name = new.target.name;
-    this.code = options.code;
-    if (options.suggestion !== void 0) {
-      this.suggestion = options.suggestion;
-    }
-  }
-};
-var ConfigError = class extends XciError {
-  category = "config";
-};
-var CommandError = class extends XciError {
-  category = "command";
-};
-var InterpolationError = class extends XciError {
-  category = "interpolation";
-};
-var ExecutorError = class extends XciError {
-  category = "executor";
-};
-var CliError = class extends XciError {
-  category = "cli";
-};
-var YamlParseError = class extends ConfigError {
-  constructor(filePath, line, cause, rawContent) {
-    const lineInfo = line !== void 0 ? ` at line ${line}` : "";
-    let snippet = "";
-    const isSecret = /secrets/i.test(filePath);
-    if (line !== void 0 && rawContent && !isSecret) {
-      const lines = rawContent.split("\n");
-      const lineText = lines[line - 1];
-      if (lineText !== void 0) {
-        snippet = `
-  ${line} | ${lineText}`;
-      }
-    } else if (line !== void 0 && isSecret) {
-      snippet = "\n  (line content hidden \u2014 secrets file)";
-    }
-    super(`Invalid YAML in ${filePath}${lineInfo}${snippet}`, {
-      code: "CFG_YAML_PARSE",
-      cause,
-      suggestion: "Check the file for unmatched quotes or indentation errors"
-    });
-  }
-};
-var ConfigReadError = class extends ConfigError {
-  constructor(filePath, cause) {
-    super(`Cannot read config file: ${filePath}`, {
-      code: "CFG_READ",
-      cause,
-      suggestion: "Check file permissions and that the path exists"
-    });
-  }
-};
-var CircularAliasError = class extends CommandError {
-  constructor(cyclePath) {
-    super(`Circular alias reference: ${cyclePath.join(" \u2192 ")}`, {
-      code: "CMD_CIRCULAR_ALIAS",
-      suggestion: "Break the cycle by redefining one of the aliases in the chain"
-    });
-  }
-};
-var UnknownAliasError = class extends CommandError {
-  constructor(aliasName) {
-    super(`Unknown alias: "${aliasName}"`, {
-      code: "CMD_UNKNOWN_ALIAS",
-      suggestion: "Run `xci --list` to see available aliases"
-    });
-  }
-};
-var CommandSchemaError = class extends CommandError {
-  constructor(aliasName, details) {
-    super(`Invalid command definition for alias "${aliasName}": ${details}`, {
-      code: "CMD_SCHEMA"
-    });
-  }
-};
-var UndefinedPlaceholderError = class extends InterpolationError {
-  constructor(placeholder, aliasName) {
-    super(`Undefined placeholder \${${placeholder}} in alias "${aliasName}"`, {
-      code: "INT_UNDEFINED_PLACEHOLDER",
-      suggestion: `Add ${placeholder} to one of your .xci config files`
-    });
-  }
-};
-var SpawnError = class extends ExecutorError {
-  constructor(commandPath, cause) {
-    super(`Failed to spawn command: ${commandPath}`, {
-      code: "EXE_SPAWN",
-      cause,
-      suggestion: "Check the command exists in PATH"
-    });
-  }
-};
-var UnknownFlagError = class extends CliError {
-  constructor(flag) {
-    super(`Unknown flag: ${flag}`, {
-      code: "CLI_UNKNOWN_FLAG",
-      suggestion: "Run `xci --help` for available flags"
-    });
-  }
-};
-function exitCodeFor(error) {
-  switch (error.category) {
-    case "config":
-      return ExitCode.CONFIG_ERROR;
-    case "command":
-      return ExitCode.COMMAND_ERROR;
-    case "interpolation":
-      return ExitCode.INTERPOLATION_ERROR;
-    case "executor":
-      return ExitCode.EXECUTOR_ERROR;
-    case "cli":
-      return ExitCode.CLI_ERROR;
-  }
-}
-
-// src/config/index.ts
+init_errors();
 function listYamlFilesRecursive(dirPath) {
   const results = [];
   let entries;
@@ -11398,8 +11679,10 @@ function flattenToStrings(obj, filePath, prefix = "") {
         }
         result[k] = v;
       }
+    } else if (Array.isArray(value)) {
+      result[fullKey] = JSON.stringify(value);
     } else {
-      const actualType = Array.isArray(value) ? "array" : value === null ? "null" : typeof value;
+      const actualType = value === null ? "null" : typeof value;
       throw new YamlParseError(
         filePath,
         void 0,
@@ -11604,8 +11887,13 @@ var configLoader = {
 
 // src/commands/index.ts
 var import_yaml2 = __toESM(require_dist());
+init_errors();
+
+// src/commands/normalize.ts
+init_errors();
 
 // src/commands/tokenize.ts
+init_errors();
 function tokenize(input, aliasName) {
   const tokens = [];
   let current = "";
@@ -11678,6 +11966,49 @@ function normalizePlatformBlock(aliasName, platformKey, block) {
     `platform override "${platformKey}.cmd" must be a string or array of strings`
   );
 }
+function normalizeParams(aliasName, raw) {
+  if (raw === void 0) return void 0;
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new CommandSchemaError(aliasName, "params must be an object of { paramName: { required?, default?, description? } }");
+  }
+  const result = {};
+  for (const [name, def] of Object.entries(raw)) {
+    if (typeof def === "string") {
+      if (def === "required") {
+        result[name] = { required: true };
+      } else {
+        result[name] = { default: def };
+      }
+      continue;
+    }
+    if (typeof def === "object" && def !== null && !Array.isArray(def)) {
+      const obj = def;
+      const param = {};
+      if (obj.required !== void 0) {
+        if (typeof obj.required !== "boolean") {
+          throw new CommandSchemaError(aliasName, `params.${name}.required must be a boolean`);
+        }
+        param.required = obj.required;
+      }
+      if (obj.default !== void 0) {
+        if (typeof obj.default !== "string") {
+          throw new CommandSchemaError(aliasName, `params.${name}.default must be a string`);
+        }
+        param.default = obj.default;
+      }
+      if (obj.description !== void 0) {
+        if (typeof obj.description !== "string") {
+          throw new CommandSchemaError(aliasName, `params.${name}.description must be a string`);
+        }
+        param.description = obj.description;
+      }
+      result[name] = param;
+      continue;
+    }
+    throw new CommandSchemaError(aliasName, `params.${name} must be "required", a default value string, or an object { required?, default?, description? }`);
+  }
+  return Object.keys(result).length > 0 ? result : void 0;
+}
 function normalizeObject(aliasName, obj, _filePath) {
   if (Object.hasOwn(obj, "ini")) {
     const raw = obj.ini;
@@ -11728,13 +12059,15 @@ function normalizeObject(aliasName, obj, _filePath) {
       throw new CommandSchemaError(aliasName, "ini must have at least one of: set, delete");
     }
     const description2 = typeof obj.description === "string" ? obj.description : void 0;
+    const params2 = normalizeParams(aliasName, obj.params);
     return {
       kind: "ini",
       file: ini.file,
       mode,
       ...set !== void 0 ? { set } : {},
       ...del !== void 0 ? { delete: del } : {},
-      ...description2 !== void 0 ? { description: description2 } : {}
+      ...description2 !== void 0 ? { description: description2 } : {},
+      ...params2 !== void 0 ? { params: params2 } : {}
     };
   }
   if (Object.hasOwn(obj, "for_each")) {
@@ -11780,6 +12113,7 @@ function normalizeObject(aliasName, obj, _filePath) {
       }
       failMode = fe.failMode;
     }
+    const params2 = normalizeParams(aliasName, obj.params);
     return {
       kind: "for_each",
       var: fe.var,
@@ -11788,13 +12122,15 @@ function normalizeObject(aliasName, obj, _filePath) {
       ...cmd2 !== void 0 ? { cmd: cmd2 } : {},
       ...run !== void 0 ? { run } : {},
       ...description2 !== void 0 ? { description: description2 } : {},
-      ...failMode !== void 0 ? { failMode } : {}
+      ...failMode !== void 0 ? { failMode } : {},
+      ...params2 !== void 0 ? { params: params2 } : {}
     };
   }
   if (Object.hasOwn(obj, "steps")) {
     const steps = validateStringArray(aliasName, obj.steps, "steps");
     const description2 = typeof obj.description === "string" ? obj.description : void 0;
-    return { kind: "sequential", steps, ...description2 !== void 0 ? { description: description2 } : {} };
+    const params2 = normalizeParams(aliasName, obj.params);
+    return { kind: "sequential", steps, ...description2 !== void 0 ? { description: description2 } : {}, ...params2 !== void 0 ? { params: params2 } : {} };
   }
   if (Object.hasOwn(obj, "parallel")) {
     const group = validateStringArray(aliasName, obj.parallel, "parallel");
@@ -11810,11 +12146,13 @@ function normalizeObject(aliasName, obj, _filePath) {
       }
       failMode = raw;
     }
+    const params2 = normalizeParams(aliasName, obj.params);
     return {
       kind: "parallel",
       group,
       ...description2 !== void 0 ? { description: description2 } : {},
-      ...failMode !== void 0 ? { failMode } : {}
+      ...failMode !== void 0 ? { failMode } : {},
+      ...params2 !== void 0 ? { params: params2 } : {}
     };
   }
   const description = typeof obj.description === "string" ? obj.description : void 0;
@@ -11885,12 +12223,14 @@ function normalizeObject(aliasName, obj, _filePath) {
       throw new CommandSchemaError(aliasName, "capture must be a string or object with { var, type?, assert? }");
     }
   }
+  const params = normalizeParams(aliasName, obj.params);
   return {
     kind: "single",
     cmd,
     ...description !== void 0 ? { description } : {},
     ...platforms !== void 0 ? { platforms } : {},
-    ...capture !== void 0 ? { capture } : {}
+    ...capture !== void 0 ? { capture } : {},
+    ...params !== void 0 ? { params } : {}
   };
 }
 function normalizeAlias(aliasName, raw, filePath) {
@@ -11915,6 +12255,7 @@ function normalizeCommands(raw, filePath) {
 }
 
 // src/commands/validate.ts
+init_errors();
 function getAliasRefs(def, commands2) {
   if (def.kind === "sequential") {
     return def.steps.filter((step) => commands2.has(step));
@@ -12100,87 +12441,12 @@ var commandsLoader = {
   }
 };
 
-// src/resolver/interpolate.ts
-var PLACEHOLDER_RE2 = /\$\$\{[^}]+\}|\$\{([^}]+)\}/g;
-function resolveJsonPath(key, values) {
-  const bracketIdx = key.indexOf("[");
-  key.indexOf(".");
-  const splitPoints = [];
-  if (bracketIdx > 0) splitPoints.push(bracketIdx);
-  for (let i2 = 0; i2 < key.length; i2++) {
-    if (key[i2] === "." && i2 > 0) splitPoints.push(i2);
-  }
-  for (const sp of splitPoints) {
-    const base = key.slice(0, sp);
-    if (!Object.hasOwn(values, base)) continue;
-    const jsonStr = values[base];
-    let parsed;
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch {
-      continue;
-    }
-    const pathStr = key.slice(sp);
-    const result = navigateJson(parsed, pathStr);
-    if (result !== void 0) {
-      return typeof result === "string" ? result : JSON.stringify(result);
-    }
-  }
-  return void 0;
-}
-function navigateJson(value, path6) {
-  let current = value;
-  const segmentRe = /\[(\d+)\]|\.([^.[]+)/g;
-  let m;
-  while ((m = segmentRe.exec(path6)) !== null) {
-    if (current === null || current === void 0) return void 0;
-    if (m[1] !== void 0) {
-      if (!Array.isArray(current)) return void 0;
-      const idx = Number(m[1]);
-      current = current[idx];
-    } else if (m[2] !== void 0) {
-      if (typeof current !== "object" || Array.isArray(current)) return void 0;
-      current = current[m[2]];
-    }
-  }
-  return current;
-}
-function interpolateToken(token, aliasName, values) {
-  return token.replace(PLACEHOLDER_RE2, (match, key) => {
-    if (key === void 0) {
-      return match.slice(1);
-    }
-    if (Object.hasOwn(values, key)) {
-      return String(values[key]);
-    }
-    const jsonResult = resolveJsonPath(key, values);
-    if (jsonResult !== void 0) {
-      return jsonResult;
-    }
-    throw new UndefinedPlaceholderError(key, aliasName);
-  });
-}
-function interpolateArgv(argv, aliasName, values) {
-  return argv.map((token) => interpolateToken(token, aliasName, values));
-}
-function interpolateTokenLenient(token, values) {
-  return token.replace(PLACEHOLDER_RE2, (match, key) => {
-    if (key === void 0) {
-      return match.slice(1);
-    }
-    if (Object.hasOwn(values, key)) {
-      return String(values[key]);
-    }
-    const jsonResult = resolveJsonPath(key, values);
-    if (jsonResult !== void 0) return jsonResult;
-    return match;
-  });
-}
-function interpolateArgvLenient(argv, values) {
-  return argv.map((token) => interpolateTokenLenient(token, values));
-}
+// src/resolver/index.ts
+init_errors();
+init_interpolate();
 
 // src/resolver/platform.ts
+init_errors();
 function currentOsKey() {
   switch (process.platform) {
     case "linux":
@@ -12228,6 +12494,8 @@ function redactSecrets(envVars, secretKeys) {
 }
 
 // src/resolver/index.ts
+init_interpolate();
+var VAR_ASSIGN_RE = /^[A-Za-z_][A-Za-z0-9_.]*=/;
 function resolveToStepsLenient(aliasName, commands2, config, depth, chain) {
   if (depth > 10) {
     throw new CommandSchemaError(
@@ -12244,6 +12512,7 @@ function resolveToStepsLenient(aliasName, commands2, config, depth, chain) {
       const rawCmd = selectPlatformCmd(def, aliasName);
       const argv = interpolateArgvLenient(rawCmd, config.values);
       return [{
+        label: aliasName,
         argv,
         rawArgv: rawCmd,
         ...def.capture ? { capture: def.capture } : {}
@@ -12252,7 +12521,12 @@ function resolveToStepsLenient(aliasName, commands2, config, depth, chain) {
     case "sequential": {
       const allSteps = [];
       for (const step of def.steps) {
-        if (commands2.has(step)) {
+        if (VAR_ASSIGN_RE.test(step)) {
+          const eqIdx = step.indexOf("=");
+          const key = step.substring(0, eqIdx);
+          const value = step.substring(eqIdx + 1);
+          allSteps.push({ kind: "set", vars: { [key]: value } });
+        } else if (commands2.has(step)) {
           const subSteps = resolveToStepsLenient(step, commands2, config, depth + 1, [...chain, step]);
           for (const s of subSteps) allSteps.push(s);
         } else {
@@ -12274,6 +12548,41 @@ function resolveToStepsLenient(aliasName, commands2, config, depth, chain) {
         const argv = interpolateArgvLenient(tokens, config.values);
         return { argv, rawArgv: tokens };
       });
+    case "for_each": {
+      const allSteps = [];
+      for (const value of def.in) {
+        const loopValues = { ...config.values, [def.var]: value };
+        if (def.run && commands2.has(def.run)) {
+          const loopConfig = { ...config, values: loopValues };
+          const subSteps = resolveToStepsLenient(def.run, commands2, loopConfig, depth + 1, [...chain, def.run]);
+          for (const s of subSteps) allSteps.push(s);
+        } else if (def.cmd) {
+          const argv = interpolateArgvLenient(def.cmd, loopValues);
+          allSteps.push({ argv, rawArgv: def.cmd });
+        }
+      }
+      return allSteps;
+    }
+    case "ini": {
+      const file = interpolateArgvLenient([def.file], config.values)[0] ?? def.file;
+      let set;
+      if (def.set) {
+        set = {};
+        for (const [section, keys] of Object.entries(def.set)) {
+          set[section] = {};
+          for (const [k, v] of Object.entries(keys)) {
+            set[section][k] = interpolateArgvLenient([v], config.values)[0] ?? v;
+          }
+        }
+      }
+      return [{
+        kind: "ini",
+        file,
+        mode: def.mode ?? "overwrite",
+        ...set ? { set } : {},
+        ...def.delete ? { delete: def.delete } : {}
+      }];
+    }
   }
 }
 function resolveAlias(aliasName, commands2, config, depth, chain) {
@@ -12296,7 +12605,12 @@ function resolveAlias(aliasName, commands2, config, depth, chain) {
     case "sequential": {
       const allSteps = [];
       for (const step of def.steps) {
-        if (commands2.has(step)) {
+        if (VAR_ASSIGN_RE.test(step)) {
+          const eqIdx = step.indexOf("=");
+          const key = step.substring(0, eqIdx);
+          const value = step.substring(eqIdx + 1);
+          allSteps.push({ kind: "set", vars: { [key]: value } });
+        } else if (commands2.has(step)) {
           const subSteps = resolveToStepsLenient(step, commands2, config, depth + 1, [...chain, step]);
           for (const s of subSteps) allSteps.push(s);
         } else {
@@ -12363,14 +12677,14 @@ function resolveAlias(aliasName, commands2, config, depth, chain) {
       return { kind: "sequential", steps: allSteps };
     }
     case "ini": {
-      const file = interpolateArgv([def.file], aliasName, config.values)[0];
+      const file = interpolateArgv([def.file], aliasName, config.values)[0] ?? def.file;
       let set;
       if (def.set) {
         set = {};
         for (const [section, keys] of Object.entries(def.set)) {
           set[section] = {};
           for (const [k, v] of Object.entries(keys)) {
-            set[section][k] = interpolateArgv([v], aliasName, config.values)[0];
+            set[section][k] = interpolateArgv([v], aliasName, config.values)[0] ?? v;
           }
         }
       }
@@ -12389,6 +12703,259 @@ var resolver = {
     return resolveAlias(aliasName, commands2, config, 0, [aliasName]);
   }
 };
+
+// src/resolver/params.ts
+init_errors();
+var PLACEHOLDER_RE2 = /\$\$\{[^}]+\}|\$\{([^}]+)\}/g;
+var VAR_ASSIGN_RE2 = /^[A-Za-z_][A-Za-z0-9_.]*=/;
+function extractPlaceholders(text) {
+  const names = [];
+  const re = new RegExp(PLACEHOLDER_RE2.source, "g");
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    if (m[1] !== void 0) {
+      const pipeIdx = m[1].indexOf("|");
+      const key = pipeIdx >= 0 ? m[1].substring(0, pipeIdx) : m[1];
+      if (key.includes("${")) {
+        names.push(...extractPlaceholders(key));
+      } else {
+        names.push(key);
+      }
+    }
+  }
+  return names;
+}
+function extractFromArgv(argv) {
+  const names = [];
+  for (const token of argv) {
+    names.push(...extractPlaceholders(token));
+  }
+  return names;
+}
+function collectAll(aliasName, commands2, declared, usedBy, depth, isOutermost) {
+  if (depth > 10) return;
+  const def = commands2.get(aliasName);
+  if (def === void 0) return;
+  if (def.params) {
+    for (const [name, param] of Object.entries(def.params)) {
+      const existing = declared.get(name);
+      if (existing) {
+        if (param.required) {
+          existing.required = true;
+          if (!existing.requiredBy.includes(aliasName)) existing.requiredBy.push(aliasName);
+        }
+        if (isOutermost) {
+          if (param.default !== void 0) existing.default = param.default;
+          if (param.description !== void 0) existing.description = param.description;
+        }
+      } else {
+        declared.set(name, {
+          name,
+          required: param.required === true,
+          default: param.default,
+          description: param.description,
+          requiredBy: param.required ? [aliasName] : []
+        });
+      }
+    }
+  }
+  const trackUsage = (names) => {
+    for (const name of names) {
+      let set = usedBy.get(name);
+      if (!set) {
+        set = /* @__PURE__ */ new Set();
+        usedBy.set(name, set);
+      }
+      set.add(aliasName);
+    }
+  };
+  switch (def.kind) {
+    case "single":
+      trackUsage(extractFromArgv(def.cmd));
+      if (def.platforms) {
+        if (def.platforms.linux) trackUsage(extractFromArgv(def.platforms.linux));
+        if (def.platforms.windows) trackUsage(extractFromArgv(def.platforms.windows));
+        if (def.platforms.macos) trackUsage(extractFromArgv(def.platforms.macos));
+      }
+      break;
+    case "sequential":
+      for (const step of def.steps) {
+        if (VAR_ASSIGN_RE2.test(step)) {
+          const eqIdx = step.indexOf("=");
+          const value = step.substring(eqIdx + 1);
+          trackUsage(extractPlaceholders(value));
+        } else if (!commands2.has(step)) {
+          trackUsage(extractPlaceholders(step));
+        } else {
+          collectAll(step, commands2, declared, usedBy, depth + 1, false);
+        }
+      }
+      return;
+    // already recursed
+    case "parallel":
+      for (const entry of def.group) {
+        if (!commands2.has(entry)) {
+          trackUsage(extractPlaceholders(entry));
+        } else {
+          collectAll(entry, commands2, declared, usedBy, depth + 1, false);
+        }
+      }
+      return;
+    case "for_each":
+      if (def.cmd) trackUsage(extractFromArgv(def.cmd));
+      if (def.run && commands2.has(def.run)) {
+        collectAll(def.run, commands2, declared, usedBy, depth + 1, false);
+      }
+      break;
+    case "ini":
+      trackUsage(extractPlaceholders(def.file));
+      if (def.set) {
+        for (const keys of Object.values(def.set)) {
+          for (const v of Object.values(keys)) {
+            trackUsage(extractPlaceholders(v));
+          }
+        }
+      }
+      break;
+  }
+  if (def.kind === "for_each" && def.run && commands2.has(def.run)) ;
+}
+function collectCapturedVars(aliasName, commands2, captured, depth) {
+  if (depth > 10) return;
+  const def = commands2.get(aliasName);
+  if (!def) return;
+  if (def.kind === "single" && def.capture) {
+    captured.add(def.capture.var);
+    captured.add(def.capture.var.toUpperCase().replace(/[.\-]/g, "_"));
+  }
+  if (def.kind === "sequential") {
+    for (const step of def.steps) {
+      if (VAR_ASSIGN_RE2.test(step)) {
+        const key = step.substring(0, step.indexOf("="));
+        captured.add(key);
+        captured.add(key.toUpperCase().replace(/[.\-]/g, "_"));
+      } else if (commands2.has(step)) {
+        collectCapturedVars(step, commands2, captured, depth + 1);
+      }
+    }
+  } else if (def.kind === "parallel") {
+    for (const entry of def.group) {
+      if (commands2.has(entry)) {
+        collectCapturedVars(entry, commands2, captured, depth + 1);
+      }
+    }
+  } else if (def.kind === "for_each" && def.run && commands2.has(def.run)) {
+    collectCapturedVars(def.run, commands2, captured, depth + 1);
+  }
+}
+function validateParams(aliasName, commands2, values) {
+  const declared = /* @__PURE__ */ new Map();
+  const usedBy = /* @__PURE__ */ new Map();
+  collectAll(aliasName, commands2, declared, usedBy, 0, true);
+  const capturedVars = /* @__PURE__ */ new Set();
+  collectCapturedVars(aliasName, commands2, capturedVars, 0);
+  const loopVars = /* @__PURE__ */ new Set();
+  collectLoopVars(aliasName, commands2, loopVars, 0);
+  const result = { ...values };
+  for (const [name, param] of declared) {
+    if (!(name in result) && !capturedVars.has(name) && param.default !== void 0) {
+      result[name] = param.default;
+    }
+  }
+  const missing = [];
+  for (const [name, aliases] of usedBy) {
+    let hasValue = name in result || capturedVars.has(name) || loopVars.has(name);
+    if (!hasValue) {
+      const bracketIdx = name.indexOf("[");
+      if (bracketIdx > 0) {
+        const baseName = name.substring(0, bracketIdx);
+        hasValue = baseName in result || capturedVars.has(baseName) || loopVars.has(baseName);
+      }
+      if (!hasValue && name.includes(".")) {
+        const parts = name.split(".");
+        for (let i2 = 1; i2 < parts.length; i2++) {
+          const prefix = parts.slice(0, i2).join(".");
+          if (capturedVars.has(prefix) || loopVars.has(prefix)) {
+            hasValue = true;
+            break;
+          }
+        }
+      }
+    }
+    if (hasValue) continue;
+    const param = declared.get(name);
+    if (param?.default !== void 0) continue;
+    if (param && !param.required) continue;
+    missing.push({
+      name,
+      requiredBy: [...aliases],
+      description: param?.description
+    });
+  }
+  if (missing.length > 0) {
+    throw new MissingParamsError(missing);
+  }
+  return result;
+}
+function getParamNames(aliasName, commands2, values) {
+  const declared = /* @__PURE__ */ new Map();
+  const usedBy = /* @__PURE__ */ new Map();
+  collectAll(aliasName, commands2, declared, usedBy, 0, true);
+  const capturedVars = /* @__PURE__ */ new Set();
+  collectCapturedVars(aliasName, commands2, capturedVars, 0);
+  const loopVars = /* @__PURE__ */ new Set();
+  collectLoopVars(aliasName, commands2, loopVars, 0);
+  const result = [];
+  for (const [name] of usedBy) {
+    let provided = name in values || capturedVars.has(name) || loopVars.has(name);
+    if (!provided) {
+      const bracketIdx = name.indexOf("[");
+      if (bracketIdx > 0) {
+        const baseName = name.substring(0, bracketIdx);
+        provided = baseName in values || capturedVars.has(baseName) || loopVars.has(baseName);
+      }
+      if (!provided && name.includes(".")) {
+        const parts = name.split(".");
+        for (let i2 = 1; i2 < parts.length; i2++) {
+          const prefix = parts.slice(0, i2).join(".");
+          if (capturedVars.has(prefix) || loopVars.has(prefix)) {
+            provided = true;
+            break;
+          }
+        }
+      }
+    }
+    if (provided) continue;
+    const param = declared.get(name);
+    result.push({
+      name,
+      description: param?.description,
+      required: param ? param.required : true,
+      // undeclared = implicitly required
+      hasDefault: param?.default !== void 0
+    });
+  }
+  return result;
+}
+function collectLoopVars(aliasName, commands2, loopVars, depth) {
+  if (depth > 10) return;
+  const def = commands2.get(aliasName);
+  if (!def) return;
+  if (def.kind === "for_each") {
+    loopVars.add(def.var);
+    if (def.run && commands2.has(def.run)) {
+      collectLoopVars(def.run, commands2, loopVars, depth + 1);
+    }
+  } else if (def.kind === "sequential") {
+    for (const step of def.steps) {
+      if (commands2.has(step)) collectLoopVars(step, commands2, loopVars, depth + 1);
+    }
+  } else if (def.kind === "parallel") {
+    for (const entry of def.group) {
+      if (commands2.has(entry)) collectLoopVars(entry, commands2, loopVars, depth + 1);
+    }
+  }
+}
 
 // src/executor/capture.ts
 function validateCapture(raw, config) {
@@ -12533,73 +13100,9 @@ function stringCompare(op, lhs, rhs, expr) {
   }
   return pass ? { pass: true } : { pass: false, reason: `assertion failed: "${lhs}" ${expr}` };
 }
-function parseIni(content) {
-  const data = {};
-  let currentSection = "";
-  for (const rawLine of content.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (line === "" || line.startsWith(";") || line.startsWith("#")) continue;
-    const sectionMatch = /^\[(.+)\]$/.exec(line);
-    if (sectionMatch) {
-      currentSection = sectionMatch[1];
-      if (!data[currentSection]) data[currentSection] = {};
-      continue;
-    }
-    const kvMatch = /^(\+?[^=]+)=(.*)$/.exec(line);
-    if (kvMatch && currentSection) {
-      const key = kvMatch[1].trim();
-      const value = kvMatch[2].trim();
-      if (!data[currentSection]) data[currentSection] = {};
-      data[currentSection][key] = value;
-    }
-  }
-  return data;
-}
-function serializeIni(data) {
-  const lines = [];
-  for (const [section, keys] of Object.entries(data)) {
-    lines.push(`[${section}]`);
-    for (const [key, value] of Object.entries(keys)) {
-      lines.push(`${key}=${value}`);
-    }
-    lines.push("");
-  }
-  return lines.join("\r\n");
-}
-function writeIni(filePath, sections, mode = "overwrite") {
-  let data;
-  if (mode === "merge" && existsSync(filePath)) {
-    const existing = readFileSync(filePath, "utf8");
-    data = parseIni(existing);
-    for (const [section, keys] of Object.entries(sections)) {
-      if (!data[section]) data[section] = {};
-      for (const [key, value] of Object.entries(keys)) {
-        data[section][key] = value;
-      }
-    }
-  } else {
-    data = sections;
-  }
-  mkdirSync(dirname(filePath), { recursive: true });
-  writeFileSync(filePath, serializeIni(data), "utf8");
-}
-function deleteIniKeys(filePath, deletions) {
-  if (!existsSync(filePath)) return;
-  const existing = readFileSync(filePath, "utf8");
-  const data = parseIni(existing);
-  for (const [section, keys] of Object.entries(deletions)) {
-    if (!data[section]) continue;
-    for (const key of keys) {
-      delete data[section][key];
-    }
-    if (Object.keys(data[section]).length === 0) {
-      delete data[section];
-    }
-  }
-  writeFileSync(filePath, serializeIni(data), "utf8");
-}
 
-// src/executor/output.ts
+// src/executor/index.ts
+init_ini();
 var ANSI_PALETTE = [
   "\x1B[32m",
   // green
@@ -12655,8 +13158,15 @@ function printStepHeader(stepName, stepNum, totalSteps) {
   process.stderr.write(`\u25B6 ${stepName}${counter}
 `);
 }
-function printStepResult(stepName, exitCode, durationMs) {
+function printStepResult(stepName, exitCode, durationMs, statusOverride) {
   const useColor = shouldUseColor();
+  if (statusOverride) {
+    const dim2 = useColor ? "\x1B[2m" : "";
+    const reset2 = useColor ? "\x1B[0m" : "";
+    process.stderr.write(`${dim2}\u2298 ${stepName} ${statusOverride}${reset2}
+`);
+    return;
+  }
   const ok = exitCode === 0;
   const icon = ok ? useColor ? "\x1B[32m\u2713\x1B[0m" : "\u2713" : useColor ? "\x1B[31m\u2717\x1B[0m" : "\u2717";
   const status = ok ? useColor ? "\x1B[32mOK\x1B[0m" : "OK" : useColor ? `\x1B[31mFAILED (exit ${exitCode})\x1B[0m` : `FAILED (exit ${exitCode})`;
@@ -12697,10 +13207,19 @@ function printDryRun(plan, secretValues, envVars, secretKeys) {
       for (let i2 = 0; i2 < plan.steps.length; i2++) {
         const step = plan.steps[i2];
         if (step) {
-          const redacted = redactArgv(step.argv, secretValues);
-          const captureTag = step.capture ? ` [capture \u2192 ${step.capture.var}]` : "";
-          process.stderr.write(`${prefix}   ${i2 + 1}. ${redacted.join(" ")}${captureTag}
+          if (step.kind === "ini") {
+            process.stderr.write(`${prefix}   ${i2 + 1}. ini:${step.mode} ${step.file}
 `);
+          } else if (step.kind === "set") {
+            const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(", ");
+            process.stderr.write(`${prefix}   ${i2 + 1}. set ${assignments}
+`);
+          } else {
+            const redacted = redactArgv(step.argv, secretValues);
+            const captureTag = step.capture ? ` [capture \u2192 ${step.capture.var}]` : "";
+            process.stderr.write(`${prefix}   ${i2 + 1}. ${redacted.join(" ")}${captureTag}
+`);
+          }
         }
       }
       break;
@@ -12799,10 +13318,19 @@ function printVerboseCommand(aliasDef, plan, secretValues) {
       for (let i2 = 0; i2 < plan.steps.length; i2++) {
         const step = plan.steps[i2];
         if (step) {
-          const redacted = redactArgv(step.argv, secretValues);
-          const captureTag = step.capture ? ` [capture \u2192 ${step.capture.var}]` : "";
-          process.stderr.write(`${prefix}   ${i2 + 1}. ${redacted.join(" ")}${captureTag}
+          if (step.kind === "ini") {
+            process.stderr.write(`${prefix}   ${i2 + 1}. ini:${step.mode} ${step.file}
 `);
+          } else if (step.kind === "set") {
+            const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(", ");
+            process.stderr.write(`${prefix}   ${i2 + 1}. set ${assignments}
+`);
+          } else {
+            const redacted = redactArgv(step.argv, secretValues);
+            const captureTag = step.capture ? ` [capture \u2192 ${step.capture.var}]` : "";
+            process.stderr.write(`${prefix}   ${i2 + 1}. ${redacted.join(" ")}${captureTag}
+`);
+          }
         }
       }
       break;
@@ -12817,21 +13345,33 @@ function printVerboseCommand(aliasDef, plan, secretValues) {
       break;
   }
 }
-function printStepPreview(rawArgv, resolvedArgv, secretValues) {
-  const useColor = shouldUseColor();
-  const dim2 = useColor ? DIM : "";
-  const reset2 = useColor ? RESET : "";
+function printStepPreview(rawArgv, resolvedArgv, secretValues, options) {
   const rawStr = rawArgv ? rawArgv.join(" ") : void 0;
   const resArgv = resolvedArgv;
   const resStr = resArgv.join(" ");
-  if (rawStr && rawStr !== resStr) {
-    process.stderr.write(`${dim2}  raw: ${rawStr}${reset2}
+  if (options?.verbose !== false) {
+    const useColor = shouldUseColor();
+    const dim2 = useColor ? DIM : "";
+    const reset2 = useColor ? RESET : "";
+    if (rawStr && rawStr !== resStr) {
+      process.stderr.write(`${dim2}  raw: ${rawStr}${reset2}
 `);
-    process.stderr.write(`${dim2}  run: ${resStr}${reset2}
+      process.stderr.write(`${dim2}  run: ${resStr}${reset2}
 `);
-  } else {
-    process.stderr.write(`${dim2}  run: ${resStr}${reset2}
+    } else {
+      process.stderr.write(`${dim2}  run: ${resStr}${reset2}
 `);
+    }
+  }
+  if (options?.logFile) {
+    if (rawStr && rawStr !== resStr) {
+      appendFileSync(options.logFile, `  raw: ${rawStr}
+  run: ${resStr}
+`);
+    } else {
+      appendFileSync(options.logFile, `  run: ${resStr}
+`);
+    }
   }
 }
 function printCaptureResult(cap, validation, verbose = false) {
@@ -19396,6 +19936,7 @@ createExeca(mapScriptAsync, {}, deepScriptOptions, setScriptSync);
 getIpcExport();
 
 // src/executor/parallel.ts
+init_errors();
 async function runParallel(group, failMode, cwd, env, logFile, showOutput = true) {
   const controller = new AbortController();
   const { signal } = controller;
@@ -19481,6 +20022,10 @@ async function runParallel(group, failMode, cwd, env, logFile, showOutput = true
   printParallelSummary(group, finalResults);
   return { exitCode: firstFailCode };
 }
+init_errors();
+init_interpolate();
+init_ini();
+init_errors();
 var IS_WINDOWS = process.platform === "win32";
 var FORCE_KILL_DELAY = 5e3;
 async function killAndWait(proc) {
@@ -19699,17 +20244,70 @@ async function runAndCapture(argv, cwd, env, logFile) {
     process.off("SIGINT", sigintHandler);
   }
 }
-async function runSequential(steps, cwd, env, logFile, showOutput = true, tailLines) {
+async function runSequential(steps, cwd, env, logFile, showOutput = true, tailLines, fromStep) {
   const capturedVars = {};
   const totalSteps = steps.length;
   let stepNum = 0;
+  let skipping = !!fromStep;
   for (const step of steps) {
     stepNum++;
+    const stepLabel = step.kind === "ini" ? `ini:${step.mode}` : step.kind === "set" ? "set" : step.label ?? step.argv[0] ?? "(unknown)";
+    if (skipping && stepLabel === fromStep) {
+      skipping = false;
+    }
+    if (skipping) {
+      printStepHeader(stepLabel, stepNum, totalSteps);
+      printStepResult(stepLabel, 0, 0, "SKIPPED");
+      continue;
+    }
+    if (step.kind === "set") {
+      printStepHeader("set", stepNum, totalSteps);
+      const mergedValues2 = { ...env, ...capturedVars };
+      for (const [key, rawValue] of Object.entries(step.vars)) {
+        let resolved = interpolateArgv([rawValue], "(set)", mergedValues2)[0] ?? rawValue;
+        if (resolved.length >= 2 && resolved.startsWith('"') && resolved.endsWith('"')) {
+          resolved = resolved.slice(1, -1);
+        }
+        capturedVars[key] = resolved;
+        const envKey = key.toUpperCase().replace(/[.\-]/g, "_");
+        capturedVars[envKey] = resolved;
+        process.stderr.write(`  ${key}=${resolved}
+`);
+      }
+      printStepResult("set", 0, 0);
+      continue;
+    }
+    if (step.kind === "ini") {
+      const iniLabel = `ini:${step.mode}`;
+      printStepHeader(iniLabel, stepNum, totalSteps);
+      const startTime2 = Date.now();
+      try {
+        if (step.set) writeIni(step.file, step.set, step.mode);
+        if (step.delete) deleteIniKeys(step.file, step.delete);
+        process.stderr.write(`  ${step.file}
+`);
+        if (step.set) {
+          for (const [section, keys] of Object.entries(step.set)) {
+            for (const [k, v] of Object.entries(keys)) {
+              process.stderr.write(`    [${section}] ${k}=${v}
+`);
+            }
+          }
+        }
+        printStepResult(iniLabel, 0, Date.now() - startTime2);
+      } catch (err) {
+        process.stderr.write(`  error: ${err.message}
+`);
+        printStepResult(iniLabel, 1, Date.now() - startTime2);
+        return { exitCode: 1 };
+      }
+      continue;
+    }
     const mergedValues = { ...env, ...capturedVars };
     const finalArgv = step.rawArgv ? interpolateArgv(step.rawArgv, "(step)", mergedValues) : step.argv;
-    const stepCmd = finalArgv[0] ?? "(unknown)";
+    const stepCmd = step.label ?? finalArgv[0] ?? "(unknown)";
     printStepHeader(stepCmd, stepNum, totalSteps);
-    printStepPreview(step.rawArgv, finalArgv);
+    printStepPreview(step.rawArgv, finalArgv, void 0, { verbose: env["XCI_VERBOSE"] === "1", logFile });
     const stepEnv = { ...env, ...capturedVars };
     const startTime = Date.now();
     if (step.capture) {
@@ -19749,13 +20347,13 @@ async function runSequential(steps, cwd, env, logFile, showOutput = true, tailLi
 // src/executor/index.ts
 var executor = {
   async run(plan, options) {
-    const { cwd, env, logFile, showOutput, tailLines } = options;
+    const { cwd, env, logFile, showOutput, tailLines, fromStep } = options;
     const show = showOutput ?? true;
     switch (plan.kind) {
       case "single": {
         const cmdName = plan.argv[0] ?? "(cmd)";
         printStepHeader(cmdName);
-        printStepPreview(void 0, plan.argv);
+        printStepPreview(void 0, plan.argv, void 0, { verbose: env["XCI_VERBOSE"] === "1", logFile });
         const startTime = Date.now();
         if (plan.capture) {
           const result2 = await runSingleCapture(plan.argv, cwd, env, logFile);
@@ -19782,7 +20380,7 @@ var executor = {
         return result;
       }
       case "sequential":
-        return runSequential(plan.steps, cwd, env, logFile, show, tailLines);
+        return runSequential(plan.steps, cwd, env, logFile, show, tailLines, fromStep);
       case "parallel":
         return runParallel(plan.group, plan.failMode, cwd, env, logFile, show);
       case "ini": {
@@ -19814,6 +20412,9 @@ var executor = {
     }
   }
 };
+
+// src/cli.ts
+init_errors();
 
 // src/version.ts
 var XCI_VERSION = "0.0.0";
@@ -20369,6 +20970,7 @@ function showPicker(commands2) {
 }
 
 // src/tui/dashboard.ts
+init_errors();
 var commands = [];
 var logLines2 = [];
 var logScrollOffset = 0;
@@ -20518,7 +21120,7 @@ function buildEntries2(plan) {
       return [{ label: plan.argv[0] ?? "(cmd)", status: "pending" }];
     case "sequential":
       return plan.steps.map((step) => ({
-        label: step.argv[0] ?? "(step)",
+        label: step.kind === "ini" ? `ini:${step.mode}` : step.kind === "set" ? "set" : step.label ?? step.argv[0] ?? "(step)",
         status: "pending"
       }));
     case "parallel":
@@ -20526,6 +21128,8 @@ function buildEntries2(plan) {
         label: entry.alias,
         status: "pending"
       }));
+    case "ini":
+      return [{ label: `ini:${plan.mode}`, status: "pending" }];
   }
 }
 async function runWithCapture(argv, cwd, env, prefix) {
@@ -20581,6 +21185,45 @@ async function execSequential(plan, cwd, env) {
   const capturedVars = {};
   for (let i2 = 0; i2 < plan.steps.length; i2++) {
     const step = plan.steps[i2];
+    if (step.kind === "set") {
+      updateCommand(i2, "running");
+      appendLog(`-- step ${i2 + 1}/${plan.steps.length}: set --`);
+      const { interpolateArgv: interpolateArgv2 } = await Promise.resolve().then(() => (init_interpolate(), interpolate_exports));
+      const mergedValues2 = { ...env, ...capturedVars };
+      for (const [key, rawValue] of Object.entries(step.vars)) {
+        const resolved = interpolateArgv2([rawValue], "(set)", mergedValues2)[0] ?? rawValue;
+        capturedVars[key] = resolved;
+        const envKey = key.toUpperCase().replace(/[.\-]/g, "_");
+        capturedVars[envKey] = resolved;
+        appendLog(`  ${key}=${resolved}`);
+      }
+      updateCommand(i2, "success");
+      flushRender();
+      continue;
+    }
+    if (step.kind === "ini") {
+      const iniLabel = `ini:${step.mode}`;
+      updateCommand(i2, "running");
+      appendLog(`-- step ${i2 + 1}/${plan.steps.length}: ${iniLabel} --`);
+      flushRender();
+      try {
+        const { writeIni: writeIni2, deleteIniKeys: deleteIniKeys2 } = await Promise.resolve().then(() => (init_ini(), ini_exports));
+        if (step.set) writeIni2(step.file, step.set, step.mode);
+        if (step.delete) deleteIniKeys2(step.file, step.delete);
+        appendLog(`  ${step.file}`);
+        updateCommand(i2, "success");
+        flushRender();
+      } catch (err) {
+        appendLog(`  error: ${err.message}`);
+        updateCommand(i2, "failed", 1);
+        for (let j = i2 + 1; j < plan.steps.length; j++) {
+          updateCommand(j, "skipped");
+        }
+        flushRender();
+        return { exitCode: 1 };
+      }
+      continue;
+    }
     const mergedValues = { ...env, ...capturedVars };
     const finalArgv = step.rawArgv ? interpolateArgv(step.rawArgv, "(step)", mergedValues) : step.argv;
     updateCommand(i2, "running");
@@ -20966,29 +21609,34 @@ function listYamlFilesRecursive3(dirPath) {
 }
 function printAliasList(commands2) {
   process.stdout.write("xci \u2014 Local CI command runner\n\n");
-  process.stdout.write("Commands:\n\n");
-  process.stdout.write("  xci <alias> [KEY=VALUE...]   Run an alias\n");
+  process.stdout.write("Built-in commands:\n\n");
   process.stdout.write("  xci init                     Scaffold .xci/ directory\n");
   process.stdout.write("  xci template                 Generate shareable template\n");
-  process.stdout.write("  xci --help                   Show full help\n");
+  process.stdout.write("  xci completion [shell]       Output shell completion script\n");
+  process.stdout.write("  xci install [shell]          Install shell completion permanently\n");
+  process.stdout.write("  xci uninstall [shell]        Remove shell completion\n");
   process.stdout.write("\nFlags:\n\n");
-  process.stdout.write("  --log          Show command output in terminal\n");
-  process.stdout.write("  --verbose      Show config trace + output\n");
-  process.stdout.write("  --dry-run      Preview without executing\n");
-  process.stdout.write("  --ui           Interactive TUI dashboard\n");
-  process.stdout.write("  --list, -l     List aliases\n");
+  process.stdout.write("  --log              Show full command output in terminal\n");
+  process.stdout.write("  --short-log <N>    Show last N lines of output (default: 10)\n");
+  process.stdout.write("  --verbose          Show config trace + full output\n");
+  process.stdout.write("  --dry-run          Preview without executing\n");
+  process.stdout.write("  --list             Show command details and sub-steps\n");
+  process.stdout.write("  --from <step>      Start from a specific step (skip earlier)\n");
+  process.stdout.write("  --ui               Interactive TUI dashboard\n");
+  process.stdout.write("  -l                 List all aliases\n");
   if (commands2.size > 0) {
-    process.stdout.write("\nAliases:\n\n");
+    process.stdout.write("\nProject aliases:\n\n");
+    const maxLen = Math.max(...[...commands2.keys()].map((a2) => a2.length));
     for (const [alias, def] of commands2) {
-      const desc = def.description ?? "";
-      const kind = def.kind;
-      process.stdout.write(`  ${alias}  ${desc ? "- " + desc : ""}  (${kind})
+      const pad2 = " ".repeat(maxLen - alias.length + 2);
+      const desc = def.description ? `${def.description} ` : "";
+      process.stdout.write(`  ${alias}${pad2}${desc}(${def.kind})
 `);
     }
   } else {
     process.stdout.write("\nNo aliases defined. Edit .xci/commands.yml to add aliases.\n");
   }
-  process.stdout.write("\nRun `xci <alias> --help` for details on a specific alias.\n");
+  process.stdout.write("\nRun `xci <alias> --list` for details on a specific alias.\n");
 }
 function buildAliasHelpText(alias, def) {
   const lines = [""];
@@ -21032,6 +21680,66 @@ function buildAliasHelpText(alias, def) {
   }
   return lines.join("\n");
 }
+function printAliasDetails(alias, def, commands2, config, projectRoot) {
+  const builtins = { "xci.project.path": projectRoot, "XCI_PROJECT_PATH": projectRoot };
+  const effectiveValues = { ...config.values, ...builtins };
+  process.stderr.write(`
+${alias}`);
+  if (def.description) process.stderr.write(` \u2014 ${def.description}`);
+  process.stderr.write(`
+  type: ${def.kind}
+`);
+  switch (def.kind) {
+    case "sequential":
+      process.stderr.write("  steps:\n");
+      for (let i2 = 0; i2 < def.steps.length; i2++) {
+        const step = def.steps[i2];
+        const subDef = commands2.get(step);
+        const desc = subDef?.description ? ` \u2014 ${subDef.description}` : "";
+        const kind = subDef ? ` (${subDef.kind})` : "";
+        process.stderr.write(`    ${i2 + 1}. ${step}${kind}${desc}
+`);
+      }
+      break;
+    case "parallel":
+      process.stderr.write(`  parallel (failMode: ${def.failMode ?? "fast"}):
+`);
+      for (const entry of def.group) {
+        const subDef = commands2.get(entry);
+        const desc = subDef?.description ? ` \u2014 ${subDef.description}` : "";
+        process.stderr.write(`    - ${entry}${desc}
+`);
+      }
+      break;
+    case "single":
+      process.stderr.write(`  cmd: ${def.cmd.join(" ")}
+`);
+      break;
+    case "for_each":
+      process.stderr.write(`  var: ${def.var}  in: [${def.in.join(", ")}]  mode: ${def.mode}
+`);
+      if (def.cmd) process.stderr.write(`  cmd: ${def.cmd.join(" ")}
+`);
+      if (def.run) process.stderr.write(`  run: ${def.run}
+`);
+      break;
+    case "ini":
+      process.stderr.write(`  file: ${def.file}  mode: ${def.mode ?? "overwrite"}
+`);
+      break;
+  }
+  const params = getParamNames(alias, commands2, effectiveValues);
+  if (params.length > 0) {
+    process.stderr.write("  params:\n");
+    for (const p of params) {
+      const tag = p.required ? "required" : p.hasDefault ? "has default" : "optional";
+      const desc = p.description ? ` \u2014 ${p.description}` : "";
+      process.stderr.write(`    ${p.name} (${tag})${desc}
+`);
+    }
+  }
+  process.stderr.write("\n");
+}
 function parseCliOverrides(args) {
   const dashDashIdx = args.indexOf("--");
   const preArgs = dashDashIdx === -1 ? args : args.slice(0, dashDashIdx);
@@ -21055,8 +21763,10 @@ function appendExtraArgs(plan, extra) {
     case "sequential": {
       if (plan.steps.length === 0) return plan;
       const lastIdx = plan.steps.length - 1;
+      const lastStep = plan.steps[lastIdx];
+      if (lastStep.kind === "ini") return plan;
       const newSteps = plan.steps.map(
-        (s, i2) => i2 === lastIdx ? { ...s, argv: [...s.argv, ...extra] } : s
+        (s, i2) => i2 === lastIdx && s.kind !== "ini" ? { ...s, argv: [...s.argv, ...extra] } : s
       );
       return { ...plan, steps: newSteps };
     }
@@ -21068,38 +21778,67 @@ function appendExtraArgs(plan, extra) {
           argv: [...entry.argv, ...extra]
         }))
       };
+    case "ini":
+      return plan;
   }
 }
 function registerAliases(program2, commands2, config, projectRoot) {
   for (const [alias, def] of commands2) {
-    const sub = program2.command(alias).description(def.description ?? "").passThroughOptions().allowUnknownOption().allowExcessArguments().option("--dry-run", "Preview the resolved command without executing").option("--verbose", "Show config trace and run the command").option("--log", "Show command output in terminal (default: hidden)").option("--short-log <N>", "Show last N lines of output per command").option("--ui", "Run with interactive TUI dashboard").addHelpText("after", buildAliasHelpText(alias, def));
+    const sub = program2.command(alias).description(def.description ?? "").passThroughOptions().allowUnknownOption().allowExcessArguments().option("--dry-run", "Preview the resolved command without executing").option("--verbose", "Show config trace and run the command").option("--log", "Show command output in terminal (default: hidden)").option("--short-log <N>", "Show last N lines of output per command").option("--ui", "Run with interactive TUI dashboard").option("--list", "Show command details and sub-steps").option("--from <step>", "Start execution from this step, skip earlier ones").addHelpText("after", buildAliasHelpText(alias, def));
     sub.action(async function(options) {
-      const XCI_FLAGS = /* @__PURE__ */ new Set(["--dry-run", "--verbose", "--log", "--ui", "--dry-run=true", "--verbose=true", "--log=true", "--ui=true"]);
+      const XCI_FLAGS2 = /* @__PURE__ */ new Set(["--dry-run", "--verbose", "--log", "--no-log", "--ui", "--list", "--dry-run=true", "--verbose=true", "--log=true", "--ui=true", "--list=true"]);
       const rawArgs = this.parent?.rawArgs ?? [];
       const aliasIdx = rawArgs.indexOf(alias);
       const afterAlias = aliasIdx >= 0 ? rawArgs.slice(aliasIdx + 1) : [...this.args];
       const filteredArgs = [];
       for (let i2 = 0; i2 < afterAlias.length; i2++) {
-        if (afterAlias[i2] === "--short-log") {
+        if (afterAlias[i2] === "--short-log" || afterAlias[i2] === "--from") {
           i2++;
           continue;
         }
-        if (afterAlias[i2].startsWith("--short-log=")) continue;
+        if (afterAlias[i2].startsWith("--short-log=") || afterAlias[i2].startsWith("--from=")) continue;
         filteredArgs.push(afterAlias[i2]);
       }
-      const userArgs = filteredArgs.filter((a2) => !XCI_FLAGS.has(a2));
+      const userArgs = filteredArgs.filter((a2) => !XCI_FLAGS2.has(a2));
       const { overrides, passThrough } = parseCliOverrides(userArgs);
       const isDryRun = options.dryRun === true || afterAlias.includes("--dry-run");
       const isVerbose2 = options.verbose === true || afterAlias.includes("--verbose");
       const isLog = options.log === true || afterAlias.includes("--log");
       const isUi = options.ui === true || afterAlias.includes("--ui");
-      const tailLines = options.shortLog ? Number.parseInt(options.shortLog, 10) : void 0;
+      let shortLogValue = options.shortLog;
+      if (!shortLogValue) {
+        const slIdx = afterAlias.indexOf("--short-log");
+        if (slIdx >= 0 && slIdx + 1 < afterAlias.length) {
+          shortLogValue = afterAlias[slIdx + 1];
+        } else {
+          const slEq = afterAlias.find((a2) => a2.startsWith("--short-log="));
+          if (slEq) shortLogValue = slEq.split("=")[1];
+        }
+      }
+      const parsedTail = shortLogValue ? Number.parseInt(shortLogValue, 10) : void 0;
       const showOutput = isVerbose2 || isLog;
+      const tailLines = showOutput ? void 0 : parsedTail ?? 10;
+      const isList = options.list === true || afterAlias.includes("--list");
+      let fromStep = options.from;
+      if (!fromStep) {
+        const fromIdx = afterAlias.indexOf("--from");
+        if (fromIdx >= 0 && fromIdx + 1 < afterAlias.length) {
+          fromStep = afterAlias[fromIdx + 1];
+        } else {
+          const fromEq = afterAlias.find((a2) => a2.startsWith("--from="));
+          if (fromEq) fromStep = fromEq.split("=")[1];
+        }
+      }
+      if (isList) {
+        printAliasDetails(alias, def, commands2, config, projectRoot);
+        return;
+      }
       const builtins = {
         "xci.project.path": projectRoot,
         "XCI_PROJECT_PATH": projectRoot
       };
-      const effectiveValues = { ...config.values, ...builtins, ...overrides };
+      const mergedValues = { ...config.values, ...builtins, ...overrides };
+      const effectiveValues = validateParams(alias, commands2, mergedValues);
       const effectiveConfig = { ...config, values: effectiveValues };
       const plan = resolver.resolve(alias, commands2, effectiveConfig);
       const env = { ...effectiveValues, ...buildEnvVars(effectiveValues) };
@@ -21157,7 +21896,7 @@ function registerAliases(program2, commands2, config, projectRoot) {
         config: effectiveConfig,
         cwd: projectRoot,
         env
-      }) : await executor.run(finalPlan, { cwd: projectRoot, env, logFile, showOutput, tailLines });
+      }) : await executor.run(finalPlan, { cwd: projectRoot, env, logFile, showOutput, tailLines, fromStep });
       if (result.exitCode !== 0) {
         process.exitCode = result.exitCode;
         if (!showOutput) {
@@ -21222,10 +21961,172 @@ function handleError(err, _program) {
 `);
   return 1;
 }
+var XCI_FLAGS = ["--dry-run", "--verbose", "--log", "--short-log", "--ui", "--help"];
+function generatePowerShellScript() {
+  return `# xci PowerShell completion \u2014 add to your $PROFILE
+Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
+if ((Get-Module PSReadLine).Version -ge [version]'2.2.0') { Set-PSReadLineOption -PredictionViewStyle ListView }
+Register-ArgumentCompleter -CommandName xci -Native -ScriptBlock { param($wordToComplete, $commandAst, $cursorPosition); $words = $commandAst.ToString() -split '\\s+'; $result = & xci --get-completions @words 2>$null; if ($result) { $result -split '\\n' | ForEach-Object { $parts = $_ -split '\\t', 2; $text = $parts[0]; $tooltip = if ($parts.Length -gt 1) { $parts[1] } else { $text }; [System.Management.Automation.CompletionResult]::new($text, $text, 'ParameterValue', $tooltip) } } }
+`;
+}
+async function handleGetCompletions(argv) {
+  const words = argv.slice(4);
+  const completions = [];
+  const projectRoot = findXciRoot(process.cwd());
+  if (projectRoot === null) return completions;
+  let config;
+  let commands2;
+  try {
+    [config, commands2] = await Promise.all([
+      configLoader.load(projectRoot),
+      commandsLoader.load(projectRoot)
+    ]);
+  } catch {
+    return completions;
+  }
+  const aliasName = words[0];
+  if (!aliasName || words.length === 1 && !commands2.has(aliasName)) {
+    const builtins2 = ["init", "template", "completion"];
+    for (const name of builtins2) {
+      if (name.startsWith(aliasName ?? "")) {
+        completions.push(name);
+      }
+    }
+    for (const [name, def] of commands2) {
+      if (name.startsWith(aliasName ?? "")) {
+        completions.push(`${name}	${def.description ?? ""}`);
+      }
+    }
+    return completions;
+  }
+  if (!commands2.has(aliasName)) return completions;
+  const currentWord = words[words.length - 1] ?? "";
+  if (currentWord.startsWith("-")) {
+    for (const flag of XCI_FLAGS) {
+      if (flag.startsWith(currentWord)) {
+        completions.push(flag);
+      }
+    }
+    return completions;
+  }
+  const providedKeys = /* @__PURE__ */ new Set();
+  for (const w of words.slice(1)) {
+    const eqIdx = w.indexOf("=");
+    if (eqIdx > 0) providedKeys.add(w.substring(0, eqIdx));
+  }
+  const builtins = {
+    "xci.project.path": projectRoot,
+    "XCI_PROJECT_PATH": projectRoot
+  };
+  const effectiveValues = { ...config.values, ...builtins };
+  const params = getParamNames(aliasName, commands2, effectiveValues);
+  const prefix = currentWord.includes("=") ? "" : currentWord;
+  for (const p of params) {
+    if (providedKeys.has(p.name)) continue;
+    if (p.name.startsWith(prefix)) {
+      const suffix = p.required ? " (required)" : p.hasDefault ? " (has default)" : " (optional)";
+      completions.push(`${p.name}=	${(p.description ?? "") + suffix}`);
+    }
+  }
+  return completions;
+}
 async function main(argv) {
+  if (argv[2] === "--get-completions") {
+    const completions = await handleGetCompletions(argv);
+    if (completions.length > 0) {
+      process.stdout.write(completions.join("\n") + "\n");
+    }
+    return 0;
+  }
   const program2 = buildProgram();
   registerInitCommand(program2);
   registerTemplateCommand(program2);
+  program2.command("completion").description("Output shell completion script").argument("[shell]", "Shell type (powershell)", "powershell").action((shell) => {
+    if (shell === "powershell" || shell === "pwsh") {
+      process.stdout.write(generatePowerShellScript());
+    } else {
+      process.stderr.write(`Unsupported shell: ${shell}. Supported: powershell
+`);
+      process.exitCode = 1;
+    }
+  });
+  program2.command("install").description("Install shell completion permanently").argument("[shell]", "Shell type (powershell)", "powershell").action(async (shell) => {
+    if (shell !== "powershell" && shell !== "pwsh") {
+      process.stderr.write(`Unsupported shell: ${shell}. Supported: powershell
+`);
+      process.exitCode = 1;
+      return;
+    }
+    const script = generatePowerShellScript();
+    const marker = "# xci PowerShell completion";
+    const { execSync: execSync4 } = await import('child_process');
+    let profilePath;
+    try {
+      profilePath = execSync4('powershell -NoProfile -Command "$PROFILE"', { encoding: "utf8" }).trim();
+    } catch {
+      try {
+        profilePath = execSync4('pwsh -NoProfile -Command "$PROFILE"', { encoding: "utf8" }).trim();
+      } catch {
+        process.stderr.write("Could not detect PowerShell profile path.\n");
+        process.stderr.write("Run manually: xci completion powershell >> $PROFILE\n");
+        process.exitCode = 1;
+        return;
+      }
+    }
+    const { existsSync: exists, readFileSync: readFile, appendFileSync: appendFile, mkdirSync: mkDir } = await import('fs');
+    const { dirname: dir } = await import('path');
+    let existing = "";
+    if (exists(profilePath)) {
+      existing = readFile(profilePath, "utf8");
+    }
+    if (existing.includes(marker)) {
+      process.stderr.write(`xci completion already installed in ${profilePath}
+`);
+      process.stderr.write("To reinstall, remove the existing xci block from your $PROFILE and run again.\n");
+      return;
+    }
+    mkDir(dir(profilePath), { recursive: true });
+    appendFile(profilePath, "\n" + script);
+    process.stderr.write(`xci completion installed in ${profilePath}
+`);
+    process.stderr.write("Restart PowerShell or run: . $PROFILE\n");
+  });
+  program2.command("uninstall").description("Remove shell completion from profile").argument("[shell]", "Shell type (powershell)", "powershell").action(async (shell) => {
+    if (shell !== "powershell" && shell !== "pwsh") {
+      process.stderr.write(`Unsupported shell: ${shell}. Supported: powershell
+`);
+      process.exitCode = 1;
+      return;
+    }
+    const { execSync: execSync4 } = await import('child_process');
+    let profilePath;
+    try {
+      profilePath = execSync4('powershell -NoProfile -Command "$PROFILE"', { encoding: "utf8" }).trim();
+    } catch {
+      try {
+        profilePath = execSync4('pwsh -NoProfile -Command "$PROFILE"', { encoding: "utf8" }).trim();
+      } catch {
+        process.stderr.write("Could not detect PowerShell profile path.\n");
+        process.exitCode = 1;
+        return;
+      }
+    }
+    const { existsSync: exists, readFileSync: readFile, writeFileSync: writeFile } = await import('fs');
+    if (!exists(profilePath)) {
+      process.stderr.write("No PowerShell profile found. Nothing to remove.\n");
+      return;
+    }
+    const content = readFile(profilePath, "utf8");
+    const cleaned = content.replace(/\n?# xci PowerShell completion[^\n]*(?:\n[^\n]*(?:Set-PSReadLineKeyHandler|Set-PSReadLineOption|Register-ArgumentCompleter)[^\n]*)*/g, "");
+    if (cleaned === content) {
+      process.stderr.write("xci completion not found in profile. Nothing to remove.\n");
+      return;
+    }
+    writeFile(profilePath, cleaned);
+    process.stderr.write(`xci completion removed from ${profilePath}
+`);
+    process.stderr.write("Restart PowerShell to apply.\n");
+  });
   const projectRoot = findXciRoot(process.cwd());
   if (projectRoot === null) {
     let helpOrVersionDisplayed = false;

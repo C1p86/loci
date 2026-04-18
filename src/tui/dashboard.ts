@@ -218,7 +218,7 @@ function buildEntries(plan: ExecutionPlan): CommandEntry[] {
       return [{ label: plan.argv[0] ?? '(cmd)', status: 'pending' }];
     case 'sequential':
       return plan.steps.map((step) => ({
-        label: step.argv[0] ?? '(step)',
+        label: step.kind === 'ini' ? `ini:${step.mode}` : step.kind === 'set' ? 'set' : (step.label ?? step.argv[0] ?? '(step)'),
         status: 'pending' as CommandStatus,
       }));
     case 'parallel':
@@ -226,6 +226,8 @@ function buildEntries(plan: ExecutionPlan): CommandEntry[] {
         label: entry.alias,
         status: 'pending' as CommandStatus,
       }));
+    case 'ini':
+      return [{ label: `ini:${plan.mode}`, status: 'pending' }];
   }
 }
 
@@ -313,6 +315,49 @@ async function execSequential(
 
   for (let i = 0; i < plan.steps.length; i++) {
     const step = plan.steps[i];
+
+    // Handle variable assignment steps
+    if (step.kind === 'set') {
+      updateCommand(i, 'running');
+      appendLog(`-- step ${i + 1}/${plan.steps.length}: set --`);
+      const { interpolateArgv } = await import('../resolver/interpolate.js');
+      const mergedValues = { ...env, ...capturedVars };
+      for (const [key, rawValue] of Object.entries(step.vars)) {
+        const resolved = interpolateArgv([rawValue], '(set)', mergedValues)[0] ?? rawValue;
+        capturedVars[key] = resolved;
+        const envKey = key.toUpperCase().replace(/[.\-]/g, '_');
+        capturedVars[envKey] = resolved;
+        appendLog(`  ${key}=${resolved}`);
+      }
+      updateCommand(i, 'success');
+      flushRender();
+      continue;
+    }
+
+    // Handle ini steps inline
+    if (step.kind === 'ini') {
+      const iniLabel = `ini:${step.mode}`;
+      updateCommand(i, 'running');
+      appendLog(`-- step ${i + 1}/${plan.steps.length}: ${iniLabel} --`);
+      flushRender();
+      try {
+        const { writeIni, deleteIniKeys } = await import('../executor/ini.js');
+        if (step.set) writeIni(step.file, step.set, step.mode);
+        if (step.delete) deleteIniKeys(step.file, step.delete as Record<string, string[]>);
+        appendLog(`  ${step.file}`);
+        updateCommand(i, 'success');
+        flushRender();
+      } catch (err) {
+        appendLog(`  error: ${(err as Error).message}`);
+        updateCommand(i, 'failed', 1);
+        for (let j = i + 1; j < plan.steps.length; j++) {
+          updateCommand(j, 'skipped');
+        }
+        flushRender();
+        return { exitCode: 1 };
+      }
+      continue;
+    }
 
     // Re-interpolate with captured vars from prior steps
     const mergedValues = { ...env, ...capturedVars };

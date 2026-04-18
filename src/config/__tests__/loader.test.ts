@@ -454,13 +454,10 @@ describe('configLoader.load', () => {
       );
     });
 
-    it('throws for array value', async () => {
+    it('serializes array values as JSON strings', async () => {
       cwd = await setupFixture({ 'config.yml': 'ports:\n  - 8080\n  - 443' });
-      await expect(configLoader.load(cwd)).rejects.toSatisfy(
-        (err: unknown) =>
-          err instanceof YamlParseError &&
-          ((err.cause as Error)?.message ?? '').includes('got array'),
-      );
+      const config = await configLoader.load(cwd);
+      expect(config.values['ports']).toBe('[8080,443]');
     });
 
     it('throws for null value', async () => {
