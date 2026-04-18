@@ -161,7 +161,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. Graceful shutdown (SIGTERM) sends a `goodbye` frame, waits for in-flight tasks to complete, and exits 0 with no orphaned task runs in the DB
 **Plans**: 5 plans
 - [x] 08-01-PLAN.md — Phase 6 fence reversal + schema foundation (tsup multi-entry + xci deps + biome narrow + CI grep removal + 3 Drizzle tables + 0001 migration + agent stub)
-- [ ] 08-02-PLAN.md — Server data layer (crypto compareToken/hashToken + 5 new error subclasses + 3 org-scoped repos + adminRepo D-37 helpers + isolation tests)
+- [x] 08-02-PLAN.md — Server data layer (crypto compareToken/hashToken + 5 new error subclasses + 3 org-scoped repos + adminRepo D-37 helpers + isolation tests)
 - [ ] 08-03-PLAN.md — Server WS endpoint + 5 REST routes (handshake + heartbeat + registry + frames + agents routes with CSRF/rate-limit + integration tests)
 - [ ] 08-04-PLAN.md — xci agent daemon (AgentClient + credential load/save with TOFU + labels + SIGINT/SIGTERM shutdown + cold-start test + Linux E2E)
 - [ ] 08-05-PLAN.md — Phase closeout (READMEs + STATE.md + traceability matrix + human-verify checkpoint)

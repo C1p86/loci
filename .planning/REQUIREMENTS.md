@@ -43,9 +43,9 @@
 - [x] **ATOK-01**: Owner/Member-con-permission può generare Registration Token dalla UI; token single-use, expiry 24h, scoped all'org.
 - [ ] **ATOK-02**: `xci --agent <url> --token <registration-token>` usa il token nell'handshake; server emette Agent Credential permanente (TOFU) e lo restituisce all'agente che lo persiste locale.
 - [ ] **ATOK-03**: Agent Credential (reg-token e credential permanente) trasmessa nel body del frame WS di handshake, mai nella URL di connessione.
-- [ ] **ATOK-04**: Owner/Member può revocare l'Agent Credential di un agente specifico dalla UI; revoke immediato (chiude WS attiva).
-- [ ] **ATOK-05**: Ad ogni reconnect il server verifica la Agent Credential; se revocata, WS chiusa con reason "revoked".
-- [ ] **ATOK-06**: Tutte le comparazioni di token/HMAC usano `crypto.timingSafeEqual()`; mai `===`.
+- [x] **ATOK-04**: Owner/Member può revocare l'Agent Credential di un agente specifico dalla UI; revoke immediato (chiude WS attiva).
+- [x] **ATOK-05**: Ad ogni reconnect il server verifica la Agent Credential; se revocata, WS chiusa con reason "revoked".
+- [x] **ATOK-06**: Tutte le comparazioni di token/HMAC usano `crypto.timingSafeEqual()`; mai `===`.
 
 ### Agent Lifecycle (AGENT)
 
@@ -344,9 +344,9 @@ Quali fasi coprono quali requirement.
 | ATOK-01 | 08-agent-ws-protocol | Complete |
 | ATOK-02 | 08-agent-ws-protocol | Pending |
 | ATOK-03 | 08-agent-ws-protocol | Pending |
-| ATOK-04 | 08-agent-ws-protocol | Pending |
-| ATOK-05 | 08-agent-ws-protocol | Pending |
-| ATOK-06 | 08-agent-ws-protocol | Pending |
+| ATOK-04 | 08-agent-ws-protocol | Complete |
+| ATOK-05 | 08-agent-ws-protocol | Complete |
+| ATOK-06 | 08-agent-ws-protocol | Complete |
 | AGENT-01 | 08-agent-ws-protocol | Pending |
 | AGENT-02 | 08-agent-ws-protocol | Pending |
 | AGENT-03 | 08-agent-ws-protocol | Pending |

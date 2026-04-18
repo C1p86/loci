@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: executing
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-04-18T21:00:36.860Z"
+stopped_at: Completed 08-02-PLAN.md
+last_updated: "2026-04-18T21:11:31.592Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 33
-  completed_plans: 29
-  percent: 88
+  completed_plans: 30
+  percent: 91
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 8 (Agent Registration & WebSocket Protocol) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-04-18
 
@@ -95,6 +95,7 @@ Progress (v2.0 milestone): [██░░░░░░░░] 22% (2/9 phases)
 | Phase 07-database-schema-auth P08 | 5m | 1 tasks | 3 files |
 | Phase 07-database-schema-auth P09 | ~10m | 2 tasks | 3 files |
 | Phase 08 P01 | 20 | 2 tasks | 14 files |
+| Phase 08-agent-registration-websocket-protocol P02 | 489 | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -177,6 +178,8 @@ Recent decisions affecting current work:
 - [Phase 08]: ws/rws kept external in tsup (D-01); agent.mjs is the separate bundle entry
 - [Phase 08]: argv pre-scan before imports ensures zero cold-start cost for non-agent paths (D-02, D-29)
 - [Phase 08]: Drizzle partial uniqueIndex enforces at-most-one active credential per agent at DB level (T-08-01-06)
+- [Phase 08-agent-registration-websocket-protocol]: compareToken uses timingSafeEqual with byteLength pre-check (ATOK-06); returns false not throw on length mismatch
+- [Phase 08-agent-registration-websocket-protocol]: agent_credentials partial unique index requires tx revoke-then-insert; adminRepo D-37 helpers are sole cross-org WS auth path
 
 ### Pending Todos
 
@@ -202,6 +205,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T21:00:36.821Z
-Stopped at: Completed 08-01-PLAN.md
+Last session: 2026-04-18T21:11:31.558Z
+Stopped at: Completed 08-02-PLAN.md
 Resume file: None
