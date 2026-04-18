@@ -4,7 +4,9 @@ import fastifyCsrf from '@fastify/csrf-protection';
 import fastifyEnv from '@fastify/env';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
+import fastifyWebsocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
+import type { WebSocket } from 'ws';
 import { envSchema } from './config/env.schema.js';
 import dbPlugin from './db/plugin.js';
 import { createTransport, type EmailTransport } from './email/transport.js';
@@ -35,12 +37,14 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
           'req.body.newPassword',
           'req.body.token',
           'req.body.registrationToken',
+          'req.body.credential',
           'req.headers.cookie',
           'req.headers.authorization',
           'req.raw.headers.cookie',
           'req.raw.headers.authorization',
           '*.password',
           '*.token',
+          '*.credential',
         ],
         censor: '[REDACTED]',
       },
@@ -92,14 +96,24 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
 
   await app.register(authPlugin, opts.clock !== undefined ? { clock: opts.clock } : {});
   await app.register(errorHandlerPlugin);
+
+  // Phase 8 D-17 + Pitfall 8: decorate BEFORE registering fastifyWebsocket.
+  app.decorate('agentRegistry', new Map<string, WebSocket>());
+
+  // Phase 8 D-13: WS plugin. Register AFTER auth (D-06) so auth plugin's onRequest hook still runs on HTTP upgrade.
+  await app.register(fastifyWebsocket, {
+    options: { maxPayload: 65536 }, // 64KB max frame — handshake frames are <1KB
+  });
+
   await app.register(registerRoutes, { prefix: '/api' });
 
   return app;
 }
 
-// Type augmentation so `app.emailTransport` is typed
+// Type augmentation so `app.emailTransport` and `app.agentRegistry` are typed
 declare module 'fastify' {
   interface FastifyInstance {
     emailTransport: EmailTransport;
+    agentRegistry: Map<string, WebSocket>; // Phase 8 D-17
   }
 }
