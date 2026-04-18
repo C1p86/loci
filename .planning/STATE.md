@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: executing
-stopped_at: Completed 09-task-definitions-secrets-management/09-02-PLAN.md
-last_updated: "2026-04-18T23:14:54.315Z"
+stopped_at: Completed 09-03-PLAN.md
+last_updated: "2026-04-18T23:32:33.542Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 39
-  completed_plans: 35
-  percent: 90
+  completed_plans: 36
+  percent: 92
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 9 (Task Definitions & Secrets Management) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
 Last activity: 2026-04-18
 
@@ -101,6 +101,7 @@ Progress (v2.0 milestone): [███░░░░░░░] 33% (3/9 phases)
 | Phase 08 P05 | ~15 | 2 tasks | 4 files |
 | Phase 09-task-definitions-secrets-management P01 | 784 | 3 tasks | 16 files |
 | Phase 09-task-definitions-secrets-management P02 | 500 | 3 tasks | 7 files |
+| Phase 09-task-definitions-secrets-management P03 | 6 | 2 tasks | 41 files |
 
 ## Accumulated Context
 
@@ -216,6 +217,9 @@ Recent decisions affecting current work:
 - [Phase 09-task-definitions-secrets-management]: setAuthTag MUST precede decipher.update/final — verified by Node 22 (Pitfall 1)
 - [Phase 09-task-definitions-secrets-management]: MEK parsed once at boot as Buffer(32); explicit length check throws with remediation hint (Pitfall 8)
 - [Phase 09-task-definitions-secrets-management]: SecretDecryptError takes zero constructor args — prevents accidental crypto material logging
+- [Phase 09-task-definitions-secrets-management]: writeSecretAuditEntry exported as standalone helper so secrets.ts and rotation logic can call it inside their own transactions without cross-repo coupling
+- [Phase 09-task-definitions-secrets-management]: makeForOrg accepts mek: Buffer alongside db — cleaner than currying and matches the existing admin-repo shape; all 21 route call sites updated to makeRepos(db, mek)
+- [Phase 09-task-definitions-secrets-management]: Drizzle .for('update') confirmed available in drizzle-orm 0.45.2 — no raw sql fallback needed for rotateMek SELECT FOR UPDATE
 
 ### Pending Todos
 
@@ -246,6 +250,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T23:14:54.277Z
-Stopped at: Completed 09-task-definitions-secrets-management/09-02-PLAN.md
+Last session: 2026-04-18T23:32:33.484Z
+Stopped at: Completed 09-03-PLAN.md
 Resume file: None
