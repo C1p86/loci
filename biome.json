@@ -9,7 +9,8 @@
     "includes": [
       "packages/**/src/**/*.ts",
       "packages/**/tsup.config.ts",
-      "packages/**/vitest.config.ts"
+      "packages/**/vitest*.config.ts",
+      "packages/**/drizzle.config.ts"
     ]
   },
   "formatter": {
@@ -59,6 +60,63 @@
                   "reconnecting-websocket": {
                     "message": "The xci CLI must not import 'reconnecting-websocket'. Agent reconnect logic lives outside packages/xci/src. See Phase 6 CONTEXT D-16."
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/server/src/**/*.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "ws": {
+                    "message": "Phase 7 does not use WebSockets. Agent WS arrives in Phase 8."
+                  },
+                  "reconnecting-websocket": {
+                    "message": "Phase 7 does not use reconnecting-websocket. Agent reconnect arrives in Phase 8."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/server/src/routes/**/*.ts",
+        "packages/server/src/plugins/**/*.ts",
+        "packages/server/src/app.ts",
+        "packages/server/src/server.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "./repos/users.js": { "message": "D-01: import { forOrg, admin } from '../repos/index.js' — never import a specific repo file. See 07-CONTEXT.md D-01." },
+                  "./repos/sessions.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
+                  "./repos/email-verifications.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
+                  "./repos/password-resets.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
+                  "./repos/org-invites.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
+                  "./repos/org-plans.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
+                  "./repos/for-org.js": { "message": "D-01: internal; use makeRepos() from ../repos/index.js" },
+                  "../repos/users.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
+                  "../repos/sessions.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
+                  "../repos/email-verifications.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
+                  "../repos/password-resets.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
+                  "../repos/org-invites.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
+                  "../repos/org-plans.js": { "message": "D-01: use forOrg()/adminRepo from ../repos/index.js" },
+                  "../repos/for-org.js": { "message": "D-01: internal; use makeRepos() from ../repos/index.js" }
                 }
               }
             }

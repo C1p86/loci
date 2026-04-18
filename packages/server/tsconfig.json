@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": false
+  },
+  "include": ["src/**/*.ts", "drizzle.config.ts", "vitest.unit.config.ts", "vitest.integration.config.ts"],
+  "exclude": ["dist", "node_modules", "drizzle/**"]
+}
