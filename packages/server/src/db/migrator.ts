@@ -1,10 +1,11 @@
 // packages/server/src/db/migrator.ts
 // Source: https://orm.drizzle.team/docs/migrations
+
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

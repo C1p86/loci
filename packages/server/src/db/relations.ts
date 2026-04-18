@@ -1,7 +1,7 @@
 // packages/server/src/db/relations.ts
 // Source: https://orm.drizzle.team/docs/relations
 import { relations } from 'drizzle-orm';
-import { orgs, users, orgMembers, orgPlans, sessions, orgInvites } from './schema.js';
+import { orgInvites, orgMembers, orgPlans, orgs, sessions, users } from './schema.js';
 
 export const orgsRelations = relations(orgs, ({ one, many }) => ({
   plan: one(orgPlans, { fields: [orgs.id], references: [orgPlans.orgId] }),

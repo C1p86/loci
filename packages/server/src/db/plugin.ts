@@ -1,7 +1,8 @@
 // packages/server/src/db/plugin.ts
-import fp from 'fastify-plugin';
-import type { FastifyPluginAsync, FastifyInstance } from 'fastify';
+
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import fp from 'fastify-plugin';
 import postgres from 'postgres';
 
 declare module 'fastify' {
@@ -13,7 +14,9 @@ declare module 'fastify' {
 const dbPlugin: FastifyPluginAsync<{ databaseUrl?: string }> = async (fastify, opts) => {
   // Read URL from env (registered by fastify-env, available via fastify.config)
   // or from explicit opts for test injection (D-05).
-  const url = opts.databaseUrl ?? (fastify as FastifyInstance & { config?: { DATABASE_URL?: string } }).config?.DATABASE_URL;
+  const url =
+    opts.databaseUrl ??
+    (fastify as FastifyInstance & { config?: { DATABASE_URL?: string } }).config?.DATABASE_URL;
   if (!url) throw new Error('dbPlugin: DATABASE_URL missing from both opts and fastify.config');
   const client = postgres(url, { max: 10 });
   const db = drizzle(client);

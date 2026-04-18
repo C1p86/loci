@@ -1,8 +1,8 @@
 // packages/server/src/test-utils/db-harness.ts
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { sql } from 'drizzle-orm';
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { sql } from 'drizzle-orm';
 import { runMigrations } from '../db/migrator.js';
 
 let container: StartedPostgreSqlContainer | undefined;
