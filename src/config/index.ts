@@ -321,7 +321,8 @@ export function resolveMachineConfigDir(
 
 export const configLoader: ConfigLoader = {
   async load(cwd: string): Promise<ResolvedConfig> {
-    const machineDir = process.env['XCI_MACHINE_CONFIGS'];
+    const resolution = resolveMachineConfigDir(); // throws MachineConfigInvalidError on bad env
+    const machineDir = resolution.dir;
     const projectPath = join(cwd, '.xci', 'config.yml');
     const secretsPath = join(cwd, '.xci', 'secrets.yml');
     const secretsDir = join(cwd, '.xci', 'secrets');
@@ -334,43 +335,42 @@ export const configLoader: ConfigLoader = {
       projectName = projectResult.values['project'];
     }
 
-    // Machine config + secrets: load from root + <project>/ subdirectory of XCI_MACHINE_CONFIGS
+    // Machine config + secrets: load from root + <project>/ subdirectory of the resolved machine dir
     const machineConfigLayers: Array<{ values: Record<string, string>; layer: ConfigLayer } | null> = [];
     const machineSecretLayers: Array<{ values: Record<string, string>; layer: ConfigLayer } | null> = [];
     if (machineDir) {
-      if (!isDirectory(machineDir)) {
-        process.stderr.write(`[xci] WARNING: XCI_MACHINE_CONFIGS="${machineDir}" is not a directory\n`);
-      } else {
-        const machineDirs = [machineDir];
-        if (projectName) {
-          const projDir = join(machineDir, projectName);
-          if (isDirectory(projDir)) {
-            machineDirs.push(projDir);
-          } else {
-            process.stderr.write(`[xci] NOTE: machine project dir not found: ${projDir}\n`);
-          }
+      const machineDirs = [machineDir];
+      if (projectName) {
+        const projDir = join(machineDir, projectName);
+        if (isDirectory(projDir)) {
+          machineDirs.push(projDir);
         } else {
-          process.stderr.write(`[xci] NOTE: "project" not set in config.yml — skipping project-specific machine config\n`);
+          process.stderr.write(`[xci] NOTE: machine project dir not found: ${projDir}\n`);
         }
-        let machineFilesLoaded = 0;
-        for (const dir of machineDirs) {
-          // Machine config.yml
-          const mcFile = readLayer(join(dir, 'config.yml'), 'machine');
-          if (mcFile) { machineConfigLayers.push(mcFile); machineFilesLoaded++; }
-          // Machine secrets
-          const msFile = readLayer(join(dir, 'secrets.yml'), 'secrets');
-          if (msFile) { machineSecretLayers.push(msFile); machineFilesLoaded++; }
-          const msDir = join(dir, 'secrets');
-          if (isDirectory(msDir)) {
-            for (const f of listYamlFilesRecursive(msDir)) {
-              machineSecretLayers.push(readLayer(f, 'secrets'));
-              machineFilesLoaded++;
-            }
+      } else {
+        process.stderr.write(`[xci] NOTE: "project" not set in config.yml — skipping project-specific machine config\n`);
+      }
+      let machineFilesLoaded = 0;
+      for (const dir of machineDirs) {
+        // Machine config.yml
+        const mcFile = readLayer(join(dir, 'config.yml'), 'machine');
+        if (mcFile) { machineConfigLayers.push(mcFile); machineFilesLoaded++; }
+        // Machine secrets
+        const msFile = readLayer(join(dir, 'secrets.yml'), 'secrets');
+        if (msFile) { machineSecretLayers.push(msFile); machineFilesLoaded++; }
+        const msDir = join(dir, 'secrets');
+        if (isDirectory(msDir)) {
+          for (const f of listYamlFilesRecursive(msDir)) {
+            machineSecretLayers.push(readLayer(f, 'secrets'));
+            machineFilesLoaded++;
           }
         }
-        if (machineFilesLoaded === 0) {
-          process.stderr.write(`[xci] NOTE: XCI_MACHINE_CONFIGS="${machineDir}" — no config/secrets files found\n`);
-        }
+      }
+      if (machineFilesLoaded === 0) {
+        const label = resolution.source === 'home'
+          ? '~/.xci/ (home fallback)'
+          : `XCI_MACHINE_CONFIGS="${machineDir}"`;
+        process.stderr.write(`[xci] NOTE: ${label} — no config/secrets files found\n`);
       }
     }
 

@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from 'node
 import { dirname, join, resolve } from 'node:path';
 import type { ReadStream } from 'node:tty';
 import { Command } from 'commander';
-import { configLoader } from './config/index.js';
+import { configLoader, resolveMachineConfigDir } from './config/index.js';
 import { commandsLoader } from './commands/index.js';
 import { resolver, buildEnvVars, redactSecrets } from './resolver/index.js';
 import { validateParams, getParamNames } from './resolver/params.js';
@@ -443,25 +443,35 @@ function registerAliases(
       // Verbose trace (D-28, D-26, D-30) — always to stderr
       if (isVerbose) {
         const configFiles: { path: string; found: boolean }[] = [];
-        // Machine configs directory
-        const machineConfigsDir = process.env['XCI_MACHINE_CONFIGS'];
+        // Machine configs directory — resolved via shared helper (env var or ~/.xci/ fallback).
+        // Wrap in try so a stale throw never crashes the verbose trace: by the time we get here
+        // configLoader.load has already succeeded, so the helper cannot throw in practice.
+        let machineConfigsDir: string | undefined;
+        let machineSource: 'env' | 'home' | undefined;
+        try {
+          const res = resolveMachineConfigDir();
+          if (res.dir) {
+            machineConfigsDir = res.dir;
+            machineSource = res.source;
+          }
+        } catch {
+          // configLoader.load would have thrown first; safe to swallow here.
+        }
         if (machineConfigsDir) {
-          let isDir = false;
-          try { isDir = statSync(machineConfigsDir).isDirectory(); } catch { /* ignore */ }
-          if (isDir) {
-            configFiles.push({ path: join(machineConfigsDir, 'commands.yml'), found: existsSync(join(machineConfigsDir, 'commands.yml')) });
-            configFiles.push({ path: join(machineConfigsDir, 'secrets.yml'), found: existsSync(join(machineConfigsDir, 'secrets.yml')) });
-            const mSecretsDir = join(machineConfigsDir, 'secrets');
-            if (existsSync(mSecretsDir)) {
-              for (const f of listYamlFilesRecursive(mSecretsDir)) {
-                configFiles.push({ path: f, found: true });
-              }
+          const annotation = machineSource === 'env' ? '[from env]' : '[from home fallback]';
+          process.stderr.write(`[xci] NOTE: machine config source: ${annotation} ${machineConfigsDir}\n`);
+          configFiles.push({ path: join(machineConfigsDir, 'commands.yml'), found: existsSync(join(machineConfigsDir, 'commands.yml')) });
+          configFiles.push({ path: join(machineConfigsDir, 'secrets.yml'), found: existsSync(join(machineConfigsDir, 'secrets.yml')) });
+          const mSecretsDir = join(machineConfigsDir, 'secrets');
+          if (existsSync(mSecretsDir)) {
+            for (const f of listYamlFilesRecursive(mSecretsDir)) {
+              configFiles.push({ path: f, found: true });
             }
-            const mCommandsDir = join(machineConfigsDir, 'commands');
-            if (existsSync(mCommandsDir)) {
-              for (const f of listYamlFilesRecursive(mCommandsDir)) {
-                configFiles.push({ path: f, found: true });
-              }
+          }
+          const mCommandsDir = join(machineConfigsDir, 'commands');
+          if (existsSync(mCommandsDir)) {
+            for (const f of listYamlFilesRecursive(mCommandsDir)) {
+              configFiles.push({ path: f, found: true });
             }
           }
         }

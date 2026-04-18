@@ -7,6 +7,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse, YAMLParseError as YamlLibError } from 'yaml';
+import { resolveMachineConfigDir } from '../config/index.js';
 import { CommandSchemaError, YamlParseError } from '../errors.js';
 import type { CommandDef, CommandMap, CommandsLoader } from '../types.js';
 import { normalizeCommands } from './normalize.js';
@@ -148,7 +149,7 @@ function loadCommandsFromDir(baseDir: string): Map<string, CommandDef> {
 
 export const commandsLoader: CommandsLoader = {
   async load(cwd: string): Promise<CommandMap> {
-    const machineDir = process.env['XCI_MACHINE_CONFIGS'];
+    const { dir: machineDir } = resolveMachineConfigDir(); // throws on invalid env
     const projectDir = join(cwd, '.xci');
 
     // Read project name from config.yml for project-aware machine loading
@@ -163,15 +164,13 @@ export const commandsLoader: CommandsLoader = {
     } catch { /* ignore */ }
 
     // Start with machine commands from root (lower priority)
-    let machineIsDir = false;
-    try { machineIsDir = !!machineDir && statSync(machineDir).isDirectory(); } catch { /* */ }
-    const commands: Map<string, CommandDef> = machineIsDir
-      ? loadCommandsFromDir(machineDir!)
+    const commands: Map<string, CommandDef> = machineDir
+      ? loadCommandsFromDir(machineDir)
       : new Map();
 
     // Merge machine project-specific commands (override root on duplicates)
-    if (machineIsDir && projectName) {
-      const machineProjectDir = join(machineDir!, projectName);
+    if (machineDir && projectName) {
+      const machineProjectDir = join(machineDir, projectName);
       let projDirExists = false;
       try { projDirExists = statSync(machineProjectDir).isDirectory(); } catch { /* */ }
       if (projDirExists) {
