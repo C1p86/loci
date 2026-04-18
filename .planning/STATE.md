@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: — Local CLI
-status: executing
-stopped_at: Completed 07-08-PLAN.md
-last_updated: "2026-04-18T19:38:46.483Z"
-last_activity: 2026-04-18
+milestone: v2.0
+milestone_name: — Remote CI (Agents + Web Dashboard)
+status: Phase 07 closed 2026-04-18; ready for Phase 08
+stopped_at: Phase 07 complete (Database Schema & Auth)
+last_updated: "2026-04-18T19:40:09.000Z"
+last_activity: 2026-04-18 -- Phase 07 complete (all 5 SCs verified; unit tests green; integration tests deferred to CI Linux runner)
 progress:
-  total_phases: 7
-  completed_phases: 6
+  total_phases: 14
+  completed_phases: 7
   total_plans: 28
-  completed_plans: 27
-  percent: 96
+  completed_plans: 28
+  percent: 50
 ---
 
 # Project State
@@ -21,25 +21,25 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Phase 7 — Database Schema & Auth
+**Current focus:** Phase 8 — Agent Registration & WebSocket Protocol (next)
 
 ## Current Position
 
-Phase: 7 (Database Schema & Auth) — EXECUTING
-Plan: 9 of 9
-Status: Ready to execute
-Last activity: 2026-04-18
+Phase: 07 (Database Schema & Auth) — COMPLETE ✓
+Plan: 9 of 9 (all plans merged to main, verification passed)
+Status: Phase 07 closed 2026-04-18; ready for Phase 08
+Last activity: 2026-04-18 -- Phase 07 complete (AUTH-01..12, QUOTA-01/02/07 all green)
 
-Progress (Phase 06): [██████████] 100%
-Progress (v2.0 milestone): [█░░░░░░░░░] 11% (1/9 phases)
+Progress (Phase 07): [██████████] 100%
+Progress (v2.0 milestone): [██░░░░░░░░] 22% (2/9 phases)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 12 (v1.0)
+- Total plans completed: 12 (v1.0) + 9 (Phase 07) = 21 total
 - Average duration: —
-- Total execution time: 0 hours (v2.0)
+- Total execution time: ~75 minutes (Phase 07 estimate)
 
 **By Phase (v1.0 complete):**
 
@@ -51,12 +51,12 @@ Progress (v2.0 milestone): [█░░░░░░░░░] 11% (1/9 phases)
 | 04 | 2 | - | - |
 | 05 | 3 | - | - |
 
-**By Phase (v2.0 — not started):**
+**By Phase (v2.0):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 06 | TBD | - | - |
-| 07 | TBD | - | - |
+| 06 | 6 | - | - |
+| 07 | 9 | ~75m | ~8m |
 | 08 | TBD | - | - |
 | 09 | TBD | - | - |
 | 10 | TBD | - | - |
@@ -67,8 +67,8 @@ Progress (v2.0 milestone): [█░░░░░░░░░] 11% (1/9 phases)
 
 **Recent Trend:**
 
-- Last 5 plans: —
-- Trend: —
+- Last 5 plans: Phase 07 P05-P09 (server core, auth routes, org/invite routes, CI job, closeout)
+- Trend: ~8 min/plan average in Phase 07
 
 *Updated after each plan completion*
 | Phase 01 P01 | 4m | 3 tasks | 16 files |
@@ -85,14 +85,15 @@ Progress (v2.0 milestone): [█░░░░░░░░░] 11% (1/9 phases)
 | Phase 05-init-distribution P02 | 1m | 1 tasks | 1 files |
 | Phase 05-init-distribution P03 | 1m | 1 tasks | 2 files |
 | Phase 05-init-distribution P03 | 1 | 2 tasks | 2 files |
-| Phase 07-database-schema-auth P01 | 15 | 3 tasks | 14 files |
-| Phase 07 P02 | 10 | 3 tasks | 12 files |
+| Phase 07-database-schema-auth P01 | 15m | 3 tasks | 14 files |
+| Phase 07 P02 | 10m | 3 tasks | 12 files |
 | Phase 07-database-schema-auth P03 | 15m | 3 tasks | 16 files |
 | Phase 07-database-schema-auth P04 | 7m | 3 tasks | 17 files |
-| Phase 07 P05 | 573 | 3 tasks | 10 files |
-| Phase 07-database-schema-auth P06 | 585 | 3 tasks | 19 files |
-| Phase 07-database-schema-auth P07 | 600s | 2 tasks | 10 files |
+| Phase 07 P05 | ~10m | 3 tasks | 10 files |
+| Phase 07-database-schema-auth P06 | ~10m | 3 tasks | 19 files |
+| Phase 07-database-schema-auth P07 | ~10m | 2 tasks | 10 files |
 | Phase 07-database-schema-auth P08 | 5m | 1 tasks | 3 files |
+| Phase 07-database-schema-auth P09 | ~10m | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -161,17 +162,27 @@ Recent decisions affecting current work:
 - [Phase 07-database-schema-auth]: markInviteAccepted in adminRepo (not forOrg) — invitee is not yet a member of the org at acceptance time
 - [Phase 07]: CI `integration-tests` job added — Linux-only, runs `pnpm --filter @xci/server test:integration` after `build-test-lint` matrix passes (D-23 rationale: Docker preinstalled on ubuntu-latest)
 - [Phase 07]: packages/server/ `test` script = `pnpm test:unit` only; integration runs via dedicated `test:integration` script called explicitly by Linux CI job (prevents Windows/macOS matrix jobs from trying to spawn Docker)
-- [Phase 07]: CI integration-tests job added — Linux-only, runs pnpm --filter @xci/server test:integration after build-test-lint matrix passes (D-23 rationale: Docker preinstalled on ubuntu-latest)
-- [Phase 07]: packages/server/ test script = pnpm test:unit only; integration runs via dedicated test:integration script called explicitly by Linux CI job (prevents Windows/macOS matrix jobs from trying to spawn Docker)
+- [Phase 07]: D-01 scoped repository wrapper is the architectural spine — `forOrg(orgId)` is the SOLE path to org-scoped tables; routes/plugins/app blocked from direct sibling imports via Biome `noRestrictedImports`
+- [Phase 07]: D-04 auto-discovery meta-test (`isolation-coverage.isolation.test.ts`) walks src/repos/ at test time; CI red if a new makeXxxRepo factory lacks a matching `<name>.isolation.test.ts` referencing it by name
+- [Phase 07]: D-06 Fastify plugin order is env → db → helmet → cookie → csrf → rate-limit → auth → error-handler → routes; `dependencies` field on each plugin enforces at register time; no autoload
+- [Phase 07]: D-13 sliding session expiry is a single atomic SQL UPDATE with Pitfall 6 predicate (`revoked_at IS NULL AND expires_at > now() AND last_seen_at < now() - interval '1 hour'`) — no read-then-write race
+- [Phase 07]: D-15 invites are email-pinned (case-insensitive) — anyone-with-link acceptance is REJECTED with AUTHZ_INVITE_EMAIL_MISMATCH; anyone-with-link is how SaaS gets owned
+- [Phase 07]: D-31 Argon2id params m=19456/t=2/p=1 (OWASP 2024); argon2SelfTest runs in server.ts before listen() and warns if <100ms (weak) or >2000ms (will starve event loop)
+- [Phase 07]: D-34 CSRF is per-route, NOT global (Pitfall 1); signup and login are CSRF-EXEMPT (no session yet) but rate-limited
+- [Phase 07]: D-38 QUOTA entity persisted (org_plans 5/5/30 Free defaults via column defaults) but enforcement deferred to Phase 10 (agents) and Phase 11 (retention)
+- [Phase 07]: @xci/server package.json private:false flip completed (Phase 6 D-12 commitment fulfilled); first publish remains Phase 14
+- [Phase 07]: Drizzle migrations produced by `drizzle-kit generate` committed as single `drizzle/0000_volatile_mad_thinker.sql` (Pitfall 10); programmatic migrator at boot reads from drizzle/ per D-28
+- [Phase 07]: packages/xci/ untouched throughout Phase 07 (D-39); v1 302-test suite still green; Phase 6 ws-exclusion + hyperfine gates still pass
 
 ### Pending Todos
 
-- Branch protection on main: mark `build-test` (6 matrix jobs) + `fence-gates` as required status checks before first PR merge
-- Branch protection on main: add `integration-tests` as required status check (alongside `build-test-lint` 6 matrix jobs and `fence-gates`) before next PR merge. This enforces AUTH-10 SC-4 (two-org isolation fixture) as a merge gate.
+- Branch protection on main: ensure `integration-tests` (Phase 07), `fence-gates` (Phase 06), and all 6 `build-test-lint` matrix checks are marked as required status checks before next PR merge. Once set, AUTH-10 SC-4 is gated at merge time.
 - Repo Settings > Actions > General: enable "Allow GitHub Actions to create and approve pull requests" before Phase 14
 - Add `NPM_TOKEN` repo secret (needed starting Phase 14 for first publish)
 - Future: re-evaluate bundle-size baseline — consider dynamic-imports for TUI, slimmer execa alternative, or accept monorepo-era size
 - Future (optional): quick task to clean up 68 pre-existing Biome style errors in packages/xci/src/ (useTemplate, useLiteralKeys, etc. — byte-identical to v1 tag)
+- Future (Phase 11): session token hashing at rest (deferred per D-12) — hash sha256 the token before DB insert; compare in auth plugin
+- Future (post-v2.0): haveibeenpwned password check (deferred per D-32) — add to signup/reset flows
 
 ### Blockers/Concerns
 
@@ -187,6 +198,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T19:38:38.395Z
-Stopped at: Completed 07-08-PLAN.md
-Resume file: None
+Last session: 2026-04-18T19:40:09.000Z
+Stopped at: Phase 07 complete (Database Schema & Auth)
+Resume file: .planning/ROADMAP.md (next: Phase 08 — Agent Registration & WebSocket Protocol)
