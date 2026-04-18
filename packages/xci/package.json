@@ -4,9 +4,17 @@
   "description": "Local CI — cross-platform command alias runner with layered YAML config",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=20.5.0" },
-  "bin": { "xci": "./dist/cli.mjs" },
-  "files": ["dist", "README.md", "LICENSE"],
+  "engines": {
+    "node": ">=20.5.0"
+  },
+  "bin": {
+    "xci": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup",
     "lint": "biome check .",
@@ -34,5 +42,8 @@
       "gzip": false,
       "brotli": false
     }
-  ]
+  ],
+  "devDependencies": {
+    "@types/ws": "8.18.1"
+  }
 }
