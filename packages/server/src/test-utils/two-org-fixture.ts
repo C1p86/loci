@@ -2,23 +2,18 @@
 import { randomBytes } from 'node:crypto';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { orgMembers, orgPlans, orgs, users } from '../db/schema.js';
+import { generateId } from '../crypto/tokens.js';
 
 export interface TwoOrgFixture {
   orgA: { id: string; ownerUser: { id: string; email: string } };
   orgB: { id: string; ownerUser: { id: string; email: string } };
 }
 
-// Local inline ID generator — Plan 03 introduces the canonical generateId();
-// this file will be updated to import it once Plan 03 lands.
-function tempId(prefix: 'org' | 'usr' | 'mem' | 'plan'): string {
-  return `xci_${prefix}_${randomBytes(15).toString('base64url')}`;
-}
-
 export async function seedTwoOrgs(db: PostgresJsDatabase): Promise<TwoOrgFixture> {
-  const orgAId = tempId('org');
-  const orgBId = tempId('org');
-  const userAId = tempId('usr');
-  const userBId = tempId('usr');
+  const orgAId = generateId('org');
+  const orgBId = generateId('org');
+  const userAId = generateId('usr');
+  const userBId = generateId('usr');
   const aEmail = `a-${randomBytes(4).toString('hex')}@example.com`;
   const bEmail = `b-${randomBytes(4).toString('hex')}@example.com`;
 
@@ -42,12 +37,12 @@ export async function seedTwoOrgs(db: PostgresJsDatabase): Promise<TwoOrgFixture
       { id: userBId, email: bEmail, passwordHash: 'dummy-not-a-real-hash' },
     ]);
     await tx.insert(orgMembers).values([
-      { id: tempId('mem'), orgId: orgAId, userId: userAId, role: 'owner' },
-      { id: tempId('mem'), orgId: orgBId, userId: userBId, role: 'owner' },
+      { id: generateId('mem'), orgId: orgAId, userId: userAId, role: 'owner' },
+      { id: generateId('mem'), orgId: orgBId, userId: userBId, role: 'owner' },
     ]);
     await tx.insert(orgPlans).values([
-      { id: tempId('plan'), orgId: orgAId },
-      { id: tempId('plan'), orgId: orgBId },
+      { id: generateId('plan'), orgId: orgAId },
+      { id: generateId('plan'), orgId: orgBId },
     ]);
   });
 
