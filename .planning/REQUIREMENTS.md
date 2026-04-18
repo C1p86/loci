@@ -64,7 +64,7 @@
 - [x] **TASK-02**: Parser YAML condiviso tra `xci` e `@xci/server` (estratto in sub-module di `xci` importato da `@xci/server`), per garantire parità di semantica.
 - [x] **TASK-03**: Task ha: `name`, `description`, `yaml_definition`, `label_requirements` (lista `key=value`), `org_id` (FK).
 - [x] **TASK-04**: Task validata al salvataggio: YAML parseable, composizione ciclica rilevata (stesso engine v1 CMD-06), placeholder resolution al dispatch-time (stesso engine v1 INT-02).
-- [ ] **TASK-05**: Editor task nella UI con syntax highlighting YAML e validation error inline (nome, riga, suggerimento).
+- [x] **TASK-05**: Editor task nella UI con syntax highlighting YAML e validation error inline (nome, riga, suggerimento).
 - [x] **TASK-06**: Risoluzione `${VAR}` al dispatch-time con precedenza: 1) param override del run (UI), 2) org-level secrets, 3) agent-local `.xci/secrets.yml` (precedenza più alta, applicata dall'agente).
 
 ### Task Dispatch (DISP)
@@ -359,7 +359,7 @@ Quali fasi coprono quali requirement.
 | TASK-02 | 09-task-definitions-secrets | Complete |
 | TASK-03 | 09-task-definitions-secrets | Complete |
 | TASK-04 | 09-task-definitions-secrets | Complete |
-| TASK-05 | 09-task-definitions-secrets | Pending |
+| TASK-05 | 09-task-definitions-secrets | Complete |
 | TASK-06 | 09-task-definitions-secrets | Complete |
 | SEC-01 | 09-task-definitions-secrets | Complete |
 | SEC-02 | 09-task-definitions-secrets | Complete |
