@@ -232,10 +232,70 @@ The programmatic migrator (`src/db/migrator.ts`) runs all pending SQL migrations
 - **Pino redaction**: `req.body.password`, `req.body.token`, `req.headers.cookie`, `req.headers.authorization`, and `req.raw.headers.*` equivalents are redacted from logs.
 - **Invite email-pin**: invite acceptance validates that the accepting user's email matches the invite email (case-insensitive). Anyone-with-link is rejected.
 
+## Agents
+
+The server accepts persistent WebSocket connections from `xci --agent` daemons and exposes 5 REST endpoints for agent lifecycle management.
+
+### WebSocket Endpoint: `GET /ws/agent`
+
+Unauthenticated HTTP upgrade. Authentication happens via the **first frame** (never in URL — ATOK-03).
+
+#### First-Frame Handshake
+
+- Agent MUST send a `register` or `reconnect` frame within 5 seconds of WS open, else server closes with code `4005` (handshake_timeout).
+- `{type: 'register', token, labels}` — single-use 24h registration token; server returns `{type: 'register_ack', agent_id, credential}`. The credential is plaintext returned ONCE; server stores sha256 hash at rest.
+- `{type: 'reconnect', credential, running_runs: []}` — permanent credential from previous registration; server returns `{type: 'reconnect_ack', reconciliation: []}` (Phase 10 populates reconciliation with real task run state).
+
+#### Heartbeat (D-16)
+
+Server sends WS `ping` every 25s; agent's `ws` library auto-replies with `pong`. Missing pong within 10s → close `4003` (heartbeat_timeout). `last_seen_at` column updated on every pong and every incoming frame.
+
+#### Close Codes
+
+| Code | Meaning |
+|------|---------|
+| 1000 | Normal closure (agent goodbye) |
+| 1001 | Server shutting down |
+| 4001 | Credential revoked (terminal — agent stops reconnecting) |
+| 4002 | Token invalid or frame invalid (terminal) |
+| 4003 | Heartbeat timeout |
+| 4004 | Superseded (another agent with same id connected) |
+| 4005 | Handshake timeout (first frame not received within 5s) |
+
+### REST Endpoints
+
+All routes are session-authenticated (Phase 7 session cookie). Mutating routes require CSRF token.
+
+| Method | Path | Role | CSRF | Description |
+|--------|------|------|------|-------------|
+| `POST` | `/api/orgs/:orgId/agent-tokens` | Owner, Member | yes | Create a single-use 24h registration token. Rate-limited 10/h per org+user. Returns `{token, expiresAt}` — plaintext shown ONCE. |
+| `GET` | `/api/orgs/:orgId/agents` | any org member | no | List agents with computed state `online\|offline\|draining`. State is derived from `last_seen_at` (< 60s → online) unless admin-set to `draining`. |
+| `PATCH` | `/api/orgs/:orgId/agents/:agentId` | Owner, Member | yes | Update `hostname` or `state` (toggle `draining`/`online`). Drain change propagates as `{type:'state', state:'draining'}` frame to connected agent (AGENT-06). |
+| `POST` | `/api/orgs/:orgId/agents/:agentId/revoke` | Owner, Member | yes | Mark credential `revoked_at = now()` AND force-close connected WS with code `4001` (ATOK-04). |
+| `DELETE` | `/api/orgs/:orgId/agents/:agentId` | Owner only | yes | Hard delete (CASCADE removes credentials). |
+
+### Database Schema (Phase 8 additions)
+
+Three new tables added in migration `0001_agents_websocket.sql`:
+
+| Table | Description |
+|-------|-------------|
+| `agents` | One row per registered agent. Stores `hostname`, `labels` (jsonb), `state`, `last_seen_at`, `registered_at`. Org-scoped. |
+| `agent_credentials` | Stores sha256 hash of the permanent credential. Partial unique index enforces at-most-one active credential per agent (`WHERE revoked_at IS NULL`). |
+| `registration_tokens` | Single-use 24h tokens for initial registration. Stores sha256 hash; plaintext returned once on creation. |
+
+### Operational Notes
+
+- **Single-instance only** — the in-memory `agentRegistry: Map<agentId, WebSocket>` is per-process. Horizontal scaling requires a Redis pub/sub layer (deferred to post-v2.0).
+- **TLS is the operator's responsibility** — use a reverse proxy (nginx, Caddy) or cloud LB to terminate TLS before Fastify.
+- **Token security** — all token comparisons use `crypto.timingSafeEqual()` (ATOK-06). Credentials are never logged (pino redact rules cover `req.body.credential` and `*.credential`).
+- **Phase 10 scope** — quota enforcement (`max_agents=5` per Free plan) and task dispatch frames are implemented in Phase 10. Phase 8 delivers the full registration/auth/heartbeat/lifecycle framework.
+
 ## Design References
 
 - `.planning/phases/07-database-schema-auth/07-CONTEXT.md` — 39 locked decisions
 - `.planning/phases/07-database-schema-auth/07-RESEARCH.md` — full stack research and code examples
+- `.planning/phases/08-agent-registration-websocket-protocol/08-CONTEXT.md` — 43 locked decisions for Phase 8
 
 ## License
 
@@ -243,4 +303,4 @@ MIT. See root `LICENSE`.
 
 ---
 
-*v2.0 Phase 7 — part of the xci monorepo. See [packages/xci](../xci/README.md) for the v1 CLI.*
+*v2.0 Phase 8 — part of the xci monorepo. See [packages/xci](../xci/README.md) for the v1 CLI.*

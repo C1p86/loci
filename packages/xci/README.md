@@ -697,6 +697,70 @@ On Windows, xci uses `taskkill /f /t` to kill the entire process tree (parent + 
 
 Child process exit codes are propagated as-is.
 
+## Agent Mode (xci --agent)
+
+Run `xci` as a daemon connected to an xci server, awaiting task dispatches over WebSocket.
+
+### Quick Start
+
+```bash
+# First-run registration — requires one-time token from server admin
+xci --agent wss://xci.example.com/ws/agent --token xci_reg_xxxxxxxx
+
+# Subsequent runs — credential was persisted during registration
+xci --agent wss://xci.example.com/ws/agent
+```
+
+### Flags
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--agent <url>` | yes | Server WS URL (e.g. `wss://xci.example.com/ws/agent`). Token MUST NOT appear in the URL. |
+| `--token <reg-token>` | first-run only | Registration token issued by an org Owner/Member. Single-use, 24h TTL. |
+| `--label key=value` | no | Custom labels; repeatable. Merged with auto-detected `os`, `arch`, `node_version`, `hostname`. |
+| `--hostname <name>` | no | Override auto-detected hostname (local label only; server-side hostname is set via UI/API). |
+| `--config-dir <path>` | no | Override credential storage directory. |
+
+### Credential Storage (per-machine, not per-project)
+
+The agent persists its permanent credential at:
+
+| OS | Default Path |
+|----|--------------|
+| Linux | `~/.config/xci/agent.json` (or `$XDG_CONFIG_HOME/xci/agent.json`) |
+| macOS | `~/Library/Preferences/xci/agent.json` |
+| Windows | `%APPDATA%\xci\Config\agent.json` |
+
+File mode is `0600` on POSIX. NEVER commit this file — it grants full agent access.
+
+### TOFU Rule
+
+If `agent.json` exists AND `--token` is also passed, `xci` exits with an error to prevent overwriting a registered credential. To re-register, first delete `agent.json` (or revoke the agent server-side).
+
+### Reconnection
+
+On network loss, the agent reconnects with exponential backoff (1s initial jittered, 30s cap, 1.5x growth). No manual intervention required.
+
+### Graceful Shutdown
+
+`SIGINT` (Ctrl+C) or `SIGTERM`: agent sends `goodbye` frame, closes the socket cleanly, exits 0. Any in-flight tasks (Phase 10+) complete to natural end before exit.
+
+### Terminal Exit Conditions
+
+The agent exits non-zero and STOPS reconnecting when the server closes with:
+- `4001` — credential revoked
+- `4002` — registration token invalid or expired
+- `4004` — superseded (another agent connected with the same ID)
+
+Other close codes (`4003` heartbeat timeout, `4005` handshake timeout, `1001` server going away) trigger normal reconnect flow.
+
+### Production Lifecycle Management
+
+Agent mode is a daemon — it runs until terminated. For production deployments, manage the process with:
+- **Linux**: systemd service unit
+- **macOS**: launchd plist
+- **Windows**: Windows Service (via `node-windows` or NSSM)
+
 ## License
 
 MIT
