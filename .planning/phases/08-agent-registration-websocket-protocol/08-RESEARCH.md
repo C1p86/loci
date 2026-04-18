@@ -1244,7 +1244,16 @@ The planner MUST order tasks so that:
 
 ---
 
-## Open Questions for the Planner
+## Open Questions for the Planner (RESOLVED — see plan-checker dimension 11 spot-check)
+
+> All 6 questions below were resolved during planning per the gsd-plan-checker verification:
+> 1. RESOLVED: env-paths-as-is (Plan 04 Task 1 uses `envPaths('xci', { suffix: '' }).config`)
+> 2. RESOLVED: 5 plans (Plans 08-01..08-05)
+> 3. RESOLVED: hand-rolled frame validation (D-15; Plan 03 Task 2 `parseAgentFrame` switch on type)
+> 4. RESOLVED: `generateId` prefix union extended with `'agt' | 'crd' | 'rtk'` (Plan 02 Task 1)
+> 5. RESOLVED: tsup multi-entry `{cli, agent}` (Plan 01 Sub-step B)
+> 6. RESOLVED: biome.json server ws override removed (Plan 01 Sub-step G)
+
 
 1. **macOS credential path**: Use `env-paths` as-is (macOS gets `~/Library/Preferences/xci/agent.json`) or hardcode `~/.config/xci/` (matches D-07 wording)? Research recommends env-paths; planner decides.
 
