@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: executing
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-04-18T23:01:41.721Z"
+stopped_at: Completed 09-task-definitions-secrets-management/09-02-PLAN.md
+last_updated: "2026-04-18T23:14:54.315Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 39
-  completed_plans: 34
-  percent: 87
+  completed_plans: 35
+  percent: 90
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 9 (Task Definitions & Secrets Management) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-04-18
 
@@ -100,6 +100,7 @@ Progress (v2.0 milestone): [███░░░░░░░] 33% (3/9 phases)
 | Phase 08-agent-registration-websocket-protocol P04 | 12 | 3 tasks | 12 files |
 | Phase 08 P05 | ~15 | 2 tasks | 4 files |
 | Phase 09-task-definitions-secrets-management P01 | 784 | 3 tasks | 16 files |
+| Phase 09-task-definitions-secrets-management P02 | 500 | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -212,6 +213,9 @@ Recent decisions affecting current work:
 - [Phase 08]: QUOTA-03 (max_agents=5 registration gate) deferred to Phase 10 per roadmap — Phase 8 registration has no quota check
 - [Phase 09]: tsup array-of-configs: dsl entry externalises yaml (22.9KB); cli+agent entry preserves Phase 6 noExternal bundling
 - [Phase 09]: dts scoped to dsl entry only with noEmitOnError:false to avoid pre-existing tsc errors blocking declaration generation
+- [Phase 09-task-definitions-secrets-management]: setAuthTag MUST precede decipher.update/final — verified by Node 22 (Pitfall 1)
+- [Phase 09-task-definitions-secrets-management]: MEK parsed once at boot as Buffer(32); explicit length check throws with remediation hint (Pitfall 8)
+- [Phase 09-task-definitions-secrets-management]: SecretDecryptError takes zero constructor args — prevents accidental crypto material logging
 
 ### Pending Todos
 
@@ -242,6 +246,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T23:01:41.685Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-04-18T23:14:54.277Z
+Stopped at: Completed 09-task-definitions-secrets-management/09-02-PLAN.md
 Resume file: None
