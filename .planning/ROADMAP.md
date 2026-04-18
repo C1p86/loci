@@ -28,7 +28,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 6: Monorepo Setup & Backward-Compat Fence** - pnpm workspaces, Turborepo, Changesets; CI ws-fence + cold-start gate + v1 regression suite active. Bundle-size gate deferred (baseline 760KB vs 200KB target — to revisit).
 - [ ] **Phase 7: Database Schema & Auth** - Drizzle schema, migrations, signup/login/sessions/password-reset, org model, multi-tenant isolation, quota entities
-- [ ] **Phase 8: Agent Registration & WebSocket Protocol** - TOFU agent registration, persistent WS with heartbeat/reconnect, agent lifecycle (online/offline/drain/reconcile/shutdown), registration tokens
+- [x] **Phase 8: Agent Registration & WebSocket Protocol** - TOFU agent registration, persistent WS with heartbeat/reconnect, agent lifecycle (online/offline/drain/reconcile/shutdown), registration tokens
 - [ ] **Phase 9: Task Definitions & Secrets Management** - server-side YAML DSL (shared parser with xci), CRUD API, YAML validation; org-level envelope encryption, secrets CRUD, dispatch-time resolution
 - [ ] **Phase 10: Dispatch Pipeline & Quota Enforcement** - label-match dispatcher, in-memory queue with DB reconciliation, TaskRun state machine, timeout/cancel/orphan, per-org quota enforcement
 - [ ] **Phase 11: Log Streaming & Persistence** - agent log_chunk streaming, in-memory RunBuffer, Postgres persistence, UI WebSocket fanout, retention cleanup
@@ -164,7 +164,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 08-02-PLAN.md — Server data layer (crypto compareToken/hashToken + 5 new error subclasses + 3 org-scoped repos + adminRepo D-37 helpers + isolation tests)
 - [x] 08-03-PLAN.md — Server WS endpoint + 5 REST routes (handshake + heartbeat + registry + frames + agents routes with CSRF/rate-limit + integration tests)
 - [x] 08-04-PLAN.md — xci agent daemon (AgentClient + credential load/save with TOFU + labels + SIGINT/SIGTERM shutdown + cold-start test + Linux E2E)
-- [ ] 08-05-PLAN.md — Phase closeout (READMEs + STATE.md + traceability matrix + human-verify checkpoint)
+- [x] 08-05-PLAN.md — Phase closeout (READMEs + STATE.md + traceability matrix + human-verify checkpoint)
 
 ### Phase 9: Task Definitions & Secrets Management
 **Goal**: Org admins can define tasks using the same YAML DSL as v1 (validated by the shared parser), and org-level secrets are stored with envelope encryption and resolved at dispatch time without ever appearing in logs
@@ -255,8 +255,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 4. Executor & CLI | 2/2 | Complete | 2026-04-14 |
 | 5. Init & Distribution | 3/3 | Complete | 2026-04-15 |
 | 6. Monorepo Setup & Backward-Compat Fence | 0/? | Not started | - |
-| 7. Database Schema & Auth | 8/9 | In Progress|  |
-| 8. Agent Registration & WebSocket Protocol | 3/5 | In Progress|  |
+| 7. Database Schema & Auth | 9/9 | Complete | 2026-04-18 |
+| 8. Agent Registration & WebSocket Protocol | 5/5 | Complete | 2026-04-18 |
 | 9. Task Definitions & Secrets Management | 0/? | Not started | - |
 | 10. Dispatch Pipeline & Quota Enforcement | 0/? | Not started | - |
 | 11. Log Streaming & Persistence | 0/? | Not started | - |

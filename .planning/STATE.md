@@ -4,7 +4,7 @@ milestone: v2.0
 milestone_name: — Remote CI
 status: Phase 08 closed 2026-04-18; ready for Phase 09
 stopped_at: Phase 08 complete — agent + WS protocol active; Phase 6 fence formally reversed
-last_updated: "2026-04-18T22:00:00.000Z"
+last_updated: "2026-04-18T22:10:00.000Z"
 last_activity: 2026-04-18 -- Phase 08 complete (ATOK-01..06, AGENT-01..08 all green)
 progress:
   total_phases: 14
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Phase 8 — Agent Registration & WebSocket Protocol
+**Current focus:** Phase 9 — Task Definitions & Secrets Management
 
 ## Current Position
 
@@ -239,6 +239,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T21:44:28.108Z
-Stopped at: Completed 08-04-PLAN.md — xci agent daemon complete
+Last session: 2026-04-18T22:10:00.000Z
+Stopped at: Phase 08 complete — agent + WS protocol active; Phase 6 fence formally reversed
 Resume file: None
