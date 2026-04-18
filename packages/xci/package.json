@@ -10,6 +10,17 @@
   "bin": {
     "xci": "./dist/cli.mjs"
   },
+  "exports": {
+    ".": "./dist/cli.mjs",
+    "./agent": {
+      "import": "./dist/agent.mjs",
+      "types": "./dist/agent.d.ts"
+    },
+    "./dsl": {
+      "import": "./dist/dsl.mjs",
+      "types": "./dist/dsl.d.ts"
+    }
+  },
   "files": [
     "dist",
     "README.md",

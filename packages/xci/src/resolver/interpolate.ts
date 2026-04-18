@@ -37,6 +37,7 @@ function resolveJsonPath(key: string, values: Readonly<Record<string, string>>):
     if (!Object.hasOwn(values, base)) continue;
 
     const jsonStr = values[base];
+    if (jsonStr === undefined) continue;
     let parsed: unknown;
     try {
       parsed = JSON.parse(jsonStr);
@@ -149,7 +150,7 @@ function interpolateTokenOnce(
     const resolved = resolveKey(key, values);
     if (resolved !== undefined) {
       if (modifier === 'join') {
-        return applyModifier(resolved, modifier, parseModifier(rawKey).arg)[0];
+        return applyModifier(resolved, modifier, parseModifier(rawKey).arg)[0] ?? match;
       }
       return resolved;
     }
@@ -180,7 +181,7 @@ function resolveInnermost(
     const resolved = resolveKey(key, values);
     if (resolved !== undefined) {
       if (modifier === 'join') {
-        return applyModifier(resolved, modifier, parseModifier(rawKey).arg)[0];
+        return applyModifier(resolved, modifier, parseModifier(rawKey).arg)[0] ?? match;
       }
       return resolved;
     }
@@ -285,7 +286,7 @@ function interpolateTokenLenientOnce(
     const resolved = resolveKey(key, values);
     if (resolved !== undefined) {
       if (modifier === 'join') {
-        return applyModifier(resolved, modifier, parseModifier(rawKey).arg)[0];
+        return applyModifier(resolved, modifier, parseModifier(rawKey).arg)[0] ?? match;
       }
       return resolved;
     }
