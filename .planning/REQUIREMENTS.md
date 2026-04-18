@@ -25,7 +25,7 @@
 
 ### Auth & Org Model (AUTH)
 
-- [ ] **AUTH-01**: Signup utente via email + password; hashing password con `@node-rs/argon2` (Argon2id, parametri current NIST).
+- [x] **AUTH-01**: Signup utente via email + password; hashing password con `@node-rs/argon2` (Argon2id, parametri current NIST).
 - [ ] **AUTH-02**: Verifica email al signup: token single-use con expiry 24h inviato via email.
 - [ ] **AUTH-03**: Login email+password → sessione DB-side (token opaque `randomBytes(32)`); cookie `httpOnly + secure + sameSite=strict`.
 - [ ] **AUTH-04**: Password reset: richiesta via email con token single-use, expiry 1h.
@@ -326,7 +326,7 @@ Quali fasi coprono quali requirement.
 | PKG-01 | 06-monorepo-setup | Pending |
 | PKG-02 | 06-monorepo-setup | Pending |
 | PKG-03 | 06-monorepo-setup | Pending |
-| AUTH-01 | 07-database-auth | Pending |
+| AUTH-01 | 07-database-auth | Complete |
 | AUTH-02 | 07-database-auth | Pending |
 | AUTH-03 | 07-database-auth | Pending |
 | AUTH-04 | 07-database-auth | Pending |
