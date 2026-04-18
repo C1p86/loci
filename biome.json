@@ -1,12 +1,16 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.11/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["packages/**/src/**/*.ts", "packages/**/tsup.config.ts", "packages/**/vitest.config.ts"]
+    "includes": [
+      "packages/**/src/**/*.ts",
+      "packages/**/tsup.config.ts",
+      "packages/**/vitest.config.ts"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -38,5 +42,29 @@
       "trailingCommas": "all",
       "arrowParentheses": "always"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["packages/xci/src/**/*.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "ws": {
+                    "message": "The xci CLI must not import 'ws'. Agent WebSocket lives in @xci/server or agent modules outside packages/xci/src. See Phase 6 CONTEXT D-16."
+                  },
+                  "reconnecting-websocket": {
+                    "message": "The xci CLI must not import 'reconnecting-websocket'. Agent reconnect logic lives outside packages/xci/src. See Phase 6 CONTEXT D-16."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
