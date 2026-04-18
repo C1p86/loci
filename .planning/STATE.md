@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: executing
-stopped_at: Completed 07-07-PLAN.md
-last_updated: "2026-04-18T19:34:43.417Z"
+stopped_at: Completed 07-08-PLAN.md
+last_updated: "2026-04-18T19:38:46.483Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 28
-  completed_plans: 26
-  percent: 93
+  completed_plans: 27
+  percent: 96
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 7 (Database Schema & Auth) — EXECUTING
-Plan: 8 of 9
+Plan: 9 of 9
 Status: Ready to execute
 Last activity: 2026-04-18
 
@@ -92,6 +92,7 @@ Progress (v2.0 milestone): [█░░░░░░░░░] 11% (1/9 phases)
 | Phase 07 P05 | 573 | 3 tasks | 10 files |
 | Phase 07-database-schema-auth P06 | 585 | 3 tasks | 19 files |
 | Phase 07-database-schema-auth P07 | 600s | 2 tasks | 10 files |
+| Phase 07-database-schema-auth P08 | 5m | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -158,10 +159,15 @@ Recent decisions affecting current work:
 - [Phase 07-06]: All 7 auth routes CSRF-exempt except logout — signup/login have no session yet (D-34 Pitfall 1); request-reset/reset/verify-email exempt for same reason
 - [Phase 07-database-schema-auth]: null-guard pattern after requireOwnerAndOrgMatch: extract req.org?.id into locals then throw SessionRequiredError if falsy — satisfies biome noNonNullAssertion
 - [Phase 07-database-schema-auth]: markInviteAccepted in adminRepo (not forOrg) — invitee is not yet a member of the org at acceptance time
+- [Phase 07]: CI `integration-tests` job added — Linux-only, runs `pnpm --filter @xci/server test:integration` after `build-test-lint` matrix passes (D-23 rationale: Docker preinstalled on ubuntu-latest)
+- [Phase 07]: packages/server/ `test` script = `pnpm test:unit` only; integration runs via dedicated `test:integration` script called explicitly by Linux CI job (prevents Windows/macOS matrix jobs from trying to spawn Docker)
+- [Phase 07]: CI integration-tests job added — Linux-only, runs pnpm --filter @xci/server test:integration after build-test-lint matrix passes (D-23 rationale: Docker preinstalled on ubuntu-latest)
+- [Phase 07]: packages/server/ test script = pnpm test:unit only; integration runs via dedicated test:integration script called explicitly by Linux CI job (prevents Windows/macOS matrix jobs from trying to spawn Docker)
 
 ### Pending Todos
 
 - Branch protection on main: mark `build-test` (6 matrix jobs) + `fence-gates` as required status checks before first PR merge
+- Branch protection on main: add `integration-tests` as required status check (alongside `build-test-lint` 6 matrix jobs and `fence-gates`) before next PR merge. This enforces AUTH-10 SC-4 (two-org isolation fixture) as a merge gate.
 - Repo Settings > Actions > General: enable "Allow GitHub Actions to create and approve pull requests" before Phase 14
 - Add `NPM_TOKEN` repo secret (needed starting Phase 14 for first publish)
 - Future: re-evaluate bundle-size baseline — consider dynamic-imports for TUI, slimmer execa alternative, or accept monorepo-era size
@@ -181,6 +187,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T19:34:43.376Z
-Stopped at: Completed 07-07-PLAN.md
+Last session: 2026-04-18T19:38:38.395Z
+Stopped at: Completed 07-08-PLAN.md
 Resume file: None
