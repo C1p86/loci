@@ -143,7 +143,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 07-03-PLAN.md — XciServerError hierarchy (mirror v1 LociError) + crypto primitives (Argon2id + tokens) + @fastify/env JSON schema + email transport (log/stub/smtp) + 5 templates
 - [x] 07-04-PLAN.md — Scoped repos (6 files + forOrg + adminRepo + index barrel) + D-04 two-org isolation tests per repo + auto-discovery meta-test
 - [x] 07-05-PLAN.md — buildApp factory (D-06 plugin chain: env→db→helmet→cookie→csrf→rate-limit→auth→error-handler→routes) + auth plugin (session + sliding expiry) + error-handler + server.ts entry
-- [ ] 07-06-PLAN.md — Auth HTTP routes: signup + verify-email + login (xci_sid httpOnly+secure+sameSite=strict) + logout (CSRF-protected, AUTH-12) + request-reset + reset (AUTH-04 single-use 1h) + csrf token
+- [x] 07-06-PLAN.md — Auth HTTP routes: signup + verify-email + login (xci_sid httpOnly+secure+sameSite=strict) + logout (CSRF-protected, AUTH-12) + request-reset + reset (AUTH-04 single-use 1h) + csrf token
 - [ ] 07-07-PLAN.md — Org & invite routes: create/list/revoke invite (owner-only, 7d expiry), role change (owner-immutable), invite acceptance with email-pinning D-15
 - [ ] 07-08-PLAN.md — CI integration-tests Linux-only job (needs build-test-lint) + branch-protection checkpoint
 - [ ] 07-09-PLAN.md — Phase closeout: packages/server/README.md + STATE.md update + traceability matrix (15 reqs → tests) + human-verify checkpoint on green CI

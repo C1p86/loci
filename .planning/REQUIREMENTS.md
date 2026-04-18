@@ -26,9 +26,9 @@
 ### Auth & Org Model (AUTH)
 
 - [x] **AUTH-01**: Signup utente via email + password; hashing password con `@node-rs/argon2` (Argon2id, parametri current NIST).
-- [ ] **AUTH-02**: Verifica email al signup: token single-use con expiry 24h inviato via email.
+- [x] **AUTH-02**: Verifica email al signup: token single-use con expiry 24h inviato via email.
 - [x] **AUTH-03**: Login email+password → sessione DB-side (token opaque `randomBytes(32)`); cookie `httpOnly + secure + sameSite=strict`.
-- [ ] **AUTH-04**: Password reset: richiesta via email con token single-use, expiry 1h.
+- [x] **AUTH-04**: Password reset: richiesta via email con token single-use, expiry 1h.
 - [x] **AUTH-05**: CSRF protection (`@fastify/csrf-protection` o double-submit cookie) su tutte le route mutation.
 - [x] **AUTH-06**: Rate limiting (`@fastify/rate-limit`) su signup, login, password-reset, webhook ingress.
 - [x] **AUTH-07**: Ogni utente appartiene ad almeno un Org; Org personale creata automaticamente al signup.
@@ -327,9 +327,9 @@ Quali fasi coprono quali requirement.
 | PKG-02 | 06-monorepo-setup | Pending |
 | PKG-03 | 06-monorepo-setup | Pending |
 | AUTH-01 | 07-database-auth | Complete |
-| AUTH-02 | 07-database-auth | Pending |
+| AUTH-02 | 07-database-auth | Complete |
 | AUTH-03 | 07-database-auth | Complete |
-| AUTH-04 | 07-database-auth | Pending |
+| AUTH-04 | 07-database-auth | Complete |
 | AUTH-05 | 07-database-auth | Complete |
 | AUTH-06 | 07-database-auth | Complete |
 | AUTH-07 | 07-database-auth | Complete |

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: executing
-stopped_at: Completed 07-05-PLAN.md
-last_updated: "2026-04-18T19:09:23.815Z"
+stopped_at: Completed 07-06-PLAN.md
+last_updated: "2026-04-18T19:21:58.135Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 28
-  completed_plans: 24
-  percent: 86
+  completed_plans: 25
+  percent: 89
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 7 (Database Schema & Auth) — EXECUTING
-Plan: 6 of 9
+Plan: 7 of 9
 Status: Ready to execute
 Last activity: 2026-04-18
 
@@ -90,6 +90,7 @@ Progress (v2.0 milestone): [█░░░░░░░░░] 11% (1/9 phases)
 | Phase 07-database-schema-auth P03 | 15m | 3 tasks | 16 files |
 | Phase 07-database-schema-auth P04 | 7m | 3 tasks | 17 files |
 | Phase 07 P05 | 573 | 3 tasks | 10 files |
+| Phase 07-database-schema-auth P06 | 585 | 3 tasks | 19 files |
 
 ## Accumulated Context
 
@@ -152,6 +153,8 @@ Recent decisions affecting current work:
 - [Phase 07]: Auth plugin uses direct Drizzle query for session lookup (not adminRepo.findActiveSessionByToken) to include isNull+gt predicates at DB time — avoids time-of-check race on revocation
 - [Phase 07]: Sliding expiry uses raw sql template (not Drizzle .set()) to express LEAST(now()+14d, created_at+30d) in a single atomic UPDATE with 4 Pitfall 6 predicates
 - [Phase 07]: CSRF registered globally but NOT hooked globally (Pitfall 1); routes opt-in via onRequest: [fastify.csrfProtection] in Plans 06/07
+- [Phase 07-06]: Login dummy argon2 verify equalizes timing between unknown-email and wrong-password paths (T-07-06-03 anti-enumeration)
+- [Phase 07-06]: All 7 auth routes CSRF-exempt except logout — signup/login have no session yet (D-34 Pitfall 1); request-reset/reset/verify-email exempt for same reason
 
 ### Pending Todos
 
@@ -175,6 +178,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T19:09:23.776Z
-Stopped at: Completed 07-05-PLAN.md
+Last session: 2026-04-18T19:21:58.093Z
+Stopped at: Completed 07-06-PLAN.md
 Resume file: None
