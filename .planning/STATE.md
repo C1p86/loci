@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: executing
-stopped_at: Completed 07-04-PLAN.md
-last_updated: "2026-04-18T18:56:40.745Z"
+stopped_at: Completed 07-05-PLAN.md
+last_updated: "2026-04-18T19:09:23.815Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 28
-  completed_plans: 23
-  percent: 82
+  completed_plans: 24
+  percent: 86
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 7 (Database Schema & Auth) — EXECUTING
-Plan: 5 of 9
+Plan: 6 of 9
 Status: Ready to execute
 Last activity: 2026-04-18
 
@@ -89,6 +89,7 @@ Progress (v2.0 milestone): [█░░░░░░░░░] 11% (1/9 phases)
 | Phase 07 P02 | 10 | 3 tasks | 12 files |
 | Phase 07-database-schema-auth P03 | 15m | 3 tasks | 16 files |
 | Phase 07-database-schema-auth P04 | 7m | 3 tasks | 17 files |
+| Phase 07 P05 | 573 | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -148,6 +149,9 @@ Recent decisions affecting current work:
 - [Phase 07-database-schema-auth]: forOrg(orgId) is the sole entry point into org-scoped repos (D-01) — enforced structurally via repos/index.ts barrel + Biome noRestrictedImports
 - [Phase 07-database-schema-auth]: adminRepo cross-org namespace has no orgId param — deliberate friction point (D-03); signupTx creates org+user+member+plan atomically in 4-table transaction
 - [Phase 07-database-schema-auth]: D-04 meta-test walks repos/*.ts and fails CI if any makeXxxRepo export lacks a matching isolation.test.ts — drift detection by design
+- [Phase 07]: Auth plugin uses direct Drizzle query for session lookup (not adminRepo.findActiveSessionByToken) to include isNull+gt predicates at DB time — avoids time-of-check race on revocation
+- [Phase 07]: Sliding expiry uses raw sql template (not Drizzle .set()) to express LEAST(now()+14d, created_at+30d) in a single atomic UPDATE with 4 Pitfall 6 predicates
+- [Phase 07]: CSRF registered globally but NOT hooked globally (Pitfall 1); routes opt-in via onRequest: [fastify.csrfProtection] in Plans 06/07
 
 ### Pending Todos
 
@@ -171,6 +175,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T18:56:40.713Z
-Stopped at: Completed 07-04-PLAN.md
+Last session: 2026-04-18T19:09:23.776Z
+Stopped at: Completed 07-05-PLAN.md
 Resume file: None

@@ -27,16 +27,16 @@
 
 - [x] **AUTH-01**: Signup utente via email + password; hashing password con `@node-rs/argon2` (Argon2id, parametri current NIST).
 - [ ] **AUTH-02**: Verifica email al signup: token single-use con expiry 24h inviato via email.
-- [ ] **AUTH-03**: Login email+password → sessione DB-side (token opaque `randomBytes(32)`); cookie `httpOnly + secure + sameSite=strict`.
+- [x] **AUTH-03**: Login email+password → sessione DB-side (token opaque `randomBytes(32)`); cookie `httpOnly + secure + sameSite=strict`.
 - [ ] **AUTH-04**: Password reset: richiesta via email con token single-use, expiry 1h.
-- [ ] **AUTH-05**: CSRF protection (`@fastify/csrf-protection` o double-submit cookie) su tutte le route mutation.
-- [ ] **AUTH-06**: Rate limiting (`@fastify/rate-limit`) su signup, login, password-reset, webhook ingress.
+- [x] **AUTH-05**: CSRF protection (`@fastify/csrf-protection` o double-submit cookie) su tutte le route mutation.
+- [x] **AUTH-06**: Rate limiting (`@fastify/rate-limit`) su signup, login, password-reset, webhook ingress.
 - [x] **AUTH-07**: Ogni utente appartiene ad almeno un Org; Org personale creata automaticamente al signup.
 - [x] **AUTH-08**: Ruoli per Org: **Owner** (unique, non-removable), **Member**, **Viewer** (read-only).
 - [ ] **AUTH-09**: Owner può invitare membri via email con ruolo Member o Viewer; invito ha token expiry 7g.
 - [x] **AUTH-10**: Isolation multi-tenant: ogni entity tenant-scoped ha FK `org_id`; repository layer enforcea filtro `org_id` su ogni query; test fixture multi-org copre tutte le repo function.
 - [x] **AUTH-11**: Email transport pluggable (nodemailer abstract transport); default SMTP configurabile via env var; template email in source.
-- [ ] **AUTH-12**: Logout invalida la sessione DB-side; nessuna riusabilità del cookie dopo logout.
+- [x] **AUTH-12**: Logout invalida la sessione DB-side; nessuna riusabilità del cookie dopo logout.
 
 ### Agent Authentication (ATOK)
 
@@ -328,16 +328,16 @@ Quali fasi coprono quali requirement.
 | PKG-03 | 06-monorepo-setup | Pending |
 | AUTH-01 | 07-database-auth | Complete |
 | AUTH-02 | 07-database-auth | Pending |
-| AUTH-03 | 07-database-auth | Pending |
+| AUTH-03 | 07-database-auth | Complete |
 | AUTH-04 | 07-database-auth | Pending |
-| AUTH-05 | 07-database-auth | Pending |
-| AUTH-06 | 07-database-auth | Pending |
+| AUTH-05 | 07-database-auth | Complete |
+| AUTH-06 | 07-database-auth | Complete |
 | AUTH-07 | 07-database-auth | Complete |
 | AUTH-08 | 07-database-auth | Complete |
 | AUTH-09 | 07-database-auth | Pending |
 | AUTH-10 | 07-database-auth | Complete |
 | AUTH-11 | 07-database-auth | Complete |
-| AUTH-12 | 07-database-auth | Pending |
+| AUTH-12 | 07-database-auth | Complete |
 | QUOTA-01 | 07-database-auth | Complete |
 | QUOTA-02 | 07-database-auth | Complete |
 | QUOTA-07 | 07-database-auth | Complete |
