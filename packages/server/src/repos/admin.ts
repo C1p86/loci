@@ -1,15 +1,20 @@
 import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { hashPassword } from '../crypto/password.js';
-import { generateId, generateToken } from '../crypto/tokens.js';
+import { generateId, generateToken, hashToken } from '../crypto/tokens.js';
 import {
+  agentCredentials,
+  agents,
   emailVerifications,
+  type NewAgent,
+  type NewAgentCredential,
   type NewUser,
   orgInvites,
   orgMembers,
   orgPlans,
   orgs,
   passwordResets,
+  registrationTokens,
   sessions,
   users,
 } from '../db/schema.js';
@@ -17,6 +22,7 @@ import {
   DatabaseError,
   EmailAlreadyRegisteredError,
   OwnerRoleImmutableError,
+  RegistrationTokenExpiredError,
   UserNotFoundError,
 } from '../errors.js';
 
@@ -327,6 +333,137 @@ export function makeAdminRepo(db: PostgresJsDatabase) {
             gt(orgInvites.expiresAt, sql`now()`),
           ),
         );
+    },
+
+    // ---- D-37 cross-org agent helpers (Phase 8) ----
+
+    /**
+     * Cross-org lookup for WS handshake registration frame.
+     * Hashes the plaintext, looks up by hash WHERE consumed_at IS NULL AND expires_at > now().
+     * Returns undefined if not found / expired / consumed.
+     * ATOK-06: comparison is via eq on hash column — no === on plaintext.
+     */
+    async findValidRegistrationToken(tokenPlaintext: string) {
+      const tokenHash = hashToken(tokenPlaintext);
+      const rows = await db
+        .select()
+        .from(registrationTokens)
+        .where(
+          and(
+            eq(registrationTokens.tokenHash, tokenHash),
+            isNull(registrationTokens.consumedAt),
+            gt(registrationTokens.expiresAt, sql`now()`),
+          ),
+        )
+        .limit(1);
+      return rows[0];
+    },
+
+    /**
+     * Atomic consume: UPDATE SET consumed_at = now() WHERE id = $1 AND consumed_at IS NULL.
+     * Returns orgId on success; throws RegistrationTokenExpiredError if already consumed.
+     * Single-use enforcement — ATOK-01.
+     */
+    async consumeRegistrationToken(tokenId: string): Promise<string> {
+      const rows = await db
+        .update(registrationTokens)
+        .set({ consumedAt: sql`now()` })
+        .where(and(eq(registrationTokens.id, tokenId), isNull(registrationTokens.consumedAt)))
+        .returning({ orgId: registrationTokens.orgId });
+      const row = rows[0];
+      if (!row) throw new RegistrationTokenExpiredError();
+      return row.orgId;
+    },
+
+    /**
+     * Cross-org lookup for `reconnect` WS frame.
+     * Hashes the plaintext credential, looks up WHERE revoked_at IS NULL.
+     * Returns { agentId, orgId } or undefined.
+     * ATOK-06: comparison is via eq on hash column — no === on plaintext.
+     */
+    async findActiveAgentCredential(credentialPlaintext: string) {
+      const credHash = hashToken(credentialPlaintext);
+      const rows = await db
+        .select({
+          agentId: agentCredentials.agentId,
+          orgId: agentCredentials.orgId,
+        })
+        .from(agentCredentials)
+        .where(and(eq(agentCredentials.credentialHash, credHash), isNull(agentCredentials.revokedAt)))
+        .limit(1);
+      return rows[0];
+    },
+
+    /**
+     * Atomic: insert agent row + insert first agent_credentials row in one transaction.
+     * Returns { agentId, credentialPlaintext } — plaintext returned ONCE, never stored.
+     * D-37 / ATOK-05.
+     */
+    async registerNewAgent(params: {
+      orgId: string;
+      hostname: string;
+      labels: Record<string, string>;
+    }): Promise<{ agentId: string; credentialPlaintext: string }> {
+      const agentId = generateId('agt');
+      const credentialPlaintext = generateToken();
+      const credentialHash = hashToken(credentialPlaintext);
+      try {
+        await db.transaction(async (tx) => {
+          const agentPayload = {
+            id: agentId,
+            orgId: params.orgId,
+            hostname: params.hostname,
+            labels: params.labels,
+            state: 'online' as const,
+            lastSeenAt: new Date(),
+          } satisfies NewAgent;
+          await tx.insert(agents).values(agentPayload);
+          const credPayload = {
+            id: generateId('crd'),
+            agentId,
+            orgId: params.orgId,
+            credentialHash,
+          } satisfies NewAgentCredential;
+          await tx.insert(agentCredentials).values(credPayload);
+        });
+      } catch (err) {
+        throw new DatabaseError('registerNewAgent failed', err);
+      }
+      return { agentId, credentialPlaintext };
+    },
+
+    /**
+     * Issue a new credential for an existing agent (credential rotation).
+     * Revokes old active credential + inserts new in one transaction.
+     * Returns plaintext ONCE — caller must hand it to the agent and never log it.
+     */
+    async issueAgentCredential(agentId: string, orgId: string): Promise<string> {
+      const credentialPlaintext = generateToken();
+      const credentialHash = hashToken(credentialPlaintext);
+      try {
+        await db.transaction(async (tx) => {
+          await tx
+            .update(agentCredentials)
+            .set({ revokedAt: sql`now()` })
+            .where(
+              and(
+                eq(agentCredentials.agentId, agentId),
+                eq(agentCredentials.orgId, orgId),
+                isNull(agentCredentials.revokedAt),
+              ),
+            );
+          const credPayload = {
+            id: generateId('crd'),
+            agentId,
+            orgId,
+            credentialHash,
+          } satisfies NewAgentCredential;
+          await tx.insert(agentCredentials).values(credPayload);
+        });
+      } catch (err) {
+        throw new DatabaseError('issueAgentCredential failed', err);
+      }
+      return credentialPlaintext;
     },
   };
 }
