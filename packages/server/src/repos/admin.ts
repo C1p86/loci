@@ -13,7 +13,12 @@ import {
   sessions,
   users,
 } from '../db/schema.js';
-import { DatabaseError, EmailAlreadyRegisteredError, UserNotFoundError } from '../errors.js';
+import {
+  DatabaseError,
+  EmailAlreadyRegisteredError,
+  OwnerRoleImmutableError,
+  UserNotFoundError,
+} from '../errors.js';
 
 function slugify(email: string): string {
   const local = email.split('@')[0] ?? 'user';
@@ -265,6 +270,63 @@ export function makeAdminRepo(db: PostgresJsDatabase) {
         }
         throw new DatabaseError('addMemberToOrg failed', err);
       }
+    },
+
+    /** Look up an org by ID. Used for org name resolution in email templates. */
+    async findOrgById(orgId: string) {
+      return db.select().from(orgs).where(eq(orgs.id, orgId)).limit(1);
+    },
+
+    /**
+     * Change a member's role. Throws OwnerRoleImmutableError if the target is currently an owner
+     * or if newRole === 'owner' (owner is non-transferable in Phase 7 per D-16).
+     * PG unique violation 23505 (attempting second owner) also propagates as OwnerRoleImmutableError.
+     */
+    async changeRole(params: {
+      orgId: string;
+      userId: string;
+      newRole: 'member' | 'viewer';
+    }): Promise<void> {
+      const rows = await db
+        .select({ role: orgMembers.role })
+        .from(orgMembers)
+        .where(and(eq(orgMembers.orgId, params.orgId), eq(orgMembers.userId, params.userId)))
+        .limit(1);
+      const current = rows[0];
+      if (!current) throw new UserNotFoundError();
+      if (current.role === 'owner') throw new OwnerRoleImmutableError();
+      try {
+        await db
+          .update(orgMembers)
+          .set({ role: params.newRole })
+          .where(and(eq(orgMembers.orgId, params.orgId), eq(orgMembers.userId, params.userId)));
+      } catch (err) {
+        const pgCode =
+          (err as { code?: string })?.code ?? (err as { cause?: { code?: string } })?.cause?.code;
+        if (pgCode === '23505') throw new OwnerRoleImmutableError();
+        throw new DatabaseError('changeRole failed', err);
+      }
+    },
+
+    /**
+     * Mark an invite as accepted cross-org (invitee is not yet a member when accepting).
+     * Uses conditional WHERE so only an unaccepted, unrevoked, unexpired invite is touched.
+     */
+    async markInviteAccepted(params: {
+      inviteId: string;
+      acceptedByUserId: string;
+    }): Promise<void> {
+      await db
+        .update(orgInvites)
+        .set({ acceptedAt: sql`now()`, acceptedByUserId: params.acceptedByUserId })
+        .where(
+          and(
+            eq(orgInvites.id, params.inviteId),
+            isNull(orgInvites.acceptedAt),
+            isNull(orgInvites.revokedAt),
+            gt(orgInvites.expiresAt, sql`now()`),
+          ),
+        );
     },
   };
 }

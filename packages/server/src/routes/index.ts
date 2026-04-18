@@ -1,5 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { registerAuthRoutes } from './auth/index.js';
+import { registerInviteRoutes } from './invites/index.js';
+import { registerOrgRoutes } from './orgs/index.js';
 
 export const registerRoutes: FastifyPluginAsync = async (fastify) => {
   // Healthcheck — no auth, no CSRF, no rate-limit override
@@ -10,7 +12,9 @@ export const registerRoutes: FastifyPluginAsync = async (fastify) => {
   // Auth routes: signup, verify-email, login, logout, request-reset, reset, csrf
   await fastify.register(registerAuthRoutes, { prefix: '/auth' });
 
-  // Plan 07 will register org/invite routes here:
-  // await fastify.register(registerOrgRoutes, { prefix: '/orgs' });
-  // await fastify.register(registerInviteRoutes, { prefix: '/invites' });
+  // Org management routes: invites + member role changes
+  await fastify.register(registerOrgRoutes, { prefix: '/orgs' });
+
+  // Invite acceptance routes
+  await fastify.register(registerInviteRoutes, { prefix: '/invites' });
 };

@@ -168,6 +168,14 @@ export class CsrfTokenError extends AuthzError {
   }
 }
 
+export class InviteEmailMismatchError extends AuthzError {
+  constructor() {
+    super('Invite email does not match your account email', {
+      code: 'AUTHZ_INVITE_EMAIL_MISMATCH',
+    });
+  }
+}
+
 // NotFoundError subclasses
 export class UserNotFoundError extends NotFoundError {
   constructor() {
