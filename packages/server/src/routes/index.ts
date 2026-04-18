@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { registerAgentRoutes } from './agents/index.js';
 import { registerAuthRoutes } from './auth/index.js';
 import { registerInviteRoutes } from './invites/index.js';
 import { registerOrgRoutes } from './orgs/index.js';
@@ -17,4 +18,7 @@ export const registerRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Invite acceptance routes
   await fastify.register(registerInviteRoutes, { prefix: '/invites' });
+
+  // Phase 8: Agent management REST routes (mounted under /orgs like invites)
+  await fastify.register(registerAgentRoutes, { prefix: '/orgs' });
 };

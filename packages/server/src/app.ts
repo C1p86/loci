@@ -12,6 +12,7 @@ import dbPlugin from './db/plugin.js';
 import { createTransport, type EmailTransport } from './email/transport.js';
 import authPlugin from './plugins/auth.js';
 import errorHandlerPlugin from './plugins/error-handler.js';
+import { registerAgentWsRoute } from './routes/agents/index.js';
 import { registerRoutes } from './routes/index.js';
 
 export interface BuildOpts {
@@ -104,6 +105,9 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
   await app.register(fastifyWebsocket, {
     options: { maxPayload: 65536 }, // 64KB max frame — handshake frames are <1KB
   });
+
+  // Phase 8 D-13: WS route at /ws/agent — NO /api prefix. Auth is via first WS frame, not session cookie.
+  await app.register(registerAgentWsRoute);
 
   await app.register(registerRoutes, { prefix: '/api' });
 

@@ -278,6 +278,14 @@ export class AgentHandshakeTimeoutError extends AuthnError {
   }
 }
 
+export class AgentPatchEmptyError extends ValidationError {
+  constructor() {
+    super('At least one of hostname or state must be provided', {
+      code: 'VAL_AGENT_PATCH_EMPTY',
+    });
+  }
+}
+
 // Phase 8 — agent frame validation
 export class AgentFrameInvalidError extends ValidationError {
   constructor(reason: string) {

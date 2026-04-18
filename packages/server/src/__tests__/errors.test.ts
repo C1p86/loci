@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AgentFrameInvalidError,
   AgentHandshakeTimeoutError,
+  AgentPatchEmptyError,
   AgentRevokedError,
   AgentTokenInvalidError,
   AuthnError,
@@ -72,6 +73,7 @@ function oneOfEachConcrete(): readonly XciServerError[] {
     new RegistrationTokenExpiredError(),
     new AgentHandshakeTimeoutError(),
     new AgentFrameInvalidError('test reason'),
+    new AgentPatchEmptyError(),
   ];
 }
 
