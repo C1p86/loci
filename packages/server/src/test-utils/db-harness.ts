@@ -8,6 +8,7 @@ import { runMigrations } from '../db/migrator.js';
 let container: StartedPostgreSqlContainer | undefined;
 let client: ReturnType<typeof postgres> | undefined;
 let db: PostgresJsDatabase | undefined;
+let dbUrl: string | undefined;
 
 export async function setupTestDb(): Promise<void> {
   container = await new PostgreSqlContainer('postgres:16-alpine')
@@ -15,10 +16,16 @@ export async function setupTestDb(): Promise<void> {
     .withUsername('test')
     .withPassword('test')
     .start();
-  const url = container.getConnectionUri();
-  await runMigrations(url);
-  client = postgres(url, { max: 4 });
+  dbUrl = container.getConnectionUri();
+  await runMigrations(dbUrl);
+  client = postgres(dbUrl, { max: 4 });
   db = drizzle(client);
+}
+
+/** Returns the testcontainer connection URI — set into process.env.DATABASE_URL by globalSetup. */
+export function getTestDbUrl(): string {
+  if (!dbUrl) throw new Error('getTestDbUrl called before setupTestDb — missing globalSetup?');
+  return dbUrl;
 }
 
 export async function teardownTestDb(): Promise<void> {
