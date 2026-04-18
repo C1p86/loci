@@ -4,6 +4,7 @@ coverage/
 .DS_Store
 .vscode/
 .idea/
+.claude/worktrees/
 # Project-specific
 .xci/secrets.yml
 .xci/local.yml

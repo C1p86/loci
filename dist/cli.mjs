@@ -3,13 +3,13 @@ import { createRequire } from 'node:module';
 import { existsSync, readFileSync, statSync, mkdirSync, rmSync, writeFileSync, readdirSync, createWriteStream, appendFileSync, createReadStream } from 'fs';
 import path2, { resolve, join, dirname, relative } from 'path';
 import { execFile, execSync, spawn, spawnSync, ChildProcess } from 'child_process';
+import { constants, homedir } from 'os';
 import { fileURLToPath } from 'url';
 import { StringDecoder } from 'string_decoder';
 import { debuglog, promisify, callbackify, aborted, inspect, stripVTControlCharacters } from 'util';
 import process4, { hrtime, execPath, execArgv, platform } from 'process';
 import tty from 'tty';
 import { scheduler, setTimeout as setTimeout$1, setImmediate } from 'timers/promises';
-import { constants } from 'os';
 import { on, EventEmitter, setMaxListeners, once, addAbortListener } from 'events';
 import { serialize } from 'v8';
 import { finished } from 'stream/promises';
@@ -10726,7 +10726,7 @@ function exitCodeFor(error) {
       return ExitCode.CLI_ERROR;
   }
 }
-var ExitCode, XciError, ConfigError, CommandError, InterpolationError, ExecutorError, CliError, YamlParseError, ConfigReadError, CircularAliasError, UnknownAliasError, CommandSchemaError, MissingParamsError, UndefinedPlaceholderError, SpawnError, UnknownFlagError;
+var ExitCode, XciError, ConfigError, CommandError, InterpolationError, ExecutorError, CliError, YamlParseError, ConfigReadError, MachineConfigInvalidError, CircularAliasError, UnknownAliasError, CommandSchemaError, MissingParamsError, UndefinedPlaceholderError, SpawnError, UnknownFlagError;
 var init_errors = __esm({
   "src/errors.ts"() {
     ExitCode = {
@@ -10793,6 +10793,16 @@ var init_errors = __esm({
           cause,
           suggestion: "Check file permissions and that the path exists"
         });
+      }
+    };
+    MachineConfigInvalidError = class extends ConfigError {
+      path;
+      constructor(path6) {
+        super(`XCI_MACHINE_CONFIGS="${path6}" is not a directory`, {
+          code: "CONFIG_MACHINE_INVALID",
+          suggestion: "Point XCI_MACHINE_CONFIGS at a real directory or unset it to use the home fallback (~/.xci/)"
+        });
+        this.path = path6;
       }
     };
     CircularAliasError = class extends CommandError {
@@ -11798,9 +11808,24 @@ function isSecretTrackedByGit(cwd) {
     return false;
   }
 }
+function resolveMachineConfigDir(env = process.env, isDirectoryFn = isDirectory) {
+  const envPath = env["XCI_MACHINE_CONFIGS"];
+  if (envPath !== void 0 && envPath !== "") {
+    if (!isDirectoryFn(envPath)) {
+      throw new MachineConfigInvalidError(envPath);
+    }
+    return { dir: envPath, source: "env" };
+  }
+  const homeDir = join(homedir(), ".xci");
+  if (isDirectoryFn(homeDir)) {
+    return { dir: homeDir, source: "home" };
+  }
+  return { dir: null, source: "none" };
+}
 var configLoader = {
   async load(cwd) {
-    const machineDir = process.env["XCI_MACHINE_CONFIGS"];
+    const resolution = resolveMachineConfigDir();
+    const machineDir = resolution.dir;
     const projectPath = join(cwd, ".xci", "config.yml");
     const secretsPath = join(cwd, ".xci", "secrets.yml");
     const secretsDir = join(cwd, ".xci", "secrets");
@@ -11813,47 +11838,43 @@ var configLoader = {
     const machineConfigLayers = [];
     const machineSecretLayers = [];
     if (machineDir) {
-      if (!isDirectory(machineDir)) {
-        process.stderr.write(`[xci] WARNING: XCI_MACHINE_CONFIGS="${machineDir}" is not a directory
-`);
-      } else {
-        const machineDirs = [machineDir];
-        if (projectName) {
-          const projDir = join(machineDir, projectName);
-          if (isDirectory(projDir)) {
-            machineDirs.push(projDir);
-          } else {
-            process.stderr.write(`[xci] NOTE: machine project dir not found: ${projDir}
-`);
-          }
+      const machineDirs = [machineDir];
+      if (projectName) {
+        const projDir = join(machineDir, projectName);
+        if (isDirectory(projDir)) {
+          machineDirs.push(projDir);
         } else {
-          process.stderr.write(`[xci] NOTE: "project" not set in config.yml \u2014 skipping project-specific machine config
+          process.stderr.write(`[xci] NOTE: machine project dir not found: ${projDir}
 `);
         }
-        let machineFilesLoaded = 0;
-        for (const dir of machineDirs) {
-          const mcFile = readLayer(join(dir, "config.yml"), "machine");
-          if (mcFile) {
-            machineConfigLayers.push(mcFile);
-            machineFilesLoaded++;
-          }
-          const msFile = readLayer(join(dir, "secrets.yml"), "secrets");
-          if (msFile) {
-            machineSecretLayers.push(msFile);
-            machineFilesLoaded++;
-          }
-          const msDir = join(dir, "secrets");
-          if (isDirectory(msDir)) {
-            for (const f of listYamlFilesRecursive(msDir)) {
-              machineSecretLayers.push(readLayer(f, "secrets"));
-              machineFilesLoaded++;
-            }
-          }
-        }
-        if (machineFilesLoaded === 0) {
-          process.stderr.write(`[xci] NOTE: XCI_MACHINE_CONFIGS="${machineDir}" \u2014 no config/secrets files found
+      } else {
+        process.stderr.write(`[xci] NOTE: "project" not set in config.yml \u2014 skipping project-specific machine config
 `);
+      }
+      let machineFilesLoaded = 0;
+      for (const dir of machineDirs) {
+        const mcFile = readLayer(join(dir, "config.yml"), "machine");
+        if (mcFile) {
+          machineConfigLayers.push(mcFile);
+          machineFilesLoaded++;
         }
+        const msFile = readLayer(join(dir, "secrets.yml"), "secrets");
+        if (msFile) {
+          machineSecretLayers.push(msFile);
+          machineFilesLoaded++;
+        }
+        const msDir = join(dir, "secrets");
+        if (isDirectory(msDir)) {
+          for (const f of listYamlFilesRecursive(msDir)) {
+            machineSecretLayers.push(readLayer(f, "secrets"));
+            machineFilesLoaded++;
+          }
+        }
+      }
+      if (machineFilesLoaded === 0) {
+        const label = resolution.source === "home" ? "~/.xci/ (home fallback)" : `XCI_MACHINE_CONFIGS="${machineDir}"`;
+        process.stderr.write(`[xci] NOTE: ${label} \u2014 no config/secrets files found
+`);
       }
     }
     const projectSecretLayers = [];
@@ -12403,7 +12424,7 @@ function loadCommandsFromDir(baseDir) {
 }
 var commandsLoader = {
   async load(cwd) {
-    const machineDir = process.env["XCI_MACHINE_CONFIGS"];
+    const { dir: machineDir } = resolveMachineConfigDir();
     const projectDir = join(cwd, ".xci");
     let projectName;
     const configPath = join(projectDir, "config.yml");
@@ -12415,13 +12436,8 @@ var commandsLoader = {
       }
     } catch {
     }
-    let machineIsDir = false;
-    try {
-      machineIsDir = !!machineDir && statSync(machineDir).isDirectory();
-    } catch {
-    }
-    const commands2 = machineIsDir ? loadCommandsFromDir(machineDir) : /* @__PURE__ */ new Map();
-    if (machineIsDir && projectName) {
+    const commands2 = machineDir ? loadCommandsFromDir(machineDir) : /* @__PURE__ */ new Map();
+    if (machineDir && projectName) {
       const machineProjectDir = join(machineDir, projectName);
       let projDirExists = false;
       try {
@@ -21846,27 +21862,32 @@ function registerAliases(program2, commands2, config, projectRoot) {
       const secretValues = buildSecretValues(config);
       if (isVerbose2) {
         const configFiles = [];
-        const machineConfigsDir = process.env["XCI_MACHINE_CONFIGS"];
-        if (machineConfigsDir) {
-          let isDir = false;
-          try {
-            isDir = statSync(machineConfigsDir).isDirectory();
-          } catch {
+        let machineConfigsDir;
+        let machineSource;
+        try {
+          const res = resolveMachineConfigDir();
+          if (res.dir) {
+            machineConfigsDir = res.dir;
+            machineSource = res.source;
           }
-          if (isDir) {
-            configFiles.push({ path: join(machineConfigsDir, "commands.yml"), found: existsSync(join(machineConfigsDir, "commands.yml")) });
-            configFiles.push({ path: join(machineConfigsDir, "secrets.yml"), found: existsSync(join(machineConfigsDir, "secrets.yml")) });
-            const mSecretsDir = join(machineConfigsDir, "secrets");
-            if (existsSync(mSecretsDir)) {
-              for (const f of listYamlFilesRecursive3(mSecretsDir)) {
-                configFiles.push({ path: f, found: true });
-              }
+        } catch {
+        }
+        if (machineConfigsDir) {
+          const annotation = machineSource === "env" ? "[from env]" : "[from home fallback]";
+          process.stderr.write(`[xci] NOTE: machine config source: ${annotation} ${machineConfigsDir}
+`);
+          configFiles.push({ path: join(machineConfigsDir, "commands.yml"), found: existsSync(join(machineConfigsDir, "commands.yml")) });
+          configFiles.push({ path: join(machineConfigsDir, "secrets.yml"), found: existsSync(join(machineConfigsDir, "secrets.yml")) });
+          const mSecretsDir = join(machineConfigsDir, "secrets");
+          if (existsSync(mSecretsDir)) {
+            for (const f of listYamlFilesRecursive3(mSecretsDir)) {
+              configFiles.push({ path: f, found: true });
             }
-            const mCommandsDir = join(machineConfigsDir, "commands");
-            if (existsSync(mCommandsDir)) {
-              for (const f of listYamlFilesRecursive3(mCommandsDir)) {
-                configFiles.push({ path: f, found: true });
-              }
+          }
+          const mCommandsDir = join(machineConfigsDir, "commands");
+          if (existsSync(mCommandsDir)) {
+            for (const f of listYamlFilesRecursive3(mCommandsDir)) {
+              configFiles.push({ path: f, found: true });
             }
           }
         }
