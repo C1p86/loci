@@ -14,7 +14,8 @@ function requireOwnerOrMemberAndOrgMatch(req: FastifyRequest): void {
   const urlOrgId = (req.params as { orgId: string }).orgId;
   if (!req.org) throw new SessionRequiredError();
   if (req.org.id !== urlOrgId) throw new OrgMembershipRequiredError(urlOrgId);
-  if (req.org.role !== 'owner' && req.org.role !== 'member') throw new RoleInsufficientError('member');
+  if (req.org.role !== 'owner' && req.org.role !== 'member')
+    throw new RoleInsufficientError('member');
 }
 
 export const agentRevokeRoute: FastifyPluginAsync = async (fastify) => {

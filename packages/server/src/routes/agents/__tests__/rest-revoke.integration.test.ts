@@ -24,9 +24,8 @@ async function makeSession(app: App, userId: string, orgId: string) {
   });
   const csrfToken = csrfRes.json().csrfToken as string;
   const csrfCookie =
-    (csrfRes.headers['set-cookie'] as string | string[])
-      .toString()
-      .match(/_csrf=([^;]+)/)?.[1] ?? '';
+    (csrfRes.headers['set-cookie'] as string | string[]).toString().match(/_csrf=([^;]+)/)?.[1] ??
+    '';
   return { sid: s.token, csrfToken, csrfCookie };
 }
 
@@ -118,12 +117,23 @@ describe('POST /api/orgs/:orgId/agents/:agentId/revoke', () => {
     const db = getTestDb();
     const f = await seedTwoOrgs(db);
     const admin = makeAdminRepo(db);
-    const { agentId } = await admin.registerNewAgent({ orgId: f.orgA.id, hostname: 'h', labels: {} });
+    const { agentId } = await admin.registerNewAgent({
+      orgId: f.orgA.id,
+      hostname: 'h',
+      labels: {},
+    });
     const repos = makeRepos(db);
     const memberEmail = `member-${Date.now()}@example.com`;
-    const memberSignup = await repos.admin.signupTx({ email: memberEmail, password: 'long-enough-password' });
+    const memberSignup = await repos.admin.signupTx({
+      email: memberEmail,
+      password: 'long-enough-password',
+    });
     await repos.admin.markUserEmailVerified(memberSignup.user.id);
-    await repos.admin.addMemberToOrg({ orgId: f.orgA.id, userId: memberSignup.user.id, role: 'member' });
+    await repos.admin.addMemberToOrg({
+      orgId: f.orgA.id,
+      userId: memberSignup.user.id,
+      role: 'member',
+    });
     const { sid, csrfToken, csrfCookie } = await makeSession(app, memberSignup.user.id, f.orgA.id);
 
     const res = await app.inject({
@@ -139,12 +149,23 @@ describe('POST /api/orgs/:orgId/agents/:agentId/revoke', () => {
     const db = getTestDb();
     const f = await seedTwoOrgs(db);
     const admin = makeAdminRepo(db);
-    const { agentId } = await admin.registerNewAgent({ orgId: f.orgA.id, hostname: 'h', labels: {} });
+    const { agentId } = await admin.registerNewAgent({
+      orgId: f.orgA.id,
+      hostname: 'h',
+      labels: {},
+    });
     const repos = makeRepos(db);
     const viewerEmail = `viewer-${Date.now()}@example.com`;
-    const viewerSignup = await repos.admin.signupTx({ email: viewerEmail, password: 'long-enough-password' });
+    const viewerSignup = await repos.admin.signupTx({
+      email: viewerEmail,
+      password: 'long-enough-password',
+    });
     await repos.admin.markUserEmailVerified(viewerSignup.user.id);
-    await repos.admin.addMemberToOrg({ orgId: f.orgA.id, userId: viewerSignup.user.id, role: 'viewer' });
+    await repos.admin.addMemberToOrg({
+      orgId: f.orgA.id,
+      userId: viewerSignup.user.id,
+      role: 'viewer',
+    });
     const { sid, csrfToken, csrfCookie } = await makeSession(app, viewerSignup.user.id, f.orgA.id);
 
     const res = await app.inject({

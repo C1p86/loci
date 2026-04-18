@@ -60,7 +60,11 @@ describe('agent WS handshake (D-14..D-18)', () => {
     const ws = connect();
     await new Promise<void>((r) => ws.once('open', () => r()));
     ws.send(
-      JSON.stringify({ type: 'register', token: tokenPlaintext, labels: { os: 'linux', hostname: 'h' } }),
+      JSON.stringify({
+        type: 'register',
+        token: tokenPlaintext,
+        labels: { os: 'linux', hostname: 'h' },
+      }),
     );
 
     const frame = await recvOneFrame(ws);

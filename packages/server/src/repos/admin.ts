@@ -389,7 +389,9 @@ export function makeAdminRepo(db: PostgresJsDatabase) {
           orgId: agentCredentials.orgId,
         })
         .from(agentCredentials)
-        .where(and(eq(agentCredentials.credentialHash, credHash), isNull(agentCredentials.revokedAt)))
+        .where(
+          and(eq(agentCredentials.credentialHash, credHash), isNull(agentCredentials.revokedAt)),
+        )
         .limit(1);
       return rows[0];
     },

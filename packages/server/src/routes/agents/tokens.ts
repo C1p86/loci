@@ -15,7 +15,8 @@ function requireOwnerOrMemberAndOrgMatch(req: FastifyRequest): void {
   if (!req.org) throw new SessionRequiredError();
   if (req.org.id !== urlOrgId) throw new OrgMembershipRequiredError(urlOrgId);
   // Viewers are excluded — only owner or member may create tokens (T-08-03-08)
-  if (req.org.role !== 'owner' && req.org.role !== 'member') throw new RoleInsufficientError('member');
+  if (req.org.role !== 'owner' && req.org.role !== 'member')
+    throw new RoleInsufficientError('member');
 }
 
 export const agentTokensRoute: FastifyPluginAsync = async (fastify) => {

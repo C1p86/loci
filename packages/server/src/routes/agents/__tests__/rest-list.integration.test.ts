@@ -22,9 +22,8 @@ async function makeSession(app: App, userId: string, orgId: string) {
   });
   const csrfToken = csrfRes.json().csrfToken as string;
   const csrfCookie =
-    (csrfRes.headers['set-cookie'] as string | string[])
-      .toString()
-      .match(/_csrf=([^;]+)/)?.[1] ?? '';
+    (csrfRes.headers['set-cookie'] as string | string[]).toString().match(/_csrf=([^;]+)/)?.[1] ??
+    '';
   return { sid: s.token, csrfToken, csrfCookie };
 }
 
@@ -62,9 +61,16 @@ describe('GET /api/orgs/:orgId/agents', () => {
 
     // Create viewer
     const viewerEmail = `viewer-${Date.now()}@example.com`;
-    const viewerSignup = await repos.admin.signupTx({ email: viewerEmail, password: 'long-enough-password' });
+    const viewerSignup = await repos.admin.signupTx({
+      email: viewerEmail,
+      password: 'long-enough-password',
+    });
     await repos.admin.markUserEmailVerified(viewerSignup.user.id);
-    await repos.admin.addMemberToOrg({ orgId: f.orgA.id, userId: viewerSignup.user.id, role: 'viewer' });
+    await repos.admin.addMemberToOrg({
+      orgId: f.orgA.id,
+      userId: viewerSignup.user.id,
+      role: 'viewer',
+    });
     const { sid } = await makeSession(app, viewerSignup.user.id, f.orgA.id);
 
     const res = await app.inject({
@@ -82,7 +88,11 @@ describe('GET /api/orgs/:orgId/agents', () => {
     const db = getTestDb();
     const f = await seedTwoOrgs(db);
     const admin = makeAdminRepo(db);
-    const { agentId } = await admin.registerNewAgent({ orgId: f.orgA.id, hostname: 'h', labels: {} });
+    const { agentId } = await admin.registerNewAgent({
+      orgId: f.orgA.id,
+      hostname: 'h',
+      labels: {},
+    });
     // recordHeartbeat sets last_seen_at = now()
     await makeAgentsRepo(db, f.orgA.id).recordHeartbeat(agentId);
     await makeAgentsRepo(db, f.orgA.id).updateState(agentId, 'online');
@@ -102,7 +112,11 @@ describe('GET /api/orgs/:orgId/agents', () => {
     const db = getTestDb();
     const f = await seedTwoOrgs(db);
     const admin = makeAdminRepo(db);
-    const { agentId } = await admin.registerNewAgent({ orgId: f.orgA.id, hostname: 'h', labels: {} });
+    const { agentId } = await admin.registerNewAgent({
+      orgId: f.orgA.id,
+      hostname: 'h',
+      labels: {},
+    });
     await makeAgentsRepo(db, f.orgA.id).updateState(agentId, 'draining');
 
     const { sid } = await makeSession(app, f.orgA.ownerUser.id, f.orgA.id);
