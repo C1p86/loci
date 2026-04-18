@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: — Local CLI
-status: executing
-stopped_at: Phase 6 context gathered
-last_updated: "2026-04-18T15:58:56.858Z"
-last_activity: 2026-04-18 -- Phase 06 execution started
+milestone: v2.0
+milestone_name: Remote CI — Agents + Web Dashboard
+status: phase_complete
+stopped_at: Phase 06 complete — monorepo + fence active
+last_updated: "2026-04-18T16:45:00.000Z"
+last_activity: 2026-04-18 -- Phase 06 complete (SC-2 bundle-size deferred; all other gates passing)
 progress:
-  total_phases: 6
-  completed_phases: 5
-  total_plans: 19
-  completed_plans: 13
-  percent: 68
+  total_phases: 14
+  completed_phases: 6
+  total_plans: 25
+  completed_plans: 19
+  percent: 43
 ---
 
 # Project State
@@ -21,16 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Phase 06 — Monorepo Setup & Backward-Compat Fence
+**Current focus:** Phase 07 (next — v2.0 Remote CI milestone)
 
 ## Current Position
 
-Phase: 06 (Monorepo Setup & Backward-Compat Fence) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 06
-Last activity: 2026-04-18 -- Phase 06 execution started
+Phase: 06 (Monorepo Setup & Backward-Compat Fence) — COMPLETE ✓
+Plan: 6 of 6 (all plans merged to main, verification passed)
+Status: Phase 06 closed 2026-04-18; ready for Phase 07
+Last activity: 2026-04-18 -- Phase 06 complete (SC-2 bundle-size deferred)
 
-Progress: [░░░░░░░░░░] 0%
+Progress (Phase 06): [██████████] 100%
+Progress (v2.0 milestone): [█░░░░░░░░░] 11% (1/9 phases)
 
 ## Performance Metrics
 
@@ -126,10 +127,22 @@ Recent decisions affecting current work:
 - [v2.0 Roadmap]: Agent token transmitted in WS frame body only, never in connection URL (proxy log safety)
 - [v2.0 Roadmap]: QUOTA-01/02/07 assigned to Phase 07 (schema + entity definitions); QUOTA-03/04/05/06 assigned to Phase 10 (enforcement at dispatch/registration)
 - [v2.0 Roadmap]: TASK-05 (UI editor) assigned to Phase 09 alongside server-side task API; UI wiring completed in Phase 13
+- [Phase 06]: D-07 amended pnpm pinned to 10.33.0 (was placeholder "latest-v9" — v10 GA since Jan 2025)
+- [Phase 06]: D-12 amended: @xci/server and @xci/web stubs are `private: true` in Phase 6, flip to false when real code lands (Phase 9 server, Phase 13 web)
+- [Phase 06]: SC-2 bundle-size (200KB) gate DEFERRED — fresh rebuild 760KB; threshold was based on v1 Phase 1 baseline (126KB), pre-dates P2-P5 additions. CI size-limit step NOT wired; ws-fence 3 layers (tsup external + Biome + CI grep) still active. Future cycle should re-evaluate the threshold.
+- [Phase 06]: D-15 size-limit CI step omitted per user decision; other fence gates (ws-exclusion grep D-16b, hyperfine D-17, matrix tests D-18, smoke D-19) all active in ci.yml
+- [Phase 06]: D-06 clean-cut atomic: package-lock.json deleted + pnpm-lock.yaml generated in the same commit (ce47c53)
+- [Phase 06]: Pitfall 1 handled — tsup `noExternal` regex changed to `/^(?!ws$|reconnecting-websocket$).*/` (not `[/.*/]`) so `external` takes effect
+- [Phase 06]: Pitfall 2 handled — Biome `overrides[].includes` (PLURAL) key used, scoped to `packages/xci/src/**`
+- [Phase 06]: release.yml has job-scoped `permissions: { contents: write, pull-requests: write }` per plan-checker recommendation
 
 ### Pending Todos
 
-None yet.
+- Branch protection on main: mark `build-test` (6 matrix jobs) + `fence-gates` as required status checks before first PR merge
+- Repo Settings > Actions > General: enable "Allow GitHub Actions to create and approve pull requests" before Phase 14
+- Add `NPM_TOKEN` repo secret (needed starting Phase 14 for first publish)
+- Future: re-evaluate bundle-size baseline — consider dynamic-imports for TUI, slimmer execa alternative, or accept monorepo-era size
+- Future (optional): quick task to clean up 68 pre-existing Biome style errors in packages/xci/src/ (useTemplate, useLiteralKeys, etc. — byte-identical to v1 tag)
 
 ### Blockers/Concerns
 

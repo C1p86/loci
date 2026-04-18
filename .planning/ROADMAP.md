@@ -26,7 +26,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ### v2.0 — Remote CI: Agents + Web Dashboard (phases 06–14)
 
-- [ ] **Phase 6: Monorepo Setup & Backward-Compat Fence** - pnpm workspaces, Turborepo, Changesets; CI bundle-size gate and v1 regression suite enforced before any agent code is written
+- [x] **Phase 6: Monorepo Setup & Backward-Compat Fence** - pnpm workspaces, Turborepo, Changesets; CI ws-fence + cold-start gate + v1 regression suite active. Bundle-size gate deferred (baseline 760KB vs 200KB target — to revisit).
 - [ ] **Phase 7: Database Schema & Auth** - Drizzle schema, migrations, signup/login/sessions/password-reset, org model, multi-tenant isolation, quota entities
 - [ ] **Phase 8: Agent Registration & WebSocket Protocol** - TOFU agent registration, persistent WS with heartbeat/reconnect, agent lifecycle (online/offline/drain/reconcile/shutdown), registration tokens
 - [ ] **Phase 9: Task Definitions & Secrets Management** - server-side YAML DSL (shared parser with xci), CRUD API, YAML validation; org-level envelope encryption, secrets CRUD, dispatch-time resolution
