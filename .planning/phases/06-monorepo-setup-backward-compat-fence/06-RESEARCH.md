@@ -1031,12 +1031,12 @@ pnpm-store/            # if pnpm store isn't at default global location
 
 **If any assumption proves wrong during execution:** the 3-layer fence (tsup external + grep + Biome rule) catches the most dangerous failure modes (ws leaks into bundle). Version pin mistakes surface as CI failures before merge. No assumption is load-bearing enough to block the plan.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-None that block planning. Two items the planner may want to resolve with the user during the plan-check step:
+Both items below were resolved with the user during the plan-phase workflow on 2026-04-18. Resolutions are locked in CONTEXT.md.
 
-1. **pnpm major version: 9.x or 10.x?** CONTEXT D-07 says "latest-v9" which was current at the time of discuss; current stable is 10.33.0 (published 2026-04-17). v10 has been stable since Jan 2025 (per pnpm.io changelog). Either works — planner picks, flags for user confirmation. Default recommendation: **10.33.0** (latest stable, matches corepack expectations going forward).
-2. **Stub packages `private: true` or `ignore: [...]`?** Pitfall 7 recommends `private: true` in Phase 6 with a flip to `false` in Phase 14. Alternative: keep `private: false` and add to `.changeset/config.json` `ignore` array. The recommendation is `private: true` (smaller surface area for mistakes). Planner flags for user in plan-check.
+1. **pnpm major version: 9.x or 10.x?** — **RESOLVED: 10.33.0** per CONTEXT.md D-07 (amended 2026-04-18). v10 has been stable since Jan 2025; `packageManager: "pnpm@10.33.0"` is pinned in root `package.json` per Plan 06-02.
+2. **Stub packages `private: true` or `ignore: [...]`?** — **RESOLVED: `private: true`** per CONTEXT.md D-12 (amended 2026-04-18). `@xci/server` and `@xci/web` are `private: true` in Phase 6 and flip to `private: false` when they get real code (Phase 9 for server, Phase 13 for web).
 
 ## Environment Availability
 

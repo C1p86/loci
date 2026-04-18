@@ -119,7 +119,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A Biome lint rule or tsup `external` config prevents `ws` and `reconnecting-websocket` from entering `dist/cli.mjs`; bundle-size CI catches any regression
   4. `pnpm turbo run build` completes with all three packages building in correct dependency order (xci first, then @xci/server, then @xci/web)
   5. `xci --version` cold-start is verified under 300ms on Linux CI after the monorepo restructure
-**Plans**: TBD
+**Plans**: 6 plans
+- [ ] 06-01-PLAN.md — Pre-flight: verify npm scope @xci is available for @xci/server and @xci/web (blocking per D-14)
+- [ ] 06-02-PLAN.md — Monorepo restructure: migrate src/ to packages/xci/, create server+web stubs, split tsconfig, swap root README, update .gitignore
+- [ ] 06-03-PLAN.md — pnpm workspace + Turborepo + Changesets wiring + clean-cut package-lock.json deletion
+- [ ] 06-04-PLAN.md — 3-layer ws-exclusion fence: tsup external (Pitfall 1 fix) + Biome noRestrictedImports override (Pitfall 2 fix, `includes` plural)
+- [ ] 06-05-PLAN.md — CI workflows: rewrite ci.yml with pnpm+turbo+fence-gates (size/grep/hyperfine), create release.yml with changesets/action@v1
+- [ ] 06-06-PLAN.md — End-to-end verification: fresh build + v1 test suite + all 5 ROADMAP success criteria green, human-verify checkpoint before Phase 7
 
 ### Phase 7: Database Schema & Auth
 **Goal**: Users can sign up, log in, and belong to an org; the full multi-tenant isolation layer is in place with a two-org test fixture that catches any missing `org_id` filter
