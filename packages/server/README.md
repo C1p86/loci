@@ -544,6 +544,94 @@ The `webhook_deliveries` table tracks `(plugin_name, delivery_id)` uniquely. A d
 
 Tasks store `trigger_configs` JSONB on the `tasks` table — an array of `GitHubTriggerConfig | PerforceTriggerConfig`. Explicit per-task configuration (no naming convention): a task with an empty `trigger_configs` array is NOT triggerable via webhook. Validation happens on task create/update via `validateTriggerConfigs`.
 
+## Phase 13 additions
+
+### GET /api/auth/me (authenticated)
+
+Returns the current session's user, org membership, and plan details. Used by the web SPA to hydrate its `authStore` on boot. The `role` field in `org` is the current user's role in the active org.
+
+```
+GET /api/auth/me
+Cookie: xci_sid=<session-cookie>
+```
+
+Response (200 OK):
+
+```json
+{
+  "ok": true,
+  "user": {
+    "id": "xci_usr_...",
+    "email": "alice@example.com"
+  },
+  "org": {
+    "id": "xci_org_...",
+    "name": "Acme",
+    "slug": "acme",
+    "role": "owner"
+  },
+  "plan": {
+    "planName": "free",
+    "maxAgents": 5,
+    "maxConcurrentTasks": 5,
+    "logRetentionDays": 30
+  }
+}
+```
+
+Returns 401 if the session cookie is missing or expired. The `org` block includes the active org's `slug` field (added by migration 0006 — see below). The `role` value is one of `"owner"`, `"member"`, or `"viewer"`.
+
+### GET /badge/:orgSlug/:taskSlug.svg (unauthenticated, public)
+
+Returns a shields.io-compatible SVG build-status badge (100×20px) for a specific task.
+
+```
+GET /badge/acme/deploy-prod.svg
+```
+
+Badge states:
+
+| State | Color | Condition |
+|-------|-------|-----------|
+| `passing` | green | Last terminal run has `state=succeeded` |
+| `failing` | red | Last terminal run has `state=failed`, `cancelled`, `timed_out`, or `orphaned` |
+| `unknown` | grey | No terminal run exists, task `expose_badge=false`, org/task slug not found |
+
+**Security:** The endpoint returns `200 + grey SVG` for missing or badge-disabled tasks — it never returns 404. This prevents org/task slug enumeration.
+
+Response headers:
+
+```
+Content-Type: image/svg+xml
+Cache-Control: public, max-age=30
+```
+
+Rate limit: 120 requests/minute per IP.
+
+**Embedding in a README:**
+
+```markdown
+![build status](https://your-xci-server.example.com/badge/acme/deploy-prod.svg)
+```
+
+### Schema migration 0006 — badge slugs
+
+Migration `drizzle/0006_badge_slugs.sql` adds:
+
+- `tasks.slug` — URL-safe task identifier, unique within org. Backfilled from `name` at migration time (lowercased, spaces → hyphens, special chars stripped).
+- `tasks.expose_badge` — boolean, default `false`. Tasks with `false` return the grey "unknown" badge.
+- `orgs.slug` pre-existed from Phase 7; migration 0006 is a no-op for that column if already present.
+
+To enable a badge for a task, update the task via the UI (Settings tab in the task editor) or via the API:
+
+```bash
+curl -X PATCH https://<server>/api/orgs/<orgId>/tasks/<taskId> \
+  -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: <csrf>" \
+  -b "xci_sid=<session>" \
+  -d '{"expose_badge": true}'
+```
+
 ## Design References
 
 - `.planning/phases/07-database-schema-auth/07-CONTEXT.md` — 39 locked decisions
