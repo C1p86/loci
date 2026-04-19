@@ -112,11 +112,12 @@ function printAliasList(commands: CommandMap): void {
 
   // Built-in commands
   process.stdout.write('Built-in commands:\n\n');
-  process.stdout.write('  xci init                     Scaffold .xci/ directory\n');
-  process.stdout.write('  xci template                 Generate shareable template\n');
-  process.stdout.write('  xci completion [shell]       Output shell completion script\n');
-  process.stdout.write('  xci install [shell]          Install shell completion permanently\n');
-  process.stdout.write('  xci uninstall [shell]        Remove shell completion\n');
+  process.stdout.write('  xci init                              Scaffold .xci/ directory\n');
+  process.stdout.write('  xci template                          Generate shareable template\n');
+  process.stdout.write('  xci completion [shell]                Output shell completion script\n');
+  process.stdout.write('  xci install [shell]                   Install shell completion permanently\n');
+  process.stdout.write('  xci uninstall [shell]                 Remove shell completion\n');
+  process.stdout.write('  xci agent-emit-perforce-trigger       Emit Perforce trigger scripts (sh/bat/ps1)\n');
 
   // Flags
   process.stdout.write('\nFlags:\n\n');
@@ -527,6 +528,43 @@ function registerAliases(
 }
 
 /* ------------------------------------------------------------------ */
+/* registerPerforceEmitterCommand (Plan 12-05, D-34, D-35)             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Register `xci agent-emit-perforce-trigger <url> <token> [--output <dir>]`.
+ * Works from any directory (no .xci/ required — same pattern as `init`).
+ * Lazy-loads perforce-emitter.js to preserve cold-start <300ms for non-perforce paths (D-29).
+ * NOTE: `agent-emit-perforce-trigger` is a reserved command name — do NOT define an alias
+ * with this name in commands.yml (Commander resolves built-in subcommands before aliases).
+ */
+function registerPerforceEmitterCommand(program: Command): void {
+  program
+    .command('agent-emit-perforce-trigger')
+    .description('Emit Perforce change-commit trigger scripts (sh/bat/ps1) — no Node required on Perforce server')
+    .argument('<url>', 'Webhook URL (e.g. https://xci.example.com/hooks/perforce/<orgToken>)')
+    .argument('<token>', 'X-Xci-Token header value (the webhook orgToken plaintext)')
+    .option('-o, --output <dir>', 'Output directory for generated scripts', '.')
+    .action(async (url: string, token: string, opts: { output: string }) => {
+      // Lazy-load keeps cold-start <300ms for non-perforce invocations (D-29 discipline).
+      const { emitPerforceTriggerScripts } = await import('./perforce-emitter.js');
+      try {
+        const result = emitPerforceTriggerScripts({ url, token, outputDir: opts.output });
+        process.stdout.write(`Generated ${result.files.length} Perforce trigger scripts in ${opts.output}:\n`);
+        for (const f of result.files) process.stdout.write(`  ${f}\n`);
+        process.stdout.write('\nSECURITY: These scripts contain the webhook token inline.\n');
+        process.stdout.write('Restrict file permissions on the Perforce server before use:\n');
+        process.stdout.write(`  Unix:    chmod 700 ${opts.output}/trigger.sh\n`);
+        process.stdout.write(`  Windows: icacls "${opts.output}\\trigger.bat" /inheritance:r /grant:r "<P4 service account>:F"\n`);
+        process.stdout.write('\nInstall as a change-commit trigger via: p4 triggers\n');
+      } catch (err) {
+        process.stderr.write(`error: ${(err as Error).message}\n`);
+        process.exitCode = 1;
+      }
+    });
+}
+
+/* ------------------------------------------------------------------ */
 /* buildProgram                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -738,9 +776,11 @@ async function main(argv: readonly string[]): Promise<number> {
 
   const program = buildProgram();
 
-  // Register init, template, and completion commands BEFORE findXciRoot so they work from any directory
+  // Register init, template, completion, and perforce-emitter commands BEFORE findXciRoot
+  // so they work from any directory (no .xci/ required).
   registerInitCommand(program);
   registerTemplateCommand(program);
+  registerPerforceEmitterCommand(program);
   program
     .command('completion')
     .description('Output shell completion script')
@@ -880,8 +920,12 @@ async function main(argv: readonly string[]): Promise<number> {
         return handleError(err, program);
       }
     }
-    // Exit 0 when --help/--version shown or a subcommand (init) ran successfully
-    return helpOrVersionDisplayed || subcommandRan ? 0 : 1;
+    // Exit 0 when --help/--version shown or a subcommand (init, agent-emit-perforce-trigger) ran.
+    // Honour process.exitCode if a subcommand's action set it non-zero (e.g. invalid token error).
+    if (helpOrVersionDisplayed || subcommandRan) {
+      return process.exitCode ? Number(process.exitCode) : 0;
+    }
+    return 1;
   }
 
   // Load config and commands
