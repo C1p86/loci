@@ -15,6 +15,8 @@ import errorHandlerPlugin from './plugins/error-handler.js';
 import { registerAgentWsRoute } from './routes/agents/index.js';
 import { registerRoutes } from './routes/index.js';
 import { dispatcherPlugin } from './services/dispatcher.js';
+import { LogBatcher } from './services/log-batcher.js';
+import { LogFanout } from './services/log-fanout.js';
 
 export interface BuildOpts {
   /** Override DATABASE_URL — only for tests that want a specific DB. */
@@ -125,6 +127,23 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
   // Phase 8 D-17 + Pitfall 8: decorate BEFORE registering fastifyWebsocket.
   app.decorate('agentRegistry', new Map<string, WebSocket>());
 
+  // Phase 11 D-05/D-09/D-12: log pipeline decorators.
+  // runRedactionTables: per-run secret variant cache (seeded at dispatch, cleared on terminal).
+  // logBatcher: buffers DB inserts (50-chunk / 200ms / 1000-overflow).
+  // logFanout: live subscriber registry (500-queue drop-head per subscriber).
+  app.decorate('runRedactionTables', new Map<string, readonly string[]>());
+  const logBatcher = new LogBatcher(app);
+  app.decorate('logBatcher', logBatcher);
+  const logFanout = new LogFanout(app);
+  app.decorate('logFanout', logFanout);
+  app.addHook('onClose', async () => {
+    // Order: flush remaining chunks → stop timer → close subscriber sockets → clear redaction map.
+    await logBatcher.flushAll();
+    logBatcher.stop();
+    logFanout.closeAll();
+    app.runRedactionTables.clear();
+  });
+
   // Phase 8 D-13: WS plugin. Register AFTER auth (D-06) so auth plugin's onRequest hook still runs on HTTP upgrade.
   await app.register(fastifyWebsocket, {
     options: { maxPayload: 65536 }, // 64KB max frame — handshake frames are <1KB
@@ -142,11 +161,17 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
   return app;
 }
 
-// Type augmentation so `app.emailTransport`, `app.agentRegistry`, and `app.mek` are typed
+// Type augmentation so decorated properties are typed throughout the codebase
 declare module 'fastify' {
   interface FastifyInstance {
     emailTransport: EmailTransport;
     agentRegistry: Map<string, WebSocket>; // Phase 8 D-17
     mek: Buffer; // Phase 9 D-13: 32-byte MEK Buffer, parsed once at boot
+    // Phase 11 D-05: per-run redaction table (seeded at dispatch, cleared on terminal)
+    runRedactionTables: Map<string, readonly string[]>;
+    // Phase 11 D-09/D-10: log chunk batcher (50-chunk / 200ms / 1000-overflow)
+    logBatcher: LogBatcher;
+    // Phase 11 D-12/D-13: live subscriber fanout registry
+    logFanout: LogFanout;
   }
 }

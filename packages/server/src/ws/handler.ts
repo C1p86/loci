@@ -15,6 +15,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { WebSocket } from 'ws';
 import { makeRepos } from '../repos/index.js';
 import { buildReconnectReconciliation } from '../services/reconciler.js';
+import { clearRedactionTable, redactChunk } from '../services/redaction-table.js';
 import { cancelRunTimer } from '../services/timeout-manager.js';
 import { parseAgentFrame } from './frames.js';
 import { startHeartbeat, stopHeartbeat } from './heartbeat.js';
@@ -347,13 +348,20 @@ async function handleResultFrame(
       'result frame for already-terminal run — CAS miss, ignored',
     );
   }
+
+  // Phase 11 D-12: notify live subscribers the run has terminated (regardless of CAS outcome —
+  // if we're here, the run is terminal one way or another; duplicate end frames are harmless).
+  fastify.logFanout.broadcastEnd(frame.run_id, targetState, frame.exit_code);
+
+  // Phase 11 D-05: clear per-run redaction table now that the run is terminal.
+  clearRedactionTable(fastify, frame.run_id);
 }
 
 /**
  * Handle incoming `log_chunk` frame (agent → server streaming).
- * Phase 10: SERVER DISCARDS payload (Phase 11 adds storage).
- * Still applies verifyRunOwnership guard — accepting log_chunk for wrong-org run
- * would allow probing run_id existence across tenants (T-10-02-01).
+ * Phase 11 D-04/D-05/D-09/D-12: redact → batch → fanout.
+ * verifyRunOwnership guard prevents cross-tenant frame spoofing (T-10-02-01).
+ * D-10 discipline: frame.data is NEVER passed to fastify.log — not even after redaction.
  */
 async function handleLogChunkFrame(
   fastify: FastifyInstance,
@@ -363,12 +371,28 @@ async function handleLogChunkFrame(
 ): Promise<void> {
   if (!(await verifyRunOwnership(fastify, socket, conn, frame.run_id))) return;
 
-  // Phase 10: discard payload. Phase 11 wires storage here.
-  // Trace log for debugging; never log frame.data (may contain secrets — D-10).
-  fastify.log.trace(
-    { runId: frame.run_id, seq: frame.seq, stream: frame.stream, agentId: conn.agentId },
-    'log_chunk discarded (Phase 11 will store)',
-  );
+  // Phase 11 D-05: apply server-side redaction using per-run table (org secret variants).
+  const redactions = fastify.runRedactionTables.get(frame.run_id);
+  const redacted = redactChunk(frame.data, redactions);
+
+  // Phase 11 D-09/D-10: enqueue for batched DB insert (synchronous, fire-and-forget).
+  fastify.logBatcher.enqueue(frame.run_id, conn.orgId, {
+    runId: frame.run_id,
+    seq: frame.seq,
+    stream: frame.stream,
+    data: redacted,
+    ts: new Date(frame.ts),
+  });
+
+  // Phase 11 D-12: fanout to live UI subscribers (synchronous, drop-head on slow subs).
+  fastify.logFanout.broadcast(frame.run_id, {
+    type: 'chunk',
+    seq: frame.seq,
+    stream: frame.stream,
+    data: redacted,
+    ts: frame.ts,
+  });
+  // D-10: no log call here — frame.data must never appear in log output, even redacted.
 }
 
 /**

@@ -29,7 +29,8 @@ export function generateId(
     | 'tsk'
     | 'sec'
     | 'sal'
-    | 'run',
+    | 'run'
+    | 'lch',
 ): string {
   return `xci_${prefix}_${randomBytes(15).toString('base64url')}`;
 }

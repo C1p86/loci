@@ -23,6 +23,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { RunQuotaExceededError, SessionRequiredError, TaskNotFoundError } from '../../errors.js';
 import { makeRepos } from '../../repos/index.js';
+import { buildRedactionTable } from '../../services/redaction-table.js';
 import { resolveTaskParams } from '../../services/dispatch-resolver.js';
 import type { TaskSnapshot } from '../../ws/types.js';
 import { requireMemberOrAbove } from './helpers.js';
@@ -132,6 +133,12 @@ export const triggerRunRoute: FastifyPluginAsync = async (fastify) => {
         triggeredByUserId: userId,
         timeoutSeconds,
       });
+
+      // Phase 11 D-05: seed per-run redaction table from decrypted org secret values.
+      // Must run AFTER taskRuns.create (so runId exists) and BEFORE dispatchQueue.enqueue.
+      // Longest-first ordering + base64/URL/hex variants applied inside buildRedactionTable.
+      // NEVER log orgSecrets values — they are plaintext here.
+      buildRedactionTable(fastify, newRun.id, Object.values(orgSecrets));
 
       // 8. Enqueue in DispatchQueue AFTER DB insert.
       // If server crashes between here and the enqueue, boot reconciliation (DISP-08) re-enqueues.
