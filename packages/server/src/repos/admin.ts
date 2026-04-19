@@ -1,4 +1,4 @@
-import { and, count, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
+import { and, count, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { hashPassword } from '../crypto/password.js';
 import { getOrCreateOrgDek, unwrapDek, wrapDek } from '../crypto/secrets.js';
@@ -21,6 +21,8 @@ import {
   type TaskRun,
   taskRuns,
   users,
+  webhookDeliveries,
+  webhookTokens,
 } from '../db/schema.js';
 import {
   DatabaseError,
@@ -580,6 +582,45 @@ export function makeAdminRepo(db: PostgresJsDatabase) {
         throw new LogRetentionJobError('runRetentionCleanup failed', err);
       }
       return { rowsDeleted, iterations, perOrg };
+    },
+
+    // ---- D-06 / D-22 cross-org webhook helpers (Phase 12) ----
+
+    /**
+     * D-06: Cross-org webhook token lookup by plaintext.
+     * The URL token identifies the org — but the server doesn't know which org until AFTER lookup.
+     * hashToken(plaintext) → SELECT WHERE token_hash = $1 AND revoked_at IS NULL.
+     * Returns { orgId, tokenId, pluginName } or undefined.
+     * ATOK-06: comparison is via eq on hash column — no === on plaintext. Plaintext NEVER logged.
+     * T-12-01-03: hash-based lookup only; revoked filter prevents using revoked tokens.
+     */
+    async findWebhookTokenByPlaintext(
+      tokenPlaintext: string,
+    ): Promise<{ orgId: string; tokenId: string; pluginName: string } | undefined> {
+      const tokenHash = hashToken(tokenPlaintext);
+      const rows = await db
+        .select({
+          orgId: webhookTokens.orgId,
+          tokenId: webhookTokens.id,
+          pluginName: webhookTokens.pluginName,
+        })
+        .from(webhookTokens)
+        .where(and(eq(webhookTokens.tokenHash, tokenHash), isNull(webhookTokens.revokedAt)))
+        .limit(1);
+      return rows[0];
+    },
+
+    /**
+     * D-22: Bulk delete webhook_deliveries older than the given cutoff.
+     * Used by a daily cleanup hook (Plan 12-04 retention env knob).
+     * Returns { rowsDeleted }.
+     */
+    async cleanupDeliveries(before: Date): Promise<{ rowsDeleted: number }> {
+      const result = await db
+        .delete(webhookDeliveries)
+        .where(lt(webhookDeliveries.receivedAt, before))
+        .returning({ id: webhookDeliveries.id });
+      return { rowsDeleted: result.length };
     },
 
     async rotateMek(
