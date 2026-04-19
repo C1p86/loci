@@ -212,7 +212,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A slow UI subscriber does not block or delay log streaming to the agent or persistence to Postgres
   4. Org secret values (and their base64-encoded variants) are replaced by `***` in persisted log chunks before they reach the DB
   5. A user can download the full log of any completed run as a `.log` plaintext file via an authenticated, org-scoped endpoint
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 11-01-PLAN.md — log_chunks schema + migration 0004 [BLOCKING] + logChunks repo + adminRepo runRetentionCleanup + isolation test
+- [ ] 11-02-PLAN.md — redaction-table + log-batcher + log-fanout services; handleLogChunkFrame rewire (redact/batch/fanout); trigger.ts seeds runRedactionTables
+- [ ] 11-03-PLAN.md — WS subscribe endpoint /ws/orgs/:orgId/runs/:runId/logs (sinceSeq catch-up) + GET logs.log download + log-retention service on onReady + integration tests
+- [ ] 11-04-PLAN.md — Agent-side redactLine + 8KB chunk split in runner.ts; E2E test; Phase closeout (READMEs + STATE + REQUIREMENTS traceability + human-verify)
 
 ### Phase 12: Plugin System & Webhooks
 **Goal**: Incoming GitHub and Perforce webhooks are verified, parsed, and mapped to task runs; unprocessed events land in a Dead Letter Queue visible in the UI with manual retry
