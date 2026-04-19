@@ -283,6 +283,7 @@ import type {
 export type { GitHubTriggerConfig, PerforceTriggerConfig, TriggerConfig };
 
 // Phase 9 D-07: Task definitions (org-scoped; yaml_definition kept as text per D-09).
+// Phase 13 D-35: slug + expose_badge added (0006_badge_slugs migration).
 export const tasks = pgTable(
   'tasks',
   {
@@ -300,10 +301,16 @@ export const tasks = pgTable(
     createdByUserId: text('created_by_user_id').references(() => users.id, {
       onDelete: 'set null',
     }),
+    // Phase 13 D-35: per-task slug (unique within org) + badge-exposure toggle.
+    slug: text('slug').notNull().default(''),
+    exposeBadge: boolean('expose_badge').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('tasks_org_name_unique').on(t.orgId, t.name)],
+  (t) => [
+    uniqueIndex('tasks_org_name_unique').on(t.orgId, t.name),
+    uniqueIndex('tasks_org_slug_unique').on(t.orgId, t.slug),
+  ],
 );
 
 // Phase 9 D-14: per-org wrapped DEK (one row per org; mek_version tracks rotation state).

@@ -43,6 +43,13 @@
       "when": 1776611958726,
       "tag": "0005_plugins_dlq",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776618310866,
+      "tag": "0006_badge_slugs",
+      "breakpoints": true
     }
   ]
 }
