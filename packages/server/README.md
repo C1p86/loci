@@ -508,6 +508,42 @@ Agent `log_chunk` frames are persisted to Postgres and fanned out to subscribed 
 | `{type:'end', state, exitCode}` | Run reached terminal state; socket closed after 5s |
 | `{type:'error', code}` | Auth or validation failure; socket closed |
 
+## Plugin System & Webhooks (Phase 12)
+
+xci server supports incoming webhooks via a pluggable trigger architecture. Two bundled plugins ship with every release: GitHub and Perforce. Plugins are bundled at build time — NO dynamic runtime install (PLUG-02).
+
+### Webhook endpoints
+
+- `POST /hooks/github/:orgToken` — GitHub push + pull_request events
+- `POST /hooks/perforce/:orgToken` — Perforce change-commit trigger (JSON body)
+
+Both endpoints are unauthenticated at the session layer — the `:orgToken` URL path segment identifies the org (via sha256 hash lookup in `webhook_tokens`). GitHub requests are verified by HMAC-SHA256 against the per-token `plugin_secret`. Perforce requests are verified by `X-Xci-Token` header match.
+
+### Managing webhook tokens
+
+`POST /api/orgs/:orgId/webhook-tokens` (Owner/Member, CSRF):
+- body: `{ pluginName: 'github' | 'perforce', pluginSecret?: string }`
+- returns: `{ id, plaintext, endpointUrl }` — **plaintext is returned ONCE; store it immediately**
+
+Other endpoints: `GET /api/orgs/:orgId/webhook-tokens` (list), `POST /api/orgs/:orgId/webhook-tokens/:id/revoke`, `DELETE /api/orgs/:orgId/webhook-tokens/:id` (Owner-only).
+
+### Dead Letter Queue (DLQ)
+
+Any webhook that fails the verify→parse→mapToTask pipeline lands in `dlq_entries`. Sensitive headers (`Authorization`, `X-Hub-Signature`, `X-Hub-Signature-256`, `X-GitHub-Token`, `X-Xci-Token`, `Cookie`, `Set-Cookie`) are stripped before persist (PLUG-08).
+
+- `GET /api/orgs/:orgId/dlq` — list DLQ entries (any member; filter by plugin/reason/since)
+- `POST /api/orgs/:orgId/dlq/:dlqId/retry` — replay through parse→mapToTask→dispatch (Owner/Member; CSRF)
+
+**Retry semantics:** signature verification is **skipped** on retry (D-20) — the admin is consciously accepting the event. The retry endpoint logs `dlq_retry_skipping_signature_verify` at WARN level for audit.
+
+### Idempotency
+
+The `webhook_deliveries` table tracks `(plugin_name, delivery_id)` uniquely. A duplicate GitHub `X-GitHub-Delivery` or Perforce `delivery_id` returns `200 {status:'duplicate'}` with a WARN log; no second task_run is created.
+
+### Task trigger configuration
+
+Tasks store `trigger_configs` JSONB on the `tasks` table — an array of `GitHubTriggerConfig | PerforceTriggerConfig`. Explicit per-task configuration (no naming convention): a task with an empty `trigger_configs` array is NOT triggerable via webhook. Validation happens on task create/update via `validateTriggerConfigs`.
+
 ## Design References
 
 - `.planning/phases/07-database-schema-auth/07-CONTEXT.md` — 39 locked decisions

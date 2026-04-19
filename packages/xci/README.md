@@ -826,6 +826,42 @@ Agent mode is a daemon — it runs until terminated. For production deployments,
 - **macOS**: launchd plist
 - **Windows**: Windows Service (via `node-windows` or NSSM)
 
+### `xci agent-emit-perforce-trigger <url> <token>`
+
+Emits Perforce change-commit trigger scripts that POST to the xci webhook endpoint. Generated files:
+
+- `trigger.sh` (POSIX shell, uses `curl`)
+- `trigger.bat` (Windows cmd, delegates to PowerShell)
+- `trigger.ps1` (PowerShell, uses `Invoke-WebRequest`)
+
+**The generated scripts do NOT require Node.js on the Perforce server.**
+
+**Usage:**
+
+```bash
+xci agent-emit-perforce-trigger https://xci.example.com/hooks/perforce/xci_whk_abc tok_xyz --output ./p4-triggers
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `<url>` | Webhook URL (from `POST /api/orgs/:orgId/webhook-tokens → endpointUrl`) |
+| `<token>` | X-Xci-Token value (plaintext returned once at token creation) |
+| `-o, --output <dir>` | Output directory for generated scripts (default: `.`) |
+
+**Security:** the emitted scripts contain the webhook token inline. Restrict file permissions on the Perforce server before deploying:
+
+```bash
+# Unix
+chmod 700 trigger.sh
+
+# Windows
+icacls trigger.bat /inheritance:r /grant:r "<P4 service account>:F"
+```
+
+Install the script as a `change-commit` trigger via `p4 triggers`. The scripts accept Perforce env vars (`P4_CHANGE`, `P4_USER`, `P4_CLIENT`, `P4_ROOT`, `P4_DEPOT_PATH`) set automatically by the Perforce trigger runtime, plus positional fallbacks `%1 %2 %3` for `change`, `user`, `client`.
+
 ## License
 
 MIT
