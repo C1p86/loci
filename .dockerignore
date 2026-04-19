@@ -1,0 +1,45 @@
+# Monorepo noise
+node_modules
+**/node_modules
+.pnpm-store
+# Planning & docs
+.planning
+**/*.md
+!packages/server/package.json
+# Git & CI
+.git
+.github
+.gitignore
+.gitattributes
+# Tests & fixtures (server tests run in CI, not in image)
+**/__tests__
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/coverage
+**/.vitest-output
+# Build artifacts that we regenerate in builder stage
+**/dist
+**/.turbo
+packages/server/tsconfig.tsbuildinfo
+packages/web/tsconfig.tsbuildinfo
+packages/xci/tsconfig.tsbuildinfo
+# xci CLI package not needed in server image
+packages/xci/src
+packages/xci/TestProject
+# web source — we only need packages/web/dist after builder compiles
+packages/web/src
+packages/web/e2e
+packages/web/public
+packages/web/index.html
+packages/web/vite.config.ts
+packages/web/playwright.config.ts
+packages/web/vitest.config.ts
+packages/web/tsconfig.json
+# Editor
+.vscode
+.idea
+# Env files — NEVER in image
+.env
+.env.*
+!.env.example
