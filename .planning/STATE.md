@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: Ready to execute
-stopped_at: Completed Phase 11 — all 4 plans, log streaming + persistence + retention + agent redaction
-last_updated: "2026-04-19T15:16:22.037Z"
-last_activity: 2026-04-19 -- Phase 12 planning complete
+stopped_at: Completed 12-plugin-system-webhooks-01-PLAN.md
+last_updated: "2026-04-19T15:33:50.913Z"
+last_activity: 2026-04-19
 progress:
-  total_phases: 14
+  total_phases: 12
   completed_phases: 11
   total_plans: 53
-  completed_plans: 49
-  percent: 92
+  completed_plans: 50
+  percent: 94
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 
 ## Current Position
 
-Phase: 12 (Plugin System & Webhooks) — NEXT
-Plan: 1 of TBD
+Phase: 12 (Plugin System & Webhooks) — EXECUTING
+Plan: 2 of 5
 Next: Phase 12 — Plugin System & Webhooks
-Last activity: 2026-04-19 -- Phase 12 planning complete
+Last activity: 2026-04-19
 
 Progress (Phase 11): [██████████] 100% (4/4 plans)
 Progress (v2.0 milestone): [██████░░░░] 79% (6/9 phases complete: 06, 07, 08, 09, 10, 11)
@@ -114,6 +114,7 @@ Progress (v2.0 milestone): [██████░░░░] 79% (6/9 phases comp
 | Phase 11-log-streaming-persistence P02 | 608 | 3 tasks | 10 files |
 | Phase 11-log-streaming-persistence P03 | 45m | 2 tasks | 9 files |
 | Phase 11-log-streaming-persistence P04 | ~20m | 2 tasks | 4 files |
+| Phase 12-plugin-system-webhooks P01 | 15 | 3 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -278,6 +279,8 @@ Recent decisions affecting current work:
 - [Phase 11-log-streaming-persistence P04]: splitChunk iterates code points (for..of) to avoid splitting multi-byte UTF-8 sequences; 8KB cap leaves 8x headroom under the 65536 WS maxPayload (D-03/D-24)
 - [Phase 11-log-streaming-persistence P04]: redactionValues passed as sorted copy at spawnTask setup time (not per-chunk) — O(n log n) once vs O(n*m) per chunk where m=secrets count
 - [Phase 11-log-streaming-persistence P04]: E2E log-streaming test is Linux+Docker gated (describe.runIf) matching existing Phase 10 E2E pattern; covers SC-1 (seq contiguity), SC-2 (DB persistence), SC-3 (slow-subscriber gap), SC-4 (redaction end-to-end), SC-5 (download endpoint)
+- [Phase 12-plugin-system-webhooks]: Used raw sql template for dlq-entries cursor pagination OR condition — Drizzle or() return type is SQL|undefined which TypeScript rejects in conditions array
+- [Phase 12-plugin-system-webhooks]: admin.webhooks integration test uses raw db.execute SQL for old-timestamp inserts since Drizzle insert does not expose receivedAt override for testing cleanup behavior
 
 ### Pending Todos
 
@@ -312,7 +315,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-19T15:00:00.000Z
-Stopped at: Completed Phase 11 — all 4 plans, log streaming + persistence + retention + agent redaction
+Last session: 2026-04-19T15:33:50.870Z
+Stopped at: Completed 12-plugin-system-webhooks-01-PLAN.md
 Phase 11 closed: all 4 plans complete, 8 requirement IDs traced (LOG-01..08), 5/5 SC covered, integration tests written (Docker-deferred for 11-03 routes; E2E test Linux+Docker gated for 11-04)
 Resume: Phase 12 — Plugin System & Webhooks (needs Phase 10 complete — SATISFIED)

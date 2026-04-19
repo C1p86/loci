@@ -107,10 +107,10 @@
 - [ ] **PLUG-02**: Plugin bundled at build time in `@xci/server`; nessun install dinamico runtime (anti-feature).
 - [ ] **PLUG-03**: Plugin GitHub: endpoint `/hooks/github/:orgToken`, signature HMAC-SHA256 verificata con `timingSafeEqual`; supporta eventi `push` e `pull_request`.
 - [ ] **PLUG-04**: Plugin Perforce: endpoint `/hooks/perforce/:orgToken` riceve POST JSON da script `change-commit` trigger; xci CLI emette lo script con `xci agent-emit-perforce-trigger <url> <token>` (Node-free sulla macchina Perforce: emette `.sh`/`.bat`).
-- [ ] **PLUG-05**: Mapping event → task **config esplicita per-task** (no naming convention): su ogni task l'utente configura i trigger applicabili (es. "push su `main` di `acme/infra`").
-- [ ] **PLUG-06**: Dead Letter Queue: eventi webhook non processati (parse fail, task non trovata, signature invalida) in DLQ; UI li elenca; retry manuale dalla UI.
-- [ ] **PLUG-07**: Idempotency: `delivery_id` (es. `X-GitHub-Delivery`) tracciato per evitare replay; duplicate delivery ignorato con log warning.
-- [ ] **PLUG-08**: Scrubbing: request body webhook scrubbato di token/header sensibili (Authorization, X-Hub-Signature, X-GitHub-Token) prima della persistenza in DLQ.
+- [x] **PLUG-05**: Mapping event → task **config esplicita per-task** (no naming convention): su ogni task l'utente configura i trigger applicabili (es. "push su `main` di `acme/infra`").
+- [x] **PLUG-06**: Dead Letter Queue: eventi webhook non processati (parse fail, task non trovata, signature invalida) in DLQ; UI li elenca; retry manuale dalla UI.
+- [x] **PLUG-07**: Idempotency: `delivery_id` (es. `X-GitHub-Delivery`) tracciato per evitare replay; duplicate delivery ignorato con log warning.
+- [x] **PLUG-08**: Scrubbing: request body webhook scrubbato di token/header sensibili (Authorization, X-Hub-Signature, X-GitHub-Token) prima della persistenza in DLQ.
 
 ### Dashboard UX (UI)
 
@@ -394,10 +394,10 @@ Quali fasi coprono quali requirement.
 | PLUG-02 | 12-plugin-webhooks | Pending |
 | PLUG-03 | 12-plugin-webhooks | Pending |
 | PLUG-04 | 12-plugin-webhooks | Pending |
-| PLUG-05 | 12-plugin-webhooks | Pending |
-| PLUG-06 | 12-plugin-webhooks | Pending |
-| PLUG-07 | 12-plugin-webhooks | Pending |
-| PLUG-08 | 12-plugin-webhooks | Pending |
+| PLUG-05 | 12-plugin-webhooks | Complete |
+| PLUG-06 | 12-plugin-webhooks | Complete |
+| PLUG-07 | 12-plugin-webhooks | Complete |
+| PLUG-08 | 12-plugin-webhooks | Complete |
 | UI-01 | 13-web-dashboard | Pending |
 | UI-02 | 13-web-dashboard | Pending |
 | UI-03 | 13-web-dashboard | Pending |
