@@ -424,3 +424,28 @@ export const taskRuns = pgTable(
 export type TaskRun = typeof taskRuns.$inferSelect;
 export type NewTaskRun = typeof taskRuns.$inferInsert;
 export type TaskRunState = TaskRun['state'];
+
+// Phase 11 D-01: log_chunks — largest table in the DB by row count. No org_id FK
+// (scoping via task_runs JOIN); no jsonb (text column + Postgres TOAST per D-02).
+// (run_id, seq) unique index is the idempotency guarantee for LOG-01 reconnect replay.
+export const logChunks = pgTable(
+  'log_chunks',
+  {
+    id: text('id').primaryKey(), // xci_lch_<rand>
+    runId: text('run_id')
+      .notNull()
+      .references(() => taskRuns.id, { onDelete: 'cascade' }),
+    seq: integer('seq').notNull(),
+    stream: text('stream', { enum: ['stdout', 'stderr'] }).notNull(),
+    data: text('data').notNull(),
+    ts: timestamp('ts', { withTimezone: true }).notNull(),
+    persistedAt: timestamp('persisted_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('log_chunks_run_seq_unique').on(t.runId, t.seq),
+    index('log_chunks_persisted_at_idx').on(t.persistedAt),
+  ],
+);
+
+export type LogChunk = typeof logChunks.$inferSelect;
+export type NewLogChunk = typeof logChunks.$inferInsert;
