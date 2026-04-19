@@ -69,14 +69,14 @@
 
 ### Task Dispatch (DISP)
 
-- [ ] **DISP-01**: Task triggerata (manuale UI o webhook plugin) entra in dispatch queue in-memory sul server.
-- [ ] **DISP-02**: Selezione agente idoneo: `online` + tutte le `label_requirements` soddisfatte; tra idonei sceglie least-busy; fallback round-robin.
+- [x] **DISP-01**: Task triggerata (manuale UI o webhook plugin) entra in dispatch queue in-memory sul server.
+- [x] **DISP-02**: Selezione agente idoneo: `online` + tutte le `label_requirements` soddisfatte; tra idonei sceglie least-busy; fallback round-robin.
 - [ ] **DISP-03**: Frame `dispatch` all'agente contiene: `run_id`, task definition snapshot, params risolti (org secrets decifrati in plaintext, OK su WS-over-TLS).
 - [x] **DISP-04**: `TaskRun` persisto con stati: `queued → dispatched → running → (succeeded | failed | cancelled | timed_out | orphaned)`.
-- [ ] **DISP-05**: Concurrency per-agent default 1 (configurabile); per-org limit dal Plan (Free: `maxConcurrentTasks`).
-- [ ] **DISP-06**: Timeout: default 1h per task, configurabile per-task; scaduto → frame `cancel` all'agente + run marcato `timed_out`.
+- [x] **DISP-05**: Concurrency per-agent default 1 (configurabile); per-org limit dal Plan (Free: `maxConcurrentTasks`).
+- [x] **DISP-06**: Timeout: default 1h per task, configurabile per-task; scaduto → frame `cancel` all'agente + run marcato `timed_out`.
 - [ ] **DISP-07**: Cancellazione manuale dalla UI → frame `cancel` all'agente → task killed → run marcato `cancelled`.
-- [ ] **DISP-08**: Startup reconciliation: al boot server, TaskRun in stato `queued`/`dispatched` senza agente session vengono ri-queued (o marcati `orphaned` se non recuperabili).
+- [x] **DISP-08**: Startup reconciliation: al boot server, TaskRun in stato `queued`/`dispatched` senza agente session vengono ri-queued (o marcati `orphaned` se non recuperabili).
 - [ ] **DISP-09**: "Run con param override" dalla UI: form per modificare i valori `${VAR}` prima del dispatch, senza persistere sulla task.
 
 ### Log Streaming (LOG)
@@ -369,14 +369,14 @@ Quali fasi coprono quali requirement.
 | SEC-06 | 09-task-definitions-secrets | Complete |
 | SEC-07 | 09-task-definitions-secrets | Complete |
 | SEC-08 | 09-task-definitions-secrets | Complete |
-| DISP-01 | 10-dispatch-quota | Pending |
-| DISP-02 | 10-dispatch-quota | Pending |
+| DISP-01 | 10-dispatch-quota | Complete |
+| DISP-02 | 10-dispatch-quota | Complete |
 | DISP-03 | 10-dispatch-quota | Pending |
 | DISP-04 | 10-dispatch-quota | Complete |
-| DISP-05 | 10-dispatch-quota | Pending |
-| DISP-06 | 10-dispatch-quota | Pending |
+| DISP-05 | 10-dispatch-quota | Complete |
+| DISP-06 | 10-dispatch-quota | Complete |
 | DISP-07 | 10-dispatch-quota | Pending |
-| DISP-08 | 10-dispatch-quota | Pending |
+| DISP-08 | 10-dispatch-quota | Complete |
 | DISP-09 | 10-dispatch-quota | Pending |
 | QUOTA-03 | 10-dispatch-quota | Complete |
 | QUOTA-04 | 10-dispatch-quota | Complete |

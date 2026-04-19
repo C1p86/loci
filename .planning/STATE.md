@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: Ready to execute
-stopped_at: Completed 10-02-PLAN.md
-last_updated: "2026-04-19T12:30:41.410Z"
+stopped_at: Completed 10-dispatch-pipeline-quota-enforcement/10-03-PLAN.md
+last_updated: "2026-04-19T13:00:34.835Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 44
-  completed_plans: 41
-  percent: 93
+  completed_plans: 42
+  percent: 95
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 10 (Dispatch Pipeline & Quota Enforcement) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Next: Phase 10 (Dispatch Pipeline & Quota Enforcement) — pending planning
 Last activity: 2026-04-19
 
@@ -106,6 +106,7 @@ Progress (v2.0 milestone): [████░░░░░░] 44% (4/9 phases comp
 | Phase 09-task-definitions-secrets-management P05 | 12 | 2 tasks | 13 files |
 | Phase 10-dispatch-pipeline-quota-enforcement P01 | 35 | 3 tasks | 12 files |
 | Phase 10-dispatch-pipeline-quota-enforcement P02 | 866s | 3 tasks | 7 files |
+| Phase 10-dispatch-pipeline-quota-enforcement P03 | 90 | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -242,6 +243,9 @@ Recent decisions affecting current work:
 - [Phase 10-dispatch-pipeline-quota-enforcement]: findRunsForReconciliation() has no orgId param — adminRepo cross-tenant by design (D-03/D-30 boot scan)
 - [Phase 10-dispatch-pipeline-quota-enforcement]: QUOTA-03 gate placed after consumeRegistrationToken — prevents quota-state probing via token reuse
 - [Phase 10-dispatch-pipeline-quota-enforcement]: timeout-manager.ts stub pattern: handler.ts imports cleanly in Plan 10-02, Plan 10-03 replaces with real implementation
+- [Phase 10-dispatch-pipeline-quota-enforcement]: Store orgId in timer Map entry so handleRunTimeout calls forOrg() without cross-org SELECT
+- [Phase 10-dispatch-pipeline-quota-enforcement]: DispatchQueue.getEntries() returns immutable snapshot to prevent FIFO corruption during mid-loop dequeue
+- [Phase 10-dispatch-pipeline-quota-enforcement]: reconciler uses run.taskSnapshot (not fresh task.getById) for D-01 reproducibility; paramOverrides used as params pending Plan 10-05 dispatch-resolver wiring
 
 ### Pending Todos
 
@@ -272,7 +276,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-19T12:30:41.369Z
-Stopped at: Completed 10-02-PLAN.md
+Last session: 2026-04-19T13:00:34.794Z
+Stopped at: Completed 10-dispatch-pipeline-quota-enforcement/10-03-PLAN.md
 Phase 9 closed: all 6 plans complete, all 14 requirements traced, 5/5 SC covered
 Resume: Phase 10 planning (Dispatch Pipeline & Quota Enforcement — needs Phase 8 + Phase 9)
