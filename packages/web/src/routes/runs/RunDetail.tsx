@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
+import { LogViewer } from '../../components/LogViewer.js';
 import { RoleGate } from '../../components/RoleGate.js';
 import { Button } from '../../components/ui/button.js';
 import { useCancelRun, useRun } from '../../hooks/useRuns.js';
@@ -80,26 +81,8 @@ export function RunDetail() {
         <dd>{run.triggerSource}</dd>
       </dl>
 
-      {/* Log viewer placeholder — real implementation wired in Plan 13-04 Task 1
-          (hooks into /ws/orgs/:orgId/runs/:runId/logs WebSocket) */}
-      <div
-        id="log-viewer-mount"
-        className="border rounded-md bg-muted/30 p-4 min-h-[300px] text-sm text-muted-foreground"
-      >
-        Log viewer will be wired in Plan 13-04. Real rendering hooks into
-        /ws/orgs/:orgId/runs/:runId/logs in Plan 13-04 Task 1.
-      </div>
-
-      {/* Download raw log — passes session cookie via credentials:include */}
-      <div className="mt-3">
-        <a
-          href={`/api/orgs/${run.taskId}/runs/${run.id}/logs.log`}
-          download
-          className="text-sm underline text-muted-foreground hover:text-foreground"
-        >
-          Download raw log
-        </a>
-      </div>
+      {/* UI-04: Real LogViewer wired in Plan 13-04 — WS at /ws/orgs/:orgId/runs/:runId/logs */}
+      <LogViewer runId={run.id} initialState={run.state} />
     </div>
   );
 }
