@@ -1,0 +1,18 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+  "extends": ["../../biome.json"],
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true,
+    "root": "../.."
+  },
+  "linter": {
+    "rules": {
+      "a11y": { "recommended": true },
+      "correctness": { "useExhaustiveDependencies": "warn" },
+      "suspicious": { "noReactSpecificProps": "off" }
+    }
+  },
+  "files": { "includes": ["src/**/*.{ts,tsx}", "vite.config.ts", "vitest.config.ts"] }
+}

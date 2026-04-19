@@ -8,7 +8,9 @@
   "files": {
     "includes": [
       "packages/**/src/**/*.ts",
+      "packages/**/src/**/*.tsx",
       "packages/**/tsup.config.ts",
+      "packages/**/vite.config.ts",
       "packages/**/vitest*.config.ts",
       "packages/**/drizzle.config.ts"
     ]
@@ -194,6 +196,26 @@
                   "@xci/server": {
                     "message": "D-38: packages/xci must never import from @xci/server. Reverse dependency is forbidden."
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/web/src/**/*.{ts,tsx}"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "xci": { "message": "D-41: @xci/web must not import xci." },
+                  "xci/dsl": { "message": "D-41: @xci/web must not import xci/dsl — maintain parallel types." },
+                  "xci/agent": { "message": "D-41: @xci/web must not import xci/agent." },
+                  "@xci/server": { "message": "D-41: @xci/web must not import @xci/server (Node types leak)." }
                 }
               }
             }
