@@ -19,6 +19,23 @@ xci --version
 
 See the full CLI docs in [`packages/xci/README.md`](./packages/xci/README.md).
 
+## Docker Quick Start
+
+Run the full server stack locally (Postgres 16 + MailHog + xci server):
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+The server is ready when `docker compose ps` shows `server` status `healthy`.
+
+- API / SPA: http://localhost:3000
+- Health: http://localhost:3000/api/healthz
+- MailHog (email inspector): http://localhost:8025
+
+See [packages/server/README.md — Running in Docker](./packages/server/README.md#running-in-docker) for the full reference (env vars, ports, volumes, production notes).
+
 ## Working on the monorepo
 
 Prerequisites: Node.js `>=20.5.0`, [Corepack](https://github.com/nodejs/corepack) enabled (ships with Node).

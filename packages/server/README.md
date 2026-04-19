@@ -632,6 +632,96 @@ curl -X PATCH https://<server>/api/orgs/<orgId>/tasks/<taskId> \
   -d '{"expose_badge": true}'
 ```
 
+## Running in Docker
+
+`@xci/server` ships as a production Docker image at `ghcr.io/xci/server:<tag>` (see [repo root README](../../README.md#docker-quick-start) for the release tag scheme).
+
+### Dev stack (docker compose)
+
+From the repo root:
+
+```bash
+cp .env.example .env             # copy dev defaults; never commit .env
+docker compose up -d --build     # builds Dockerfile, starts postgres + mailhog + server
+docker compose logs -f server    # follow server logs
+```
+
+The stack is up when `docker compose ps` reports `server` status `healthy`.
+
+| Endpoint | URL |
+|----------|-----|
+| Health | http://localhost:3000/api/healthz |
+| Web SPA | http://localhost:3000/ |
+| API | http://localhost:3000/api/* |
+| WS (agent) | ws://localhost:3000/ws/agent |
+| WS (log subscribe) | ws://localhost:3000/ws/orgs/:orgId/runs/:runId/logs |
+| Webhooks | http://localhost:3000/hooks/:plugin/:orgToken |
+| Badge | http://localhost:3000/badge/:orgSlug/:taskSlug.svg |
+| MailHog UI | http://localhost:8025 |
+
+To clean up (including the Postgres data volume):
+
+```bash
+docker compose down -v
+```
+
+### What's inside the image
+
+- Base: `node:22-slim` (glibc; required for `@node-rs/argon2` prebuilt binaries)
+- User: `xci` (UID `10001:10001`, non-root)
+- Healthcheck: `curl -fsS http://localhost:3000/api/healthz` every 15s
+- Migrations: applied at boot via the programmatic Drizzle migrator (no `drizzle-kit` in the runtime image)
+- Web SPA: `@xci/web` prebuilt bundle served by `@fastify/static` from `/app/web` (disable by setting `WEB_STATIC_ROOT=''`)
+
+### Environment variables
+
+See `.env.example` at the repo root for the complete operator reference with dev defaults and production warnings.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | yes | Postgres connection string (`postgresql://user:pass@host:5432/db`) |
+| `SESSION_COOKIE_SECRET` | yes | Min 32 chars; signs the `xci_sid` session cookie |
+| `XCI_MASTER_KEY` | yes | Base64 of 32 random bytes (44 chars ending `=`); protects org DEKs |
+| `PLATFORM_ADMIN_EMAIL` | yes | Email of the account allowed to call `POST /api/admin/rotate-mek` |
+| `EMAIL_TRANSPORT` | yes | `log` \| `stub` \| `smtp` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_FROM` | if smtp | SMTP relay config |
+| `NODE_ENV` | no | `production` (image default) |
+| `PORT` | no | `3000` (image default) |
+| `LOG_LEVEL` | no | `info` (image default) |
+| `LOG_RETENTION_INTERVAL_MS` | no | `86400000` (24 h; log cleanup cadence) |
+| `WEB_STATIC_ROOT` | no | `/app/web` (image default); set to `''` to disable SPA |
+
+### Ports and volumes
+
+| Resource | Host binding | Purpose |
+|----------|-------------|---------|
+| Port `3000` | `localhost:3000` | HTTP API + WS + SPA |
+| Port `5432` | `localhost:5432` | Postgres (dev only) |
+| Port `1025` | `localhost:1025` | MailHog SMTP ingress |
+| Port `8025` | `localhost:8025` | MailHog web UI |
+| Volume `pgdata` | named Docker volume | Postgres data persistence |
+
+### Production deployment notes
+
+- Override ALL secrets in `.env.example` before running in production. In particular:
+  - Regenerate `XCI_MASTER_KEY`: `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"`
+  - Regenerate `SESSION_COOKIE_SECRET`
+  - Point `DATABASE_URL` at a managed Postgres (not the compose container)
+  - Configure real SMTP (`EMAIL_TRANSPORT=smtp` + `SMTP_HOST/PORT/USER/PASS/FROM`)
+  - Set `PLATFORM_ADMIN_EMAIL` to a real user email
+- Terminate TLS at your reverse proxy (nginx / Caddy / cloud LB). The image does not handle HTTPS directly.
+- Pin to a specific version tag (`ghcr.io/xci/server:v2.0.0`). Do not rely on `:latest` in production.
+- On SIGTERM the server drains WS connections, flushes the log batcher, and exits 0 (PKG-06). Orchestrators should give it at least 30 seconds to drain.
+
+### Rebuilding from source
+
+```bash
+# From repo root
+docker build -f packages/server/Dockerfile -t xci/server:dev .
+```
+
+This triggers the two-stage build: `node:22` builder runs `pnpm install --frozen-lockfile` + `pnpm turbo run build --filter=@xci/server --filter=@xci/web` + `pnpm deploy --prod --legacy`; `node:22-slim` runtime COPYs the pruned `node_modules` + `dist/` + `drizzle/` + web bundle.
+
 ## Design References
 
 - `.planning/phases/07-database-schema-auth/07-CONTEXT.md` — 39 locked decisions
