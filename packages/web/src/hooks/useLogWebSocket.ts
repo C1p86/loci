@@ -114,7 +114,6 @@ export function useLogWebSocket({ orgId, runId, enabled }: Args) {
       }
       setStatus('disconnected');
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId, runId, enabled, setStatus]);
 
   return { chunks, endState, exitCode };

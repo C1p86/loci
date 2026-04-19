@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AgentsList } from './agents/AgentsList.js';
 import { publicOnlyLoader } from './guards.js';
+import { HistoryList } from './history/HistoryList.js';
 import { ForgotPassword } from './public/ForgotPassword.js';
 import { InviteAccept } from './public/InviteAccept.js';
 import { Login } from './public/Login.js';
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       { path: 'tasks/:id/edit', element: <TaskEditor /> },
       { path: 'tasks/:id/trigger', element: <TaskTrigger /> },
       { path: 'runs/:id', element: <RunDetail /> },
+      { path: 'history', element: <HistoryList /> },
       { path: '*', element: <NotFound /> },
     ],
   },

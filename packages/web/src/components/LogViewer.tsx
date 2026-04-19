@@ -1,19 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Download, Clock, ArrowDown } from 'lucide-react';
+import { ArrowDown, Clock, Download } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useLogWebSocket } from '../hooks/useLogWebSocket.js';
-import { useUiStore } from '../stores/uiStore.js';
-import { useAuthStore } from '../stores/authStore.js';
-import { Button } from './ui/button.js';
 import type { RunState } from '../lib/types.js';
+import { useAuthStore } from '../stores/authStore.js';
+import { useUiStore } from '../stores/uiStore.js';
+import { Button } from './ui/button.js';
 
-const TERMINAL_STATES: RunState[] = [
-  'succeeded',
-  'failed',
-  'cancelled',
-  'timed_out',
-  'orphaned',
-];
+const TERMINAL_STATES: RunState[] = ['succeeded', 'failed', 'cancelled', 'timed_out', 'orphaned'];
 
 interface LogViewerProps {
   runId: string;
@@ -66,8 +60,7 @@ export function LogViewer({ runId, initialState }: LogViewerProps) {
     } else if (autoscrollPaused) {
       setNewSinceScroll((n) => n + 1);
     }
-  // chunks.length is the dependency — fires when a new chunk arrives
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional dep on length
+    // chunks.length is the dependency — fires when a new chunk arrives
   }, [chunks.length, autoscrollPaused]);
 
   function resumeAutoscroll() {
@@ -129,9 +122,7 @@ export function LogViewer({ runId, initialState }: LogViewerProps) {
         <pre className="whitespace-pre-wrap break-words m-0">
           {chunks.map((c) => (
             <span key={c.seq} className={c.stream === 'stderr' ? 'text-red-300' : ''}>
-              {timestampVisible && (
-                <span className="text-slate-500 select-none">[{c.ts}] </span>
-              )}
+              {timestampVisible && <span className="text-slate-500 select-none">[{c.ts}] </span>}
               {/* NEVER dangerouslySetInnerHTML — c.data rendered as text node (T-13-04-01) */}
               {c.data}
               {!c.data.endsWith('\n') ? '\n' : ''}
@@ -147,9 +138,7 @@ export function LogViewer({ runId, initialState }: LogViewerProps) {
         <div className="p-2 border-t border-white/10 text-sm flex items-center gap-2">
           <span>Run finished:</span>
           <span className="font-semibold">{endState}</span>
-          {exitCode != null && (
-            <span className="text-slate-400">(exit {exitCode})</span>
-          )}
+          {exitCode != null && <span className="text-slate-400">(exit {exitCode})</span>}
           <Button
             size="sm"
             variant="ghost"
