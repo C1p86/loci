@@ -1,6 +1,7 @@
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { makeAgentCredentialsRepo } from './agent-credentials.js';
 import { makeAgentsRepo } from './agents.js';
+import { makeDlqEntriesRepo } from './dlq-entries.js';
 import { makeEmailVerificationsRepo } from './email-verifications.js';
 import { makeLogChunksRepo } from './log-chunks.js';
 import { makeOrgInvitesRepo } from './org-invites.js';
@@ -13,6 +14,8 @@ import { makeSessionsRepo } from './sessions.js';
 import { makeTaskRunsRepo } from './task-runs.js';
 import { makeTasksRepo } from './tasks.js';
 import { makeUsersRepo } from './users.js';
+import { makeWebhookDeliveriesRepo } from './webhook-deliveries.js';
+import { makeWebhookTokensRepo } from './webhook-tokens.js';
 
 /**
  * D-01: forOrg(orgId) is the SOLE entry point into org-scoped repos.
@@ -36,6 +39,9 @@ export function makeForOrg(db: PostgresJsDatabase, mek: Buffer) {
     secrets: makeSecretsRepo(db, orgId, mek),
     secretAuditLog: makeSecretAuditLogRepo(db, orgId),
     logChunks: makeLogChunksRepo(db, orgId),
+    webhookTokens: makeWebhookTokensRepo(db, orgId, mek),
+    webhookDeliveries: makeWebhookDeliveriesRepo(db, orgId),
+    dlqEntries: makeDlqEntriesRepo(db, orgId),
   });
 }
 
