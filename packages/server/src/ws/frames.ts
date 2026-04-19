@@ -160,9 +160,7 @@ export function parseAgentFrame(raw: string): AgentIncomingFrame {
     // A well-behaved agent never sends these; a malicious one attempting to is rejected here.
     case 'dispatch':
     case 'cancel':
-      throw new AgentFrameInvalidError(
-        `type ${o['type'] as string} is server-to-agent only`,
-      );
+      throw new AgentFrameInvalidError(`type ${o['type'] as string} is server-to-agent only`);
 
     default:
       throw new AgentFrameInvalidError(`unknown type: ${String(o['type'])}`);

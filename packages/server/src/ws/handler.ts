@@ -10,8 +10,8 @@
 //   4005 handshake_timeout — no first frame within 5s
 //   4006 quota_exceeded   — org has reached max_agents limit (QUOTA-03)
 
-import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { sql } from 'drizzle-orm';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { WebSocket } from 'ws';
 import { makeRepos } from '../repos/index.js';
 import { cancelRunTimer } from '../services/timeout-manager.js';
@@ -287,12 +287,11 @@ async function handleStateAck(
   if (!(await verifyRunOwnership(fastify, socket, conn, frame.run_id))) return;
 
   const repos = makeRepos(fastify.db, fastify.mek);
-  const updated = await repos.forOrg(conn.orgId).taskRuns.updateState(
-    frame.run_id,
-    'dispatched',
-    'running',
-    { startedAt: sql`now()` as unknown as Date },
-  );
+  const updated = await repos
+    .forOrg(conn.orgId)
+    .taskRuns.updateState(frame.run_id, 'dispatched', 'running', {
+      startedAt: sql`now()` as unknown as Date,
+    });
   if (!updated) {
     fastify.log.debug(
       { runId: frame.run_id, agentId: conn.agentId },
@@ -330,15 +329,12 @@ async function handleResultFrame(
       : ('failed' as const);
 
   const repos = makeRepos(fastify.db, fastify.mek);
-  const updated = await repos.forOrg(conn.orgId).taskRuns.updateStateMulti(
-    frame.run_id,
-    ['running', 'dispatched'],
-    targetState,
-    {
+  const updated = await repos
+    .forOrg(conn.orgId)
+    .taskRuns.updateStateMulti(frame.run_id, ['running', 'dispatched'], targetState, {
       exitCode: frame.exit_code,
       finishedAt: sql`now()` as unknown as Date,
-    },
-  );
+    });
 
   if (!updated) {
     // CAS loser — run already in a terminal state (e.g. timed_out arrived first).
