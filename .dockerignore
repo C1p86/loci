@@ -24,18 +24,14 @@ node_modules
 packages/server/tsconfig.tsbuildinfo
 packages/web/tsconfig.tsbuildinfo
 packages/xci/tsconfig.tsbuildinfo
-# xci CLI package not needed in server image
-packages/xci/src
+# xci package: builder stage needs source to build (turbo runs xci:build),
+# but TestProject is a v1 fixture not needed for any build.
 packages/xci/TestProject
-# web source — we only need packages/web/dist after builder compiles
-packages/web/src
+# web source files: REQUIRED in builder stage for `tsc -b && vite build`.
+# Runtime stage only COPYs packages/web/dist from builder, so source never
+# reaches the final image. Do NOT exclude from build context.
 packages/web/e2e
-packages/web/public
-packages/web/index.html
-packages/web/vite.config.ts
 packages/web/playwright.config.ts
-packages/web/vitest.config.ts
-packages/web/tsconfig.json
 # Editor
 .vscode
 .idea
