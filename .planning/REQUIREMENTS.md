@@ -103,10 +103,10 @@
 
 ### Trigger Plugins (PLUG)
 
-- [ ] **PLUG-01**: Interfaccia plugin stabile a 3 metodi: `verify(request) → parse(event) → mapToTask(event, config)` con TypeScript interface esportata.
-- [ ] **PLUG-02**: Plugin bundled at build time in `@xci/server`; nessun install dinamico runtime (anti-feature).
-- [ ] **PLUG-03**: Plugin GitHub: endpoint `/hooks/github/:orgToken`, signature HMAC-SHA256 verificata con `timingSafeEqual`; supporta eventi `push` e `pull_request`.
-- [ ] **PLUG-04**: Plugin Perforce: endpoint `/hooks/perforce/:orgToken` riceve POST JSON da script `change-commit` trigger; xci CLI emette lo script con `xci agent-emit-perforce-trigger <url> <token>` (Node-free sulla macchina Perforce: emette `.sh`/`.bat`).
+- [x] **PLUG-01**: Interfaccia plugin stabile a 3 metodi: `verify(request) → parse(event) → mapToTask(event, config)` con TypeScript interface esportata.
+- [x] **PLUG-02**: Plugin bundled at build time in `@xci/server`; nessun install dinamico runtime (anti-feature).
+- [x] **PLUG-03**: Plugin GitHub: endpoint `/hooks/github/:orgToken`, signature HMAC-SHA256 verificata con `timingSafeEqual`; supporta eventi `push` e `pull_request`.
+- [x] **PLUG-04**: Plugin Perforce: endpoint `/hooks/perforce/:orgToken` riceve POST JSON da script `change-commit` trigger; xci CLI emette lo script con `xci agent-emit-perforce-trigger <url> <token>` (Node-free sulla macchina Perforce: emette `.sh`/`.bat`).
 - [x] **PLUG-05**: Mapping event → task **config esplicita per-task** (no naming convention): su ogni task l'utente configura i trigger applicabili (es. "push su `main` di `acme/infra`").
 - [x] **PLUG-06**: Dead Letter Queue: eventi webhook non processati (parse fail, task non trovata, signature invalida) in DLQ; UI li elenca; retry manuale dalla UI.
 - [x] **PLUG-07**: Idempotency: `delivery_id` (es. `X-GitHub-Delivery`) tracciato per evitare replay; duplicate delivery ignorato con log warning.
@@ -390,10 +390,10 @@ Quali fasi coprono quali requirement.
 | LOG-06 | 11-log-streaming | Complete |
 | LOG-07 | 11-log-streaming | Complete |
 | LOG-08 | 11-log-streaming | Complete |
-| PLUG-01 | 12-plugin-webhooks | Pending |
-| PLUG-02 | 12-plugin-webhooks | Pending |
-| PLUG-03 | 12-plugin-webhooks | Pending |
-| PLUG-04 | 12-plugin-webhooks | Pending |
+| PLUG-01 | 12-plugin-webhooks | Complete |
+| PLUG-02 | 12-plugin-webhooks | Complete |
+| PLUG-03 | 12-plugin-webhooks | Complete |
+| PLUG-04 | 12-plugin-webhooks | Complete |
 | PLUG-05 | 12-plugin-webhooks | Complete |
 | PLUG-06 | 12-plugin-webhooks | Complete |
 | PLUG-07 | 12-plugin-webhooks | Complete |
