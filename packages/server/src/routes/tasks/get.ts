@@ -34,6 +34,8 @@ export const getTaskRoute: FastifyPluginAsync = async (fastify) => {
         description: task.description,
         yamlDefinition: task.yamlDefinition,
         labelRequirements: task.labelRequirements,
+        slug: task.slug,
+        expose_badge: task.exposeBadge,
         createdByUserId: task.createdByUserId,
         createdAt: task.createdAt.toISOString(),
         updatedAt: task.updatedAt.toISOString(),

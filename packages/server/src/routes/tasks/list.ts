@@ -29,6 +29,8 @@ export const listTasksRoute: FastifyPluginAsync = async (fastify) => {
         name: t.name,
         description: t.description,
         labelRequirements: t.labelRequirements,
+        slug: t.slug,
+        expose_badge: t.exposeBadge,
         createdAt: t.createdAt.toISOString(),
         updatedAt: t.updatedAt.toISOString(),
       }));
