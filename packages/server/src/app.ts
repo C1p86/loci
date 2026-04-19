@@ -14,6 +14,7 @@ import authPlugin from './plugins/auth.js';
 import errorHandlerPlugin from './plugins/error-handler.js';
 import { registerAgentWsRoute } from './routes/agents/index.js';
 import { registerRoutes } from './routes/index.js';
+import { dispatcherPlugin } from './services/dispatcher.js';
 
 export interface BuildOpts {
   /** Override DATABASE_URL — only for tests that want a specific DB. */
@@ -125,6 +126,10 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
 
   // Phase 8 D-13: WS route at /ws/agent — NO /api prefix. Auth is via first WS frame, not session cookie.
   await app.register(registerAgentWsRoute);
+
+  // Plan 10-03: dispatcher plugin AFTER websocket so agentRegistry is available in onReady.
+  // T-10-03-07: fastify-plugin dependencies: ['db','websocket'] enforces this at register-time.
+  await app.register(dispatcherPlugin);
 
   await app.register(registerRoutes, { prefix: '/api' });
 
