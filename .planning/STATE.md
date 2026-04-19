@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: Ready to execute
-stopped_at: Completed 13-05-PLAN.md
-last_updated: "2026-04-19T19:48:35.443Z"
-last_activity: 2026-04-19 -- Phase 14 planning complete
+stopped_at: Completed 14-docker-publishing 14-01-PLAN.md
+last_updated: "2026-04-19T19:57:01.572Z"
+last_activity: 2026-04-19
 progress:
   total_phases: 14
   completed_phases: 13
   total_plans: 63
-  completed_plans: 61
-  percent: 97
+  completed_plans: 62
+  percent: 98
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Phase 13 — Web Dashboard SPA
+**Current focus:** Phase 14 — Docker & Publishing
 
 ## Current Position
 
-Phase: 14 (Docker & Publishing) — NEXT
-Plan: 1 of TBD
+Phase: 14 (Docker & Publishing) — EXECUTING
+Plan: 2 of 4
 Next: Phase 14 — Docker & Publishing
-Last activity: 2026-04-19 -- Phase 14 planning complete
+Last activity: 2026-04-19
 
 Progress (Phase 13): [██████████] 100% (6/6 plans)
 Progress (v2.0 milestone): [█████████░] 93% (13/14 phases complete: 06, 07, 08, 09, 10, 11, 12, 13)
@@ -125,6 +125,7 @@ Progress (v2.0 milestone): [█████████░] 93% (13/14 phases co
 | Phase 13-web-dashboard-spa P04 | 23 | 3 tasks | 10 files |
 | Phase 13-web-dashboard-spa P05 | 31 | 3 tasks | 14 files |
 | Phase 13-web-dashboard-spa P06 | ~20 | 3 tasks | 10 files |
+| Phase 14-docker-publishing P01 | 35 | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -329,6 +330,9 @@ Recent decisions affecting current work:
 - [Phase 13]: @xci/web flipped private:false (Phase 6 D-12 commitment fulfilled); first publish remains Phase 14
 - [Phase 13]: Playwright E2E smoke = Linux-only single happy path (signup→agents empty state→tasks→history→logout); real agent round-trip covered by Phase 8/10/11 integration tests
 - [Phase 13]: Main SPA bundle 177.83 KB gzip (under 200 KB target); monaco separate chunk 8.29 KB gzip; total build 50s on CI-class hardware
+- [Phase 14-docker-publishing]: node:22-slim (not alpine) for @node-rs/argon2 glibc prebuilt compatibility
+- [Phase 14-docker-publishing]: pnpm deploy --prod --legacy for pruned runtime node_modules (no drizzle-kit)
+- [Phase 14-docker-publishing]: @fastify/static conditional on WEB_STATIC_ROOT env — same server binary works with or without SPA bundle
 
 ### Pending Todos
 
@@ -363,7 +367,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-19T19:11:33.221Z
-Stopped at: Completed 13-05-PLAN.md
+Last session: 2026-04-19T19:57:01.514Z
+Stopped at: Completed 14-docker-publishing 14-01-PLAN.md
 Phase 12 closed: 5 plans complete, 8 requirement IDs traced (PLUG-01..08), 5/5 SC covered, integration tests green (Linux-only E2E gated per Phase 10/11 pattern), v1 302-test + hyperfine + ws-fence regressions all pass
 Resume: Phase 13 — Web Dashboard SPA (needs Phase 7+8+9+10+11 complete — SATISFIED; Phase 12 consumed by UI for plugin settings + DLQ views)

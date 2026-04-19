@@ -17,10 +17,10 @@
 - [ ] **PKG-01**: Monorepo con pnpm workspaces; 3 package npm pubblicati: `xci`, `@xci/server`, `@xci/web`.
 - [ ] **PKG-02**: Build orchestrato da Turborepo (pipeline caching locale e CI).
 - [ ] **PKG-03**: Versioning coordinato via `@changesets/cli` per release dei 3 package.
-- [ ] **PKG-04**: Docker image `xci/server` pubblicata, basata su `node:22-slim` (non Alpine), multi-stage build.
-- [ ] **PKG-05**: Docker image include `@xci/server` + build statico di `@xci/web` servito da `@fastify/static`.
-- [ ] **PKG-06**: Docker image gira come utente non-root, ha healthcheck HTTP, gestisce SIGTERM/SIGINT come PID 1.
-- [ ] **PKG-07**: Migrazioni Drizzle applicate con programmatic migrator al boot del server (o init container); `drizzle-kit` resta devDep, non finisce nell'image di prod.
+- [x] **PKG-04**: Docker image `xci/server` pubblicata, basata su `node:22-slim` (non Alpine), multi-stage build.
+- [x] **PKG-05**: Docker image include `@xci/server` + build statico di `@xci/web` servito da `@fastify/static`.
+- [x] **PKG-06**: Docker image gira come utente non-root, ha healthcheck HTTP, gestisce SIGTERM/SIGINT come PID 1.
+- [x] **PKG-07**: Migrazioni Drizzle applicate con programmatic migrator al boot del server (o init container); `drizzle-kit` resta devDep, non finisce nell'image di prod.
 - [ ] **PKG-08**: CI smoke-test dell'image pubblicata (boot, healthcheck, migrazione, signup end-to-end) prima di tag release.
 
 ### Auth & Org Model (AUTH)
@@ -413,10 +413,10 @@ Quali fasi coprono quali requirement.
 | BADGE-02 | 13-web-dashboard | Complete |
 | BADGE-03 | 13-web-dashboard | Complete |
 | BADGE-04 | 13-web-dashboard | Complete |
-| PKG-04 | 14-docker-publishing | Pending |
-| PKG-05 | 14-docker-publishing | Pending |
-| PKG-06 | 14-docker-publishing | Pending |
-| PKG-07 | 14-docker-publishing | Pending |
+| PKG-04 | 14-docker-publishing | Complete |
+| PKG-05 | 14-docker-publishing | Complete |
+| PKG-06 | 14-docker-publishing | Complete |
+| PKG-07 | 14-docker-publishing | Complete |
 | PKG-08 | 14-docker-publishing | Pending |
 
 **v2.0 coverage:** 99 requirements → 99 mapped. No orphans.
