@@ -44,6 +44,11 @@ export const envSchema = {
       minLength: 3,
       maxLength: 254,
     },
+    // Phase 11 D-17: configurable retention cleanup interval for testability (default 24h)
+    LOG_RETENTION_INTERVAL_MS: {
+      type: 'number',
+      default: 86400000,
+    },
   },
   additionalProperties: false,
 } as const;
@@ -67,6 +72,8 @@ declare module 'fastify' {
       XCI_MASTER_KEY: string;
       // Phase 9 D-24
       PLATFORM_ADMIN_EMAIL: string;
+      // Phase 11 D-17
+      LOG_RETENTION_INTERVAL_MS: number;
     };
   }
 }

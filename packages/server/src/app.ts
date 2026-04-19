@@ -14,6 +14,7 @@ import authPlugin from './plugins/auth.js';
 import errorHandlerPlugin from './plugins/error-handler.js';
 import { registerAgentWsRoute } from './routes/agents/index.js';
 import { registerRoutes } from './routes/index.js';
+import { logsWsRoute } from './routes/runs/index.js';
 import { dispatcherPlugin } from './services/dispatcher.js';
 import { LogBatcher } from './services/log-batcher.js';
 import { LogFanout } from './services/log-fanout.js';
@@ -136,7 +137,14 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
   app.decorate('logBatcher', logBatcher);
   const logFanout = new LogFanout(app);
   app.decorate('logFanout', logFanout);
+  // Phase 11 D-17: retention timer handle (set by startLogRetentionJob on onReady)
+  app.decorate('logRetentionTimer', null as NodeJS.Timeout | null);
   app.addHook('onClose', async () => {
+    // Phase 11 D-17: clear retention interval FIRST so no new cleanup fires during shutdown.
+    if (app.logRetentionTimer) {
+      clearInterval(app.logRetentionTimer);
+      app.logRetentionTimer = null;
+    }
     // Order: flush remaining chunks → stop timer → close subscriber sockets → clear redaction map.
     await logBatcher.flushAll();
     logBatcher.stop();
@@ -152,9 +160,19 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
   // Phase 8 D-13: WS route at /ws/agent — NO /api prefix. Auth is via first WS frame, not session cookie.
   await app.register(registerAgentWsRoute);
 
+  // Phase 11 D-12: WS subscribe route at /ws/orgs/:orgId/runs/:runId/logs — NO /api prefix.
+  // Auth is via xci_sid session cookie (authPlugin onRequest runs on HTTP upgrade).
+  await app.register(logsWsRoute);
+
   // Plan 10-03: dispatcher plugin AFTER websocket so agentRegistry is available in onReady.
   // T-10-03-07: fastify-plugin dependencies: ['db','websocket'] enforces this at register-time.
   await app.register(dispatcherPlugin);
+
+  // Phase 11 D-17/D-20: start retention cleanup job after dispatcher is wired (DB is ready).
+  app.addHook('onReady', async () => {
+    const { startLogRetentionJob } = await import('./services/log-retention.js');
+    startLogRetentionJob(app);
+  });
 
   await app.register(registerRoutes, { prefix: '/api' });
 
@@ -173,5 +191,7 @@ declare module 'fastify' {
     logBatcher: LogBatcher;
     // Phase 11 D-12/D-13: live subscriber fanout registry
     logFanout: LogFanout;
+    // Phase 11 D-17: retention cleanup interval handle (set by startLogRetentionJob on onReady)
+    logRetentionTimer: NodeJS.Timeout | null;
   }
 }
