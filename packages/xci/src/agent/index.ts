@@ -256,6 +256,11 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
     const localSecrets = loadLocalSecrets(process.cwd());
     const mergedEnv: Record<string, string> = { ...frame.params, ...localSecrets };
 
+    // D-08/D-24: build redaction list from agent-local secrets (min 4 chars per D-05 parity)
+    const redactionValues = Object.values(localSecrets).filter(
+      (v): v is string => typeof v === 'string' && v.length >= 4,
+    );
+
     // Send state:running ack
     client.send({ type: 'state', state: 'running', run_id: frame.run_id });
 
@@ -264,6 +269,7 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
       argv: taskArgv,
       cwd: process.cwd(),
       env: mergedEnv,
+      redactionValues,
       onChunk: (stream, data, seq) => {
         client?.send({
           type: 'log_chunk',

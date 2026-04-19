@@ -13,6 +13,14 @@ export interface RunnerOptions {
   argv: readonly string[];
   cwd: string;
   env: Record<string, string>;
+  /**
+   * Agent-local secret values to redact from each chunk before emitting.
+   * Values shorter than 4 chars are ignored (caller should pre-filter).
+   * Sorted longest-first internally — caller passes unsorted.
+   * Per D-08/D-24: applies ONLY to .xci/secrets.yml values; org-level
+   * secrets are redacted server-side. No base64/URL/hex variants here.
+   */
+  redactionValues?: readonly string[];
   /** Called for each stdout/stderr chunk during process execution. */
   onChunk: (stream: 'stdout' | 'stderr', data: string, seq: number) => void;
   /**
@@ -20,6 +28,55 @@ export interface RunnerOptions {
    * `cancelled` is true when RunHandle.cancel() was called before exit.
    */
   onExit: (exitCode: number, durationMs: number, cancelled: boolean) => void;
+}
+
+/**
+ * Redact secret values from a log line.
+ * Values are applied longest-first (caller passes unsorted; caller must have
+ * pre-sorted, or pass raw — this function sorts for correctness).
+ * Returns the line unchanged if values is undefined or empty.
+ *
+ * Per D-08: agent scope only (agent-local .xci/secrets.yml values).
+ * No base64/URL/hex variants — those are server-side (D-05).
+ */
+export function redactLine(line: string, values: readonly string[] | undefined): string {
+  if (!values || values.length === 0) return line;
+  // Sort longest-first to prevent partial replacements
+  const sorted = [...values].sort((a, b) => b.length - a.length);
+  let out = line;
+  for (const v of sorted) {
+    out = out.replaceAll(v, '***');
+  }
+  return out;
+}
+
+/** Maximum UTF-8 byte length for a single emitted chunk (D-03). */
+const MAX_CHUNK_BYTES = 8192;
+
+/**
+ * Split a string into pieces each with UTF-8 byte length ≤ maxBytes.
+ * Iterates over codepoints (for..of) so multi-byte UTF-8 codepoints are
+ * never split mid-character.
+ * Empty input returns [].
+ */
+export function splitChunk(data: string, maxBytes: number): string[] {
+  if (data.length === 0) return [];
+  if (Buffer.byteLength(data, 'utf8') <= maxBytes) return [data];
+  const pieces: string[] = [];
+  let current = '';
+  let currentBytes = 0;
+  for (const ch of data) {
+    const chBytes = Buffer.byteLength(ch, 'utf8');
+    if (currentBytes + chBytes > maxBytes && current.length > 0) {
+      pieces.push(current);
+      current = '';
+      currentBytes = 0;
+    }
+    current += ch;
+    currentBytes += chBytes;
+  }
+  if (current.length > 0) pieces.push(current);
+  return pieces;
 }
 
 export interface RunHandle {
@@ -94,11 +151,23 @@ export function spawnTask(runId: string, opts: RunnerOptions): RunHandle {
     },
   };
 
+  // Sort redaction values longest-first ONCE at setup — not per chunk (T-11-04-01)
+  const sortedValues =
+    opts.redactionValues && opts.redactionValues.length > 0
+      ? [...opts.redactionValues].sort((a, b) => b.length - a.length)
+      : undefined;
+
+  function emitChunk(stream: 'stdout' | 'stderr', data: string): void {
+    const redacted = redactLine(data, sortedValues);
+    const pieces = splitChunk(redacted, MAX_CHUNK_BYTES);
+    for (const piece of pieces) opts.onChunk(stream, piece, seq++);
+  }
+
   proc.stdout?.on('data', (chunk: Buffer) => {
-    opts.onChunk('stdout', chunk.toString('utf8'), seq++);
+    emitChunk('stdout', chunk.toString('utf8'));
   });
   proc.stderr?.on('data', (chunk: Buffer) => {
-    opts.onChunk('stderr', chunk.toString('utf8'), seq++);
+    emitChunk('stderr', chunk.toString('utf8'));
   });
 
   void proc.then((result) => {

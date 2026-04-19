@@ -325,8 +325,11 @@ it('SEC-06: agent-local secrets win over dispatched params on collision', async 
       (f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-sec06',
     );
     const output = logChunks.map((c) => (c as { data: string }).data).join('');
-    expect(output).toContain('local_value');
-    expect(output).not.toContain('remote_value');
+    // Agent-local secret wins on collision (env var is 'local_value', not 'remote_value')
+    // AND the value is redacted from log output per D-08/D-24 (Plan 11-04 agent-side redaction)
+    expect(output).not.toContain('remote_value'); // dispatched value did not win
+    expect(output).not.toContain('local_value');  // agent-side redaction applied
+    expect(output).toContain('***');              // replacement confirmed
   } finally {
     // Remove the secrets file from cwd so other tests are not affected
     const { unlink } = await import('node:fs/promises');
