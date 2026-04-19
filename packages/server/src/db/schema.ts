@@ -273,24 +273,14 @@ export const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   },
 });
 
-// Phase 12 D-10/D-15: Trigger config union — stored as JSONB in tasks.trigger_configs.
-// Each element has a `plugin` discriminator plus plugin-specific fields.
-export interface GitHubTriggerConfig {
-  plugin: 'github';
-  events: Array<'push' | 'pull_request'>;
-  repository?: string; // glob, e.g. 'acme/*' or 'acme/infra'
-  branch?: string; // glob, e.g. 'main', 'release/*'
-  actions?: Array<'opened' | 'synchronize' | 'closed' | 'reopened'>; // PR only
-}
-
-export interface PerforceTriggerConfig {
-  plugin: 'perforce';
-  depot?: string; // glob, e.g. '//depot/infra/...'
-  user?: string; // glob
-  client?: string; // glob
-}
-
-export type TriggerConfig = GitHubTriggerConfig | PerforceTriggerConfig;
+// Phase 12 D-10/D-15: Trigger config union — canonical location is plugins-trigger/types.ts.
+// Import for local use in $type<TriggerConfig[]>(); also re-export for schema.ts consumers.
+import type {
+  GitHubTriggerConfig,
+  PerforceTriggerConfig,
+  TriggerConfig,
+} from '../plugins-trigger/types.js';
+export type { GitHubTriggerConfig, PerforceTriggerConfig, TriggerConfig };
 
 // Phase 9 D-07: Task definitions (org-scoped; yaml_definition kept as text per D-09).
 export const tasks = pgTable(
