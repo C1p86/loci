@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: Ready to execute
-stopped_at: Completed 11-log-streaming-persistence 11-02-PLAN.md
-last_updated: "2026-04-19T14:22:09.532Z"
+stopped_at: Completed 11-log-streaming-persistence/11-03-PLAN.md
+last_updated: "2026-04-19T14:39:55.212Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 11
   completed_phases: 10
   total_plans: 48
-  completed_plans: 47
-  percent: 98
+  completed_plans: 48
+  percent: 100
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 11 (Log Streaming & Persistence) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Next: Phase 11 — Log Streaming & Persistence
 Last activity: 2026-04-19
 
@@ -112,6 +112,7 @@ Progress (v2.0 milestone): [█████░░░░░] 56% (5/9 phases comp
 | Phase 10 P05 | 30m | 3 tasks | 9 files |
 | Phase 11-log-streaming-persistence P01 | 30 | 2 tasks | 9 files |
 | Phase 11-log-streaming-persistence P02 | 608 | 3 tasks | 10 files |
+| Phase 11-log-streaming-persistence P03 | 45m | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -269,6 +270,9 @@ Recent decisions affecting current work:
 - [Phase 11-log-streaming-persistence]: Longest-first redaction ordering (D-06) prevents partial replacements when a short secret value is a prefix of a longer one
 - [Phase 11-log-streaming-persistence]: LogBatcher timer NOT reset on subsequent enqueues to same run — original 200ms budget is the guarantee (D-10)
 - [Phase 11-log-streaming-persistence]: Subscriber pump is synchronous inline loop (not async) for simplicity and testability; gap frame emitted per overflow event (D-13)
+- [Phase 11-log-streaming-persistence]: WS route registered at root level (not under /api prefix) — matches agent WS pattern; cookie auth works because authPlugin fires on HTTP upgrade
+- [Phase 11-log-streaming-persistence]: reply.hijack() chosen for download streaming per D-15; raw.writeHead called manually after hijack
+- [Phase 11-log-streaming-persistence]: LOG_RETENTION_INTERVAL_MS default 86400000 (24h); setInterval unref'd; onReady immediate boot pass (D-20)
 
 ### Pending Todos
 
@@ -303,7 +307,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-19T14:22:09.488Z
-Stopped at: Completed 11-log-streaming-persistence 11-02-PLAN.md
+Last session: 2026-04-19T14:39:55.171Z
+Stopped at: Completed 11-log-streaming-persistence/11-03-PLAN.md
 Phase 10 closed: all 5 plans complete, 13 requirement IDs traced (DISP-01..09 + QUOTA-03..06), 5/5 SC covered, E2E test CI-deferred (Docker unavailable in dev env)
 Resume: Phase 11 — Log Streaming & Persistence (needs Phase 10 complete — SATISFIED)
