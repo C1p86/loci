@@ -6,6 +6,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { getTestDb, resetDb } from '../../test-utils/db-harness.js';
 import { seedTwoOrgs } from '../../test-utils/two-org-fixture.js';
+import { makeAdminRepo } from '../admin.js';
 import { makeTasksRepo } from '../tasks.js';
 
 const YAML = 'build:\n  cmd: echo hello\n';
@@ -112,5 +113,45 @@ describe('tasks repo isolation (D-04)', () => {
     // Confirm orgB row still exists
     const bRow = await repoB.getById(bTaskId);
     expect(bRow).toBeDefined();
+  });
+
+  // Phase 13 Task 2: cross-org slug isolation
+  it('adminRepo.findTaskByOrgAndSlug with orgA id and orgB task slug returns undefined', async () => {
+    const db = getTestDb();
+    const f = await seedTwoOrgs(db);
+    const adminRepo = makeAdminRepo(db);
+    const repoB = makeTasksRepo(db, f.orgB.id);
+
+    const { id: bTaskId } = await repoB.create({
+      name: 'deploy',
+      yamlDefinition: YAML,
+      createdByUserId: f.orgB.ownerUser.id,
+    });
+    const bTask = await repoB.getById(bTaskId);
+    const bSlug = bTask?.slug ?? 'deploy';
+
+    // Looking up org B's slug in the context of org A must return undefined
+    const result = await adminRepo.findTaskByOrgAndSlug(f.orgA.id, bSlug);
+    expect(result).toBeUndefined();
+  });
+
+  it('forOrg(orgA).tasks.update with orgB task id and exposeBadge=true returns rowCount=0', async () => {
+    const db = getTestDb();
+    const f = await seedTwoOrgs(db);
+    const repoA = makeTasksRepo(db, f.orgA.id);
+    const repoB = makeTasksRepo(db, f.orgB.id);
+
+    const { id: bTaskId } = await repoB.create({
+      name: 'task-b-badge',
+      yamlDefinition: YAML,
+      createdByUserId: f.orgB.ownerUser.id,
+    });
+
+    const result = await repoA.update(bTaskId, { exposeBadge: true });
+    expect(result.rowCount).toBe(0);
+
+    // Confirm orgB row exposeBadge is still false
+    const bRow = await repoB.getById(bTaskId);
+    expect(bRow?.exposeBadge).toBe(false);
   });
 });

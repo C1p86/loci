@@ -1,14 +1,15 @@
 import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
-import { orgMembers, sessions } from '../db/schema.js';
+import { orgMembers, orgs, sessions } from '../db/schema.js';
 import { SessionRequiredError } from '../errors.js';
 import { makeRepos } from '../repos/index.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
     user: { id: string; email: string; emailVerifiedAt: Date | null } | null;
-    org: { id: string; role: 'owner' | 'member' | 'viewer' } | null;
+    // Phase 13: name + slug added for /api/auth/me (D-34)
+    org: { id: string; name: string; slug: string; role: 'owner' | 'member' | 'viewer' } | null;
     session: { id: string; userId: string; expiresAt: Date } | null;
   }
   interface FastifyInstance {
@@ -60,10 +61,12 @@ const authPlugin: FastifyPluginAsync<AuthPluginOpts> = async (fastify, opts) => 
     };
 
     // Determine active org: prefer session.activeOrgId if user is still a member; else fallback to first membership
+    // Phase 13 D-34: load org name+slug for /api/auth/me hydration
     if (sessionRow.activeOrgId) {
       const memRows = await db
-        .select({ role: orgMembers.role })
+        .select({ role: orgMembers.role, name: orgs.name, slug: orgs.slug })
         .from(orgMembers)
+        .innerJoin(orgs, eq(orgs.id, orgMembers.orgId))
         .where(
           and(
             eq(orgMembers.orgId, sessionRow.activeOrgId),
@@ -71,16 +74,21 @@ const authPlugin: FastifyPluginAsync<AuthPluginOpts> = async (fastify, opts) => 
           ),
         )
         .limit(1);
-      const memRole = memRows[0]?.role;
-      if (memRole) {
-        req.org = { id: sessionRow.activeOrgId, role: memRole };
+      const mem = memRows[0];
+      if (mem) {
+        req.org = { id: sessionRow.activeOrgId, name: mem.name, slug: mem.slug, role: mem.role };
       }
     }
     if (!req.org) {
-      const firstRows = await repos.admin.findUserFirstOrgMembership(sessionRow.userId);
+      const firstRows = await db
+        .select({ orgId: orgMembers.orgId, role: orgMembers.role, name: orgs.name, slug: orgs.slug })
+        .from(orgMembers)
+        .innerJoin(orgs, eq(orgs.id, orgMembers.orgId))
+        .where(eq(orgMembers.userId, sessionRow.userId))
+        .limit(1);
       const first = firstRows[0];
       if (first) {
-        req.org = { id: first.orgId, role: first.role };
+        req.org = { id: first.orgId, name: first.name, slug: first.slug, role: first.role };
       }
     }
 

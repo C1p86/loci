@@ -344,6 +344,13 @@ export class SecretNameConflictError extends ConflictError {
   }
 }
 
+// Phase 13: tasks.slug unique-within-org collision
+export class TaskSlugConflictError extends ConflictError {
+  constructor() {
+    super('A task with that slug already exists in this org', { code: 'TASK_SLUG_CONFLICT' });
+  }
+}
+
 // InternalError subclasses (Phase 9 crypto/secrets)
 export class SecretDecryptError extends InternalError {
   constructor() {

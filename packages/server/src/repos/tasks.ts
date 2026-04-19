@@ -2,7 +2,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { generateId } from '../crypto/tokens.js';
 import { type NewTask, tasks } from '../db/schema.js';
-import { DatabaseError, TaskNameConflictError } from '../errors.js';
+import { DatabaseError, TaskNameConflictError, TaskSlugConflictError } from '../errors.js';
 import type { TriggerConfig } from '../plugins-trigger/types.js';
 
 /**
@@ -22,6 +22,8 @@ export function makeTasksRepo(db: PostgresJsDatabase, orgId: string) {
           name: tasks.name,
           description: tasks.description,
           labelRequirements: tasks.labelRequirements,
+          slug: tasks.slug,
+          exposeBadge: tasks.exposeBadge,
           createdAt: tasks.createdAt,
           updatedAt: tasks.updatedAt,
         })
@@ -80,7 +82,9 @@ export function makeTasksRepo(db: PostgresJsDatabase, orgId: string) {
     },
 
     /**
-     * Update an existing task. Catches PG 23505 -> TaskNameConflictError.
+     * Update an existing task. Catches PG 23505:
+     *   tasks_org_slug_unique → TaskSlugConflictError
+     *   tasks_org_name_unique → TaskNameConflictError
      * Returns { rowCount } (route treats 0 as TaskNotFoundError).
      */
     async update(
@@ -91,6 +95,8 @@ export function makeTasksRepo(db: PostgresJsDatabase, orgId: string) {
         yamlDefinition: string;
         labelRequirements: string[];
         triggerConfigs: TriggerConfig[];
+        slug: string;
+        exposeBadge: boolean;
       }>,
     ): Promise<{ rowCount: number }> {
       try {
@@ -103,7 +109,11 @@ export function makeTasksRepo(db: PostgresJsDatabase, orgId: string) {
       } catch (err) {
         const pgCode =
           (err as { code?: string })?.code ?? (err as { cause?: { code?: string } })?.cause?.code;
+        const constraint =
+          (err as { constraint?: string })?.constraint ??
+          (err as { cause?: { constraint?: string } })?.cause?.constraint;
         if (pgCode === '23505') {
+          if (constraint === 'tasks_org_slug_unique') throw new TaskSlugConflictError();
           throw new TaskNameConflictError();
         }
         throw new DatabaseError('tasks.update failed', err);

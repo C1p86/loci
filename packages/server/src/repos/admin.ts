@@ -1,4 +1,4 @@
-import { and, count, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { hashPassword } from '../crypto/password.js';
 import { getOrCreateOrgDek, unwrapDek, wrapDek } from '../crypto/secrets.js';
@@ -20,6 +20,7 @@ import {
   sessions,
   type TaskRun,
   taskRuns,
+  tasks,
   users,
   webhookDeliveries,
   webhookTokens,
@@ -621,6 +622,81 @@ export function makeAdminRepo(db: PostgresJsDatabase) {
         .where(lt(webhookDeliveries.receivedAt, before))
         .returning({ id: webhookDeliveries.id });
       return { rowsDeleted: result.length };
+    },
+
+    // ---- Phase 13 D-35: cross-org slug helpers (badge endpoint + /api/auth/me) ----
+
+    /**
+     * Cross-org org lookup by slug. Used by the public badge endpoint (BADGE-01..04).
+     * Returns { id, name, slug } or undefined if not found.
+     * D-03: adminRepo is the correct home — badge endpoint has no orgId context.
+     */
+    async findOrgBySlug(slug: string) {
+      const rows = await db
+        .select({ id: orgs.id, name: orgs.name, slug: orgs.slug })
+        .from(orgs)
+        .where(eq(orgs.slug, slug))
+        .limit(1);
+      return rows[0];
+    },
+
+    /**
+     * Cross-org task lookup by (orgId, slug). Used by the public badge endpoint.
+     * Returns task fields needed for badge resolution or undefined.
+     * Note: orgId is required for correct scoping even though this is an adminRepo method.
+     */
+    async findTaskByOrgAndSlug(orgId: string, slug: string) {
+      const rows = await db
+        .select({
+          id: tasks.id,
+          name: tasks.name,
+          slug: tasks.slug,
+          exposeBadge: tasks.exposeBadge,
+          orgId: tasks.orgId,
+        })
+        .from(tasks)
+        .where(and(eq(tasks.orgId, orgId), eq(tasks.slug, slug)))
+        .limit(1);
+      return rows[0];
+    },
+
+    /**
+     * Find the most recent terminal run for a task.
+     * Terminal states: succeeded | failed | cancelled | timed_out | orphaned.
+     * Returns { id, state, finishedAt } or undefined if no terminal runs exist.
+     * Used by badge endpoint to determine passing/failing/unknown state.
+     */
+    async findLastTerminalRun(taskId: string) {
+      const rows = await db
+        .select({ id: taskRuns.id, state: taskRuns.state, finishedAt: taskRuns.finishedAt })
+        .from(taskRuns)
+        .where(
+          and(
+            eq(taskRuns.taskId, taskId),
+            inArray(taskRuns.state, ['succeeded', 'failed', 'cancelled', 'timed_out', 'orphaned']),
+          ),
+        )
+        .orderBy(desc(taskRuns.finishedAt))
+        .limit(1);
+      return rows[0];
+    },
+
+    /**
+     * Get org plan by orgId. Used by /api/auth/me to return plan details.
+     * Returns the plan row or undefined if no plan exists.
+     */
+    async getOrgPlan(orgId: string) {
+      const rows = await db
+        .select({
+          planName: orgPlans.planName,
+          maxAgents: orgPlans.maxAgents,
+          maxConcurrentTasks: orgPlans.maxConcurrentTasks,
+          logRetentionDays: orgPlans.logRetentionDays,
+        })
+        .from(orgPlans)
+        .where(eq(orgPlans.orgId, orgId))
+        .limit(1);
+      return rows[0];
     },
 
     async rotateMek(
