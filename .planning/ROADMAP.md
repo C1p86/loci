@@ -264,7 +264,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Server applies Drizzle migrations at boot using the programmatic migrator; `drizzle-kit` binary is not present in the production image
   3. The CI smoke-test pipeline pulls the published image, runs migrations, and completes a signup → agent registration → task trigger → run → log fetch end-to-end flow before tagging the release
   4. `npx changeset publish` successfully publishes `xci`, `@xci/server`, and `@xci/web` to npm with coordinated versions; `npm i -g xci@latest` installs the updated CLI
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 14-01-PLAN.md — Dockerfile + .dockerignore + @fastify/static + programmatic migrator at boot
+- [ ] 14-02-PLAN.md — docker-compose.yml + .env.example + packages/server/README Docker section
+- [ ] 14-03-PLAN.md — scripts/smoke.mjs + .github/workflows/docker.yml + release.yml pre-publish validation
+- [ ] 14-04-PLAN.md — Release runbook + root README v2.0 + CHANGELOG + milestone closeout
 
 ## Progress
 
@@ -289,4 +293,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 11. Log Streaming & Persistence | 4/4 | Complete | 2026-04-19 |
 | 12. Plugin System & Webhooks | 5/5 | Complete | 2026-04-19 |
 | 13. Web Dashboard SPA | 6/6 | Complete | 2026-04-19 |
-| 14. Docker & Publishing | 0/? | Not started | - |
+| 14. Docker & Publishing | 0/4 | Not started | - |
