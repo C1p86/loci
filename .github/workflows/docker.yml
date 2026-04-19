@@ -1,0 +1,181 @@
+name: Docker Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'            # vX.Y.Z and vX.Y.Z-rc.N all match
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (e.g., v2.0.0-rc.1); defaults to current ref'
+        required: false
+
+concurrency:
+  group: docker-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-smoke-scan-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read        # checkout
+      packages: write       # push to ghcr.io
+      id-token: write       # (future: cosign keyless signing, out of scope v2.0)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine image tags
+        id: tags
+        run: |
+          REF="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "ref=$REF" >> $GITHUB_OUTPUT
+          # Strip leading 'v' to get semver
+          VER="${REF#v}"
+          MAJOR=$(echo "$VER" | cut -d. -f1)
+          MINOR=$(echo "$VER" | cut -d. -f1-2)
+          # Pre-release (e.g. v2.0.0-rc.1) → only push versioned tag, skip latest/major/minor floating tags
+          if [[ "$VER" == *-* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          echo "major=v$MAJOR" >> $GITHUB_OUTPUT
+          echo "minor=v$MINOR" >> $GITHUB_OUTPUT
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build image locally (no push yet) — we smoke + scan first
+      - name: Build image (load into local Docker daemon)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/server/Dockerfile
+          platforms: linux/amd64           # D-18: ARM64 deferred
+          load: true                       # load into local daemon for smoke + scan
+          push: false
+          tags: |
+            xci-server:smoke-candidate
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify image constraints (size, non-root, drizzle-kit absent)
+        run: |
+          SIZE=$(docker image inspect xci-server:smoke-candidate --format '{{.Size}}')
+          echo "image size bytes: $SIZE"
+          if [ "$SIZE" -gt 419430400 ]; then
+            echo "FAIL: image ${SIZE} bytes exceeds 400MB"
+            exit 1
+          fi
+          UID_VAL=$(docker run --rm xci-server:smoke-candidate id -u)
+          if [ "$UID_VAL" != "10001" ]; then
+            echo "FAIL: container UID is $UID_VAL (expected 10001)"
+            exit 1
+          fi
+          if docker run --rm xci-server:smoke-candidate ls node_modules/drizzle-kit 2>/dev/null; then
+            echo "FAIL: drizzle-kit is present in runtime image"
+            exit 1
+          fi
+          echo "PASS: size/uid/devdep-prune checks green"
+
+      # Smoke test — spin up ephemeral postgres + mailhog + image, run scripts/smoke.mjs
+      - name: Create test .env for smoke
+        run: cp .env.example .env
+
+      - name: Start postgres and mailhog
+        run: |
+          docker compose up -d postgres mailhog
+          # Wait for postgres healthy
+          for i in {1..30}; do
+            STATUS=$(docker compose ps --format json postgres 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{try{const a=JSON.parse('['+s.replace(/\}\s*\{/g,'},{').replace(/^\[?\s*\{/,'[{').replace(/\}\s*\]?$/,'}]');const h=a.find(x=>x.Service==='postgres');console.log(h?.Health||'unknown');}catch{console.log('unknown');}})" 2>/dev/null || echo "unknown")
+            echo "attempt $i: postgres health=$STATUS"
+            [ "$STATUS" = "healthy" ] && break
+            sleep 2
+          done
+
+      - name: Start server container (pre-built image)
+        run: |
+          # Run the pre-built image on the compose default network so it can reach postgres + mailhog.
+          # Compose network name is <dirname>_default where dirname is the repo root folder name ("loci").
+          docker run -d \
+            --name xci-smoke-server \
+            --network loci_default \
+            -e DATABASE_URL=postgres://xci:xci_dev_password@postgres:5432/xci \
+            -e SMTP_HOST=mailhog \
+            -e SMTP_PORT=1025 \
+            -e EMAIL_TRANSPORT=smtp \
+            -e SMTP_FROM=xci-dev@localhost \
+            -e SESSION_COOKIE_SECRET=smoke-session-secret-at-least-32-chars-xxx \
+            -e XCI_MASTER_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA \
+            -e PLATFORM_ADMIN_EMAIL=admin@localhost \
+            -e NODE_ENV=production \
+            -p 3000:3000 \
+            xci-server:smoke-candidate
+          # Wait for healthcheck to pass (up to 2 min)
+          for i in {1..40}; do
+            HEALTH=$(docker inspect -f '{{.State.Health.Status}}' xci-smoke-server 2>/dev/null || echo "starting")
+            echo "attempt $i: health=$HEALTH"
+            [ "$HEALTH" = "healthy" ] && break
+            sleep 3
+          done
+          if [ "$HEALTH" != "healthy" ]; then
+            echo "FAIL: server never became healthy"
+            docker logs xci-smoke-server
+            exit 1
+          fi
+
+      - name: Run smoke.mjs
+        run: node scripts/smoke.mjs http://localhost:3000 http://localhost:8025
+
+      - name: Dump server logs (always, for post-mortem)
+        if: always()
+        run: docker logs xci-smoke-server || true
+
+      - name: Tear down smoke stack
+        if: always()
+        run: |
+          docker stop xci-smoke-server || true
+          docker rm xci-smoke-server || true
+          docker compose down -v || true
+
+      # Container vulnerability scan (D-24) — runs against locally loaded image AFTER smoke
+      - name: Trivy scan (block on HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: xci-server:smoke-candidate
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true       # ignore vulns with no upstream fix available yet
+
+      # Push to ghcr.io with coordinated tags (D-17)
+      # Runs only after both smoke and Trivy pass.
+      - name: Tag and push to ghcr.io
+        run: |
+          OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          BASE="ghcr.io/${OWNER_LOWER}/xci-server"
+          # Versioned tag (always pushed — stable AND pre-release)
+          docker tag xci-server:smoke-candidate "$BASE:${{ steps.tags.outputs.ref }}"
+          docker push "$BASE:${{ steps.tags.outputs.ref }}"
+          # Floating tags only for stable releases (not pre-release -rc.N etc.)
+          if [ "${{ steps.tags.outputs.is_prerelease }}" = "false" ]; then
+            docker tag xci-server:smoke-candidate "$BASE:latest"
+            docker tag xci-server:smoke-candidate "$BASE:${{ steps.tags.outputs.minor }}"
+            docker tag xci-server:smoke-candidate "$BASE:${{ steps.tags.outputs.major }}"
+            docker push "$BASE:latest"
+            docker push "$BASE:${{ steps.tags.outputs.minor }}"
+            docker push "$BASE:${{ steps.tags.outputs.major }}"
+          fi
+          echo "Pushed:"
+          docker images --format '{{.Repository}}:{{.Tag}}' | grep "$BASE" || true
