@@ -62,6 +62,15 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
           '*.taskSnapshot.params',
           '*.params',
           '*.paramOverrides',
+          // Phase 12 D-06/T-12-03-06: webhook signature + token headers must not appear in logs
+          'req.headers["x-hub-signature"]',
+          'req.headers["x-hub-signature-256"]',
+          'req.headers["x-github-token"]',
+          'req.headers["x-xci-token"]',
+          'req.raw.headers["x-hub-signature"]',
+          'req.raw.headers["x-hub-signature-256"]',
+          'req.raw.headers["x-github-token"]',
+          'req.raw.headers["x-xci-token"]',
         ],
         censor: '[REDACTED]',
       },
@@ -175,6 +184,10 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
   });
 
   await app.register(registerRoutes, { prefix: '/api' });
+
+  // Phase 12 D-04: webhook ingress at root level (no /api — external senders, machine identity)
+  const { registerHookRoutes } = await import('./routes/hooks/index.js');
+  await app.register(registerHookRoutes, { prefix: '/hooks' });
 
   return app;
 }

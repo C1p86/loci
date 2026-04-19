@@ -27,6 +27,8 @@ export function makeTaskRunsRepo(db: PostgresJsDatabase, orgId: string) {
       taskSnapshot: Record<string, unknown>;
       paramOverrides?: Record<string, string>;
       triggeredByUserId?: string;
+      /** D-30: 'webhook' for webhook-triggered runs; defaults to 'manual' (Plan 12-03). */
+      triggerSource?: 'manual' | 'webhook';
       timeoutSeconds?: number;
     }): Promise<TaskRun> {
       const id = generateId('run');
@@ -38,6 +40,7 @@ export function makeTaskRunsRepo(db: PostgresJsDatabase, orgId: string) {
         paramOverrides: params.paramOverrides ?? {},
         state: 'queued' as const,
         triggeredByUserId: params.triggeredByUserId ?? null,
+        triggerSource: params.triggerSource ?? 'manual',
         timeoutSeconds: params.timeoutSeconds ?? 3600,
         queuedAt: new Date(),
       } satisfies NewTaskRun;

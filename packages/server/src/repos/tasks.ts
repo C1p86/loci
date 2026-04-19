@@ -2,6 +2,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { generateId } from '../crypto/tokens.js';
 import { type NewTask, tasks } from '../db/schema.js';
+import type { TriggerConfig } from '../plugins-trigger/types.js';
 import { DatabaseError, TaskNameConflictError } from '../errors.js';
 
 /**
@@ -104,6 +105,20 @@ export function makeTasksRepo(db: PostgresJsDatabase, orgId: string) {
         }
         throw new DatabaseError('tasks.update failed', err);
       }
+    },
+
+    /**
+     * Plan 12-03: List tasks that have at least one trigger config.
+     * Returns [{id, triggerConfigs}] for all tasks with a non-empty trigger_configs array.
+     * Used by the webhook shared handler to find candidate tasks for mapToTask.
+     * Scoped to this org via eq(tasks.orgId, orgId).
+     */
+    async listTriggerable(): Promise<Array<{ id: string; triggerConfigs: TriggerConfig[] }>> {
+      const rows = await db
+        .select({ id: tasks.id, triggerConfigs: tasks.triggerConfigs })
+        .from(tasks)
+        .where(and(eq(tasks.orgId, orgId), sql`jsonb_array_length(trigger_configs) > 0`));
+      return rows as Array<{ id: string; triggerConfigs: TriggerConfig[] }>;
     },
 
     /**
