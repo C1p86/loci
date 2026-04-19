@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Database Schema & Auth** - Drizzle schema, migrations, signup/login/sessions/password-reset, org model, multi-tenant isolation, quota entities
 - [x] **Phase 8: Agent Registration & WebSocket Protocol** - TOFU agent registration, persistent WS with heartbeat/reconnect, agent lifecycle (online/offline/drain/reconcile/shutdown), registration tokens
 - [x] **Phase 9: Task Definitions & Secrets Management** - server-side YAML DSL (shared parser with xci), CRUD API, YAML validation; org-level envelope encryption, secrets CRUD, dispatch-time resolution
-- [ ] **Phase 10: Dispatch Pipeline & Quota Enforcement** - label-match dispatcher, in-memory queue with DB reconciliation, TaskRun state machine, timeout/cancel/orphan, per-org quota enforcement
+- [x] **Phase 10: Dispatch Pipeline & Quota Enforcement** - label-match dispatcher, in-memory queue with DB reconciliation, TaskRun state machine, timeout/cancel/orphan, per-org quota enforcement
 - [ ] **Phase 11: Log Streaming & Persistence** - agent log_chunk streaming, in-memory RunBuffer, Postgres persistence, UI WebSocket fanout, retention cleanup
 - [ ] **Phase 12: Plugin System & Webhooks** - TriggerPlugin interface, GitHub + Perforce plugins, Dead Letter Queue, idempotency, DLQ UI
 - [ ] **Phase 13: Web Dashboard SPA** - React 19 + Vite 8 + Tailwind 4 SPA: auth, agents, tasks, log viewer, run history, org settings, plugin settings, build-status badge endpoint
@@ -200,7 +200,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 10-02-PLAN.md — Frame protocol (state/result/log_chunk parsers) + WS handler routing + frame-spoofing guard + QUOTA-03 registration gate (close code 4006) + timeout-manager stub
 - [x] 10-03-PLAN.md — Dispatcher service (DispatchQueue + 250ms tick + JSONB label-match selector) + timeout-manager full impl + boot + reconnect reconciliation (activates Phase 8 D-18)
 - [x] 10-04-PLAN.md — REST routes (POST /runs trigger + /cancel + GET list/get/usage) + DISP-09 param override resolution + QUOTA-04/05/06 + Pino redaction
-- [ ] 10-05-PLAN.md — Agent dispatch/cancel handlers + runner.ts (execa spawn + log_chunk streaming + SIGTERM/SIGKILL) + SEC-06 agent-local merge + E2E test + Phase closeout
+- [x] 10-05-PLAN.md — Agent dispatch/cancel handlers + runner.ts (execa spawn + log_chunk streaming + SIGTERM/SIGKILL) + SEC-06 agent-local merge + E2E test + Phase closeout
 
 ### Phase 11: Log Streaming & Persistence
 **Goal**: Log chunks streamed by an agent are persisted to Postgres and broadcast in real time to subscribed UI clients, with ordered replay on reconnect and a daily retention cleanup job
@@ -269,7 +269,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 7. Database Schema & Auth | 9/9 | Complete | 2026-04-18 |
 | 8. Agent Registration & WebSocket Protocol | 5/5 | Complete | 2026-04-18 |
 | 9. Task Definitions & Secrets Management | 6/6 | Complete | 2026-04-19 |
-| 10. Dispatch Pipeline & Quota Enforcement | 4/5 | In Progress|  |
+| 10. Dispatch Pipeline & Quota Enforcement | 5/5 | Complete | 2026-04-19 |
 | 11. Log Streaming & Persistence | 0/? | Not started | - |
 | 12. Plugin System & Webhooks | 0/? | Not started | - |
 | 13. Web Dashboard SPA | 0/? | Not started | - |

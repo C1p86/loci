@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: — Local CLI
-status: Ready to execute
-stopped_at: Completed 10-dispatch-pipeline-quota-enforcement/10-04-PLAN.md
-last_updated: "2026-04-19T13:16:08.350Z"
+milestone: v2.0
+milestone_name: Remote CI — Agents + Web Dashboard
+status: Phase 10 complete; Next: Phase 11
+stopped_at: Completed 10-dispatch-pipeline-quota-enforcement/10-05-PLAN.md
+last_updated: "2026-04-19T13:35:00.000Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 10
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 44
-  completed_plans: 43
-  percent: 98
+  completed_plans: 44
+  percent: 100
 ---
 
 # Project State
@@ -25,13 +25,13 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 
 ## Current Position
 
-Phase: 10 (Dispatch Pipeline & Quota Enforcement) — EXECUTING
+Phase: 10 (Dispatch Pipeline & Quota Enforcement) — COMPLETE
 Plan: 5 of 5
-Next: Phase 10 (Dispatch Pipeline & Quota Enforcement) — pending planning
+Next: Phase 11 — Log Streaming & Persistence
 Last activity: 2026-04-19
 
-Progress (Phase 09): [██████████] 100% (6/6 plans)
-Progress (v2.0 milestone): [████░░░░░░] 44% (4/9 phases complete: 06, 07, 08, 09)
+Progress (Phase 10): [██████████] 100% (5/5 plans)
+Progress (v2.0 milestone): [█████░░░░░] 56% (5/9 phases complete: 06, 07, 08, 09, 10)
 
 ## Performance Metrics
 
@@ -108,6 +108,7 @@ Progress (v2.0 milestone): [████░░░░░░] 44% (4/9 phases comp
 | Phase 10-dispatch-pipeline-quota-enforcement P02 | 866s | 3 tasks | 7 files |
 | Phase 10-dispatch-pipeline-quota-enforcement P03 | 90 | 3 tasks | 12 files |
 | Phase 10-dispatch-pipeline-quota-enforcement P04 | 738 | 2 tasks | 13 files |
+| Phase 10-dispatch-pipeline-quota-enforcement P05 | ~30m | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -249,6 +250,17 @@ Recent decisions affecting current work:
 - [Phase 10-dispatch-pipeline-quota-enforcement]: reconciler uses run.taskSnapshot (not fresh task.getById) for D-01 reproducibility; paramOverrides used as params pending Plan 10-05 dispatch-resolver wiring
 - [Phase 10-dispatch-pipeline-quota-enforcement]: Resolve params at trigger time (not dispatch tick): snapshot stores resolved YAML, secrets captured at trigger time for reproducibility
 - [Phase 10-dispatch-pipeline-quota-enforcement]: Cancel for dispatched/running: annotate cancelled_by_user_id + 30s fallback timer (not immediate CAS) per D-25; queued cancel is immediate
+- [Phase 10-dispatch-pipeline-quota-enforcement P05]: runner.ts is standalone (does NOT import from executor/single.ts) — avoids pulling ANSI/log-file code into agent bundle; kill logic ~20 lines inline with source comment
+- [Phase 10-dispatch-pipeline-quota-enforcement P05]: cancelled flag on RunHandle set BEFORE proc.kill; onExit receives cancelled=true — single result-frame sender, no race with handleCancel
+- [Phase 10-dispatch-pipeline-quota-enforcement P05]: loadLocalSecrets() called on every dispatch (no cache) — secrets file rotation picked up without agent restart (SEC-06 freshness)
+- [Phase 10-dispatch-pipeline-quota-enforcement P05]: Phase 10 supports SINGLE-COMMAND task dispatch only; sequence/parallel deferred to future phase pending Phase 11 log_chunk storage maturity
+- [Phase 10-dispatch-pipeline-quota-enforcement P05]: parseYamlToArgv: string→tokenize, JSON/YAML array→direct argv, object→AGENT_UNSUPPORTED_TASK error frame (not result frame)
+- [Phase 10-dispatch-pipeline-quota-enforcement P05]: state.runningRuns Map populated before onExit fires (set after spawnTask returns) — no window where cancel arrives before run is tracked
+- [Phase 10-dispatch-pipeline-quota-enforcement P05]: reconnect frame now sends real running_runs from state.runningRuns Map (Phase 8 D-18 stub now ACTIVE); goodbye frame same
+- [Phase 10-dispatch-pipeline-quota-enforcement P05]: reconnect_ack abandon entries: agent calls handle.cancel() for each reconciliation.action==='abandon' entry from server (D-24)
+- [Phase 10-dispatch-pipeline-quota-enforcement P05]: --max-concurrent flag parses to int; NaN or <1 throws AgentModeArgsError at startup (not silent default)
+- [Phase 10-dispatch-pipeline-quota-enforcement P05]: SEC-06 test uses process.cwd()/.xci/secrets.yml (not tmpDir) since agent loads from process.cwd(); cleanup in finally block
+- [Phase 10-dispatch-pipeline-quota-enforcement P05]: E2E dispatch test is Linux+Docker CI-deferred; describe.runIf(isLinux && existsSync(xciDistAgent)); no testcontainers in dev environment
 
 ### Pending Todos
 
@@ -259,11 +271,15 @@ Recent decisions affecting current work:
 - Future (optional): quick task to clean up 68 pre-existing Biome style errors in packages/xci/src/ (useTemplate, useLiteralKeys, etc. — byte-identical to v1 tag)
 - Future (Phase 11): session token hashing at rest (deferred per D-12) — hash sha256 the token before DB insert; compare in auth plugin
 - Future (post-v2.0): haveibeenpwned password check (deferred per D-32) — add to signup/reset flows
-- Future (Phase 10): populate reconnect_ack reconciliation[] with real task run state (currently returns [] stub per D-18)
-- Future (Phase 10): implement quota enforcement at registration time (max_agents=5 Free plan) — QUOTA-03 assigned here but deferred to Phase 10 per roadmap
+- [DONE Phase 10]: reconnect_ack reconciliation[] now populated with real task run state (D-18 ACTIVE)
+- [DONE Phase 10]: QUOTA-03 registration gate implemented (max_agents=5 Free plan, close 4006)
 - Future (post-v2.0): multi-instance scaling via Redis pub/sub for agentRegistry (currently in-memory single-process only)
 - Future (post-v2.0): agent audit log (register/revoke events) — paired with Phase 7 audit log deferral
 - Future (Phase 11): WS log_chunk frame type (reserved in D-15); backpressure handling revisit at that time
+
+- Deferred (Phase 11): log_chunk persistence + server-side storage — Phase 10 agent sends frames; server discards (fire-and-forget); Phase 11 owns RunBuffer + DB write + UI fanout
+- Deferred (Phase 11): LOG-06 pre-persist redaction of secrets in log_chunk data — Phase 10 forwards raw stdout/stderr
+- Deferred (future phase): sequence/parallel task dispatch on agent — Phase 10 supports single-command only; multi-step dispatch needs Phase 11 log_chunk storage maturity for correct per-step streaming
 
 ### Blockers/Concerns
 
@@ -279,7 +295,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-19T13:16:08.311Z
-Stopped at: Completed 10-dispatch-pipeline-quota-enforcement/10-04-PLAN.md
-Phase 9 closed: all 6 plans complete, all 14 requirements traced, 5/5 SC covered
-Resume: Phase 10 planning (Dispatch Pipeline & Quota Enforcement — needs Phase 8 + Phase 9)
+Last session: 2026-04-19T13:35:00.000Z
+Stopped at: Completed 10-dispatch-pipeline-quota-enforcement/10-05-PLAN.md
+Phase 10 closed: all 5 plans complete, 13 requirement IDs traced (DISP-01..09 + QUOTA-03..06), 5/5 SC covered, E2E test CI-deferred (Docker unavailable in dev env)
+Resume: Phase 11 — Log Streaming & Persistence (needs Phase 10 complete — SATISFIED)

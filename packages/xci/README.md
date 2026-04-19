@@ -754,6 +754,63 @@ The agent exits non-zero and STOPS reconnecting when the server closes with:
 
 Other close codes (`4003` heartbeat timeout, `4005` handshake timeout, `1001` server going away) trigger normal reconnect flow.
 
+### Dispatch Mode (Phase 10)
+
+When connected to an xci server, the agent receives task dispatch frames and executes them locally.
+
+#### --max-concurrent flag
+
+```bash
+# Accept up to 3 simultaneous dispatches (default: 1)
+xci --agent wss://xci.example.com/ws/agent --max-concurrent 3
+```
+
+The server respects this cap: if the agent is at max concurrent runs, extra dispatches receive `AGENT_AT_CAPACITY` and are requeued server-side.
+
+#### What happens when a dispatch arrives
+
+1. Server sends `{type:'dispatch', run_id, task_snapshot, params, timeout_seconds}`.
+2. Agent checks: draining? → reply `AGENT_DRAINING`. At capacity? → reply `AGENT_AT_CAPACITY`.
+3. Agent parses `task_snapshot.yaml_definition` into argv (single command only in Phase 10; sequence/parallel is deferred).
+4. Agent loads `.xci/secrets.yml` from the current working directory (if present) and merges with dispatched `params` — **agent-local values win on key collision** (SEC-06 precedence).
+5. Agent sends `{type:'state', state:'running', run_id}` to acknowledge acceptance.
+6. Agent spawns the command via `execa` (`shell: false`, `stdout: 'pipe'`, `stderr: 'pipe'`).
+7. Stdout/stderr chunks are forwarded as `{type:'log_chunk', run_id, seq, stream, data, ts}` frames (stored by the server in Phase 11).
+8. On process exit, agent sends `{type:'result', run_id, exit_code, duration_ms}`.
+9. Run is removed from the agent's internal `runningRuns` map.
+
+#### Cancel flow
+
+Server sends `{type:'cancel', run_id, reason}`. Agent:
+1. Locates the running process via `runningRuns` map.
+2. Sends `SIGTERM` to the child process (on Unix) or `taskkill /f /t /pid` (on Windows).
+3. Waits up to 5 seconds; if still running, sends `SIGKILL`.
+4. On process exit, sends `{type:'result', run_id, exit_code, duration_ms, cancelled:true}`.
+
+#### SEC-06: Agent-local secrets precedence
+
+The agent loads `.xci/secrets.yml` from its current working directory **on every dispatch** (not cached). This means secrets file changes are picked up without restarting the agent.
+
+Merge order (last wins):
+```
+dispatched params (from server)
+  ← .xci/secrets.yml (agent-local, wins on collision)
+```
+
+This ensures that sensitive per-machine credentials (API keys, deploy tokens) are never sent from the server — they stay on the agent machine and override any server-supplied value with the same key.
+
+**Important:** raw stdout/stderr from the subprocess is forwarded as `log_chunk` frames to the server. Phase 11 adds server-side redaction before persistence. Until then, avoid commands that print secret values to stdout/stderr.
+
+#### Draining mode
+
+When the server sends `{type:'state', state:'draining'}`, the agent stops accepting new dispatches. Any currently-running tasks complete normally. The agent resumes accepting dispatches when the server sends `{type:'state', state:'online'}`.
+
+#### Reconnect with active runs
+
+If the WS connection is lost while runs are in progress, the agent reconnects automatically (exponential backoff). The `reconnect` frame includes `running_runs: [{run_id, status:'running'}]` so the server can reconcile its DB state.
+
+On reconnect, the server may send `reconciliation` entries with `action:'abandon'` for runs it considers terminal (e.g., it already marked them `timed_out`). The agent kills those processes and stops tracking them.
+
 ### Production Lifecycle Management
 
 Agent mode is a daemon — it runs until terminated. For production deployments, manage the process with:

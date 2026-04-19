@@ -389,6 +389,90 @@ If Step 2 fails mid-rotation, Drizzle rolls back the entire transaction (atomici
 
 Between Step 2 commit and Step 3 server restart, the running server still has the OLD `fastify.mek`. Any secret read attempt using the old mek against newly re-wrapped DEKs will fail with a decryption error. Plan the rotation during a low-traffic window or accept a short read outage. A future enhancement would hot-swap via SIGHUP + env re-read.
 
+## Dispatch Pipeline & Quota Enforcement (Phase 10)
+
+Phase 10 wires the server-side dispatch pipeline and closes the loop between task definitions (Phase 9) and agent execution (agent-side runner).
+
+### REST Endpoints
+
+| Method | Path | Role | CSRF | Description |
+|--------|------|------|------|-------------|
+| `POST` | `/api/orgs/:orgId/tasks/:taskId/runs` | Owner/Member | yes | Trigger a run. Body: `{param_overrides?: Record<string,string>, timeout_seconds?: int}`. Returns `{runId, state:'queued'}`. QUOTA-04 enforces queue-depth cap (max_concurrent*2). |
+| `GET` | `/api/orgs/:orgId/runs` | any member | no | List runs. Query: `?state=&taskId=&limit=&since=`. Paginated (cursor). |
+| `GET` | `/api/orgs/:orgId/runs/:runId` | any member | no | Get full run row including task_snapshot and exit_code. |
+| `POST` | `/api/orgs/:orgId/runs/:runId/cancel` | Owner/Member | yes | Cancel a running or queued run. Sends `cancel` WS frame to agent. Idempotent on terminal runs (200 + current state). |
+| `GET` | `/api/orgs/:orgId/usage` | any member | no | Returns `{agents:{used,max}, concurrent:{used,max}, retention_days}`. QUOTA-06. |
+
+### WebSocket Frame Types (Phase 10 additions)
+
+In addition to the Phase 8 handshake frames, Phase 10 adds:
+
+**Server → Agent:**
+
+| Frame | Description |
+|-------|-------------|
+| `{type:'dispatch', run_id, task_snapshot, params, timeout_seconds}` | Dispatch a task run to the agent. `task_snapshot` is the YAML definition snapshot at dispatch time. `params` are server-resolved parameters (org secrets merged). |
+| `{type:'cancel', run_id, reason}` | Cancel a running task. `reason`: `manual` \| `timeout` \| `reconciled_terminal`. |
+
+**Agent → Server:**
+
+| Frame | Description |
+|-------|-------------|
+| `{type:'state', state:'running', run_id}` | Dispatch acceptance ACK. Transitions run DB state from `dispatched` to `running`. |
+| `{type:'log_chunk', run_id, seq, stream, data, ts}` | Stdout/stderr chunk from the spawned subprocess. Phase 10 server discards; Phase 11 will persist and fan out to UI subscribers. |
+| `{type:'result', run_id, exit_code, duration_ms, cancelled?}` | Run completion. `exit_code=0` → `succeeded`; non-zero → `failed`; `cancelled:true` → `cancelled`/`timed_out` depending on trigger. |
+
+### Dispatch Architecture
+
+```
+POST /runs (trigger)
+  → INSERT task_runs (state=queued) + enqueue in-memory DispatchQueue
+  → DispatchQueue.tick() every 250ms:
+      → findEligibleAgent(labelRequirements, orgId, maxConcurrent)
+        → agents WHERE online AND labels match AND active_runs < max_concurrent
+        → least-busy; round-robin tiebreak
+      → atomicDispatch(): UPDATE task_runs SET state=dispatched WHERE state=queued
+      → send {type:'dispatch'} frame via WS
+  → agent sends {type:'state', state:'running'} → UPDATE task_runs SET state=running
+  → agent sends {type:'result'} → UPDATE task_runs SET state=succeeded|failed + exit_code + duration_ms
+```
+
+### Run State Machine
+
+```
+queued → dispatched (dispatcher tick picks up the run)
+dispatched → running  (agent sends state:running ACK)
+dispatched → orphaned (agent offline before ACK — boot reconciliation)
+running → succeeded   (agent result with exit_code=0)
+running → failed      (agent result with non-zero exit_code)
+running → cancelled   (cancel frame sent + agent result with cancelled:true)
+running → timed_out   (timeout fires — server sends cancel; agent result overridden)
+any → orphaned        (boot reconciliation: active run without connected agent session)
+```
+
+All state transitions are guarded by `UPDATE WHERE state=expected` (atomic CAS) to prevent races.
+
+### Quota Rules
+
+| Rule | Enforcement | Error |
+|------|-------------|-------|
+| QUOTA-03: max agents | At WS registration handshake: `count(agents WHERE org_id) >= orgPlan.max_agents` → close WS with code `4006` | `AGENT_QUOTA_EXCEEDED` |
+| QUOTA-04: concurrent runs | At queue entry: `count(dispatched+running) >= orgPlan.max_concurrent_tasks * 2` → 429 | `RunQuotaExceededError` |
+| QUOTA-05: retention config | `orgPlan.log_retention_days` exposed via GET /usage; log purge owned by Phase 11 | — |
+| QUOTA-06: usage display | GET /usage returns `{agents:{used,max}, concurrent:{used,max}, retention_days}` | — |
+
+### Boot Reconciliation (DISP-08)
+
+On `app.ready()`:
+1. `state=queued` → re-add to in-memory DispatchQueue (no DB change).
+2. `state=dispatched|running` with `agent_id` NOT in live `agentRegistry` → `state=orphaned`, `exit_code=-1`, `finished_at=now()`.
+3. `state=dispatched|running` whose timeout window expired → `state=timed_out`, `exit_code=-1`.
+4. `state=dispatched|running` whose agent IS connected → leave alone; agent reconciles via `running_runs` in reconnect frame.
+
+### Timeout Management (DISP-06)
+
+Per-run `setTimeout(timeoutSeconds * 1000)` registered when run enters `dispatched` state. On timeout: server sends `{type:'cancel', run_id, reason:'timeout'}` to agent and transitions run to `timed_out`. On result received: timer cleared. On server crash: boot reconciliation (#3 above) catches expired timers.
+
 ## Design References
 
 - `.planning/phases/07-database-schema-auth/07-CONTEXT.md` — 39 locked decisions
