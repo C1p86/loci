@@ -21,7 +21,7 @@
 - [x] **PKG-05**: Docker image include `@xci/server` + build statico di `@xci/web` servito da `@fastify/static`.
 - [x] **PKG-06**: Docker image gira come utente non-root, ha healthcheck HTTP, gestisce SIGTERM/SIGINT come PID 1.
 - [x] **PKG-07**: Migrazioni Drizzle applicate con programmatic migrator al boot del server (o init container); `drizzle-kit` resta devDep, non finisce nell'image di prod.
-- [ ] **PKG-08**: CI smoke-test dell'image pubblicata (boot, healthcheck, migrazione, signup end-to-end) prima di tag release.
+- [x] **PKG-08**: CI smoke-test dell'image pubblicata (boot, healthcheck, migrazione, signup end-to-end) prima di tag release.
 
 ### Auth & Org Model (AUTH)
 
@@ -417,7 +417,7 @@ Quali fasi coprono quali requirement.
 | PKG-05 | 14-docker-publishing | Complete |
 | PKG-06 | 14-docker-publishing | Complete |
 | PKG-07 | 14-docker-publishing | Complete |
-| PKG-08 | 14-docker-publishing | Pending |
+| PKG-08 | 14-docker-publishing | Complete |
 
 **v2.0 coverage:** 99 requirements → 99 mapped. No orphans.
 

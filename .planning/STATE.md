@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: Ready to execute
-stopped_at: Completed 14-docker-publishing 14-02-PLAN.md
-last_updated: "2026-04-19T20:01:16.925Z"
+stopped_at: Completed 14-03-PLAN.md
+last_updated: "2026-04-19T20:06:16.285Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 14
   completed_phases: 13
   total_plans: 63
-  completed_plans: 63
+  completed_plans: 64
   percent: 100
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 14 (Docker & Publishing) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Next: Phase 14 — Docker & Publishing
 Last activity: 2026-04-19
 
@@ -127,6 +127,7 @@ Progress (v2.0 milestone): [█████████░] 93% (13/14 phases co
 | Phase 13-web-dashboard-spa P06 | ~20 | 3 tasks | 10 files |
 | Phase 14-docker-publishing P01 | 35 | 2 tasks | 10 files |
 | Phase 14-docker-publishing P02 | 126 | 2 tasks | 5 files |
+| Phase 14-docker-publishing P03 | 12m | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -337,6 +338,8 @@ Recent decisions affecting current work:
 - [Phase 14-docker-publishing]: env_file + environment overlay: env_file provides secrets from .env; environment block fixes network-topology vars (DATABASE_URL, SMTP_HOST/PORT) to compose-internal hostnames, overriding anything in .env
 - [Phase 14-docker-publishing]: POSTGRES_USER/PASSWORD/DB in .env.example with ${VAR:-default} interpolation in docker-compose.yml — allows operator customization without breaking defaults
 - [Phase 14-docker-publishing]: docker compose config validation deferred to CI — docker not available in WSL dev environment; YAML syntax verified against Compose spec manually
+- [Phase 14-docker-publishing]: docker.yml uses single job (no cross-job artifact transfer) — simpler and avoids image upload/download overhead
+- [Phase 14-docker-publishing]: release.yml dry-run publish uses --no-git-checks (tree is clean but untagged during Version PR flight path)
 
 ### Pending Todos
 
@@ -371,7 +374,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-19T20:01:16.867Z
-Stopped at: Completed 14-docker-publishing 14-02-PLAN.md
+Last session: 2026-04-19T20:06:16.218Z
+Stopped at: Completed 14-03-PLAN.md
 Phase 12 closed: 5 plans complete, 8 requirement IDs traced (PLUG-01..08), 5/5 SC covered, integration tests green (Linux-only E2E gated per Phase 10/11 pattern), v1 302-test + hyperfine + ws-fence regressions all pass
 Resume: Phase 13 — Web Dashboard SPA (needs Phase 7+8+9+10+11 complete — SATISFIED; Phase 12 consumed by UI for plugin settings + DLQ views)

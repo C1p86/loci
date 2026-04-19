@@ -267,7 +267,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 4 plans
 - [x] 14-01-PLAN.md — Dockerfile + .dockerignore + @fastify/static + programmatic migrator at boot
 - [x] 14-02-PLAN.md — docker-compose.yml + .env.example + packages/server/README Docker section
-- [ ] 14-03-PLAN.md — scripts/smoke.mjs + .github/workflows/docker.yml + release.yml pre-publish validation
+- [x] 14-03-PLAN.md — scripts/smoke.mjs + .github/workflows/docker.yml + release.yml pre-publish validation
 - [ ] 14-04-PLAN.md — Release runbook + root README v2.0 + CHANGELOG + milestone closeout
 
 ## Progress
@@ -293,4 +293,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 11. Log Streaming & Persistence | 4/4 | Complete | 2026-04-19 |
 | 12. Plugin System & Webhooks | 5/5 | Complete | 2026-04-19 |
 | 13. Web Dashboard SPA | 6/6 | Complete | 2026-04-19 |
-| 14. Docker & Publishing | 2/4 | In Progress|  |
+| 14. Docker & Publishing | 3/4 | In Progress|  |
