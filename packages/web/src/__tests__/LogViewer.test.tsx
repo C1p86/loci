@@ -1,4 +1,4 @@
-import { act, render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LogChunk, RunState } from '../lib/types.js';
 
@@ -40,46 +40,43 @@ let tsVisible = true;
 let autoscrollPaused = false;
 
 vi.mock('../stores/uiStore.js', () => ({
-  useUiStore: vi.fn((selector: (s: {
-    logTimestampVisible: boolean;
-    logAutoscrollPaused: boolean;
-    setLogTimestampVisible: (v: boolean) => void;
-    setLogAutoscrollPaused: (v: boolean) => void;
-  }) => unknown) =>
-    selector({
-      logTimestampVisible: tsVisible,
-      logAutoscrollPaused: autoscrollPaused,
-      setLogTimestampVisible: (v: boolean) => { tsVisible = v; },
-      setLogAutoscrollPaused: (v: boolean) => { autoscrollPaused = v; },
-    }),
+  useUiStore: vi.fn(
+    (
+      selector: (s: {
+        logTimestampVisible: boolean;
+        logAutoscrollPaused: boolean;
+        setLogTimestampVisible: (v: boolean) => void;
+        setLogAutoscrollPaused: (v: boolean) => void;
+      }) => unknown,
+    ) =>
+      selector({
+        logTimestampVisible: tsVisible,
+        logAutoscrollPaused: autoscrollPaused,
+        setLogTimestampVisible: (v: boolean) => {
+          tsVisible = v;
+        },
+        setLogAutoscrollPaused: (v: boolean) => {
+          autoscrollPaused = v;
+        },
+      }),
   ),
 }));
 
 // ---------------------------------------------------------------------------
 // Mock IntersectionObserver
 // ---------------------------------------------------------------------------
-let ioCallback: IntersectionObserverCallback | null = null;
-
 const mockObserve = vi.fn();
 const mockDisconnect = vi.fn();
 
-vi.stubGlobal('IntersectionObserver', class {
-  constructor(cb: IntersectionObserverCallback) {
-    ioCallback = cb;
-  }
-  observe = mockObserve;
-  disconnect = mockDisconnect;
-});
-
-// Trigger intersection change helper
-function triggerIntersection(isIntersecting: boolean) {
-  if (ioCallback) {
-    ioCallback(
-      [{ isIntersecting } as IntersectionObserverEntry],
-      {} as IntersectionObserver,
-    );
-  }
-}
+vi.stubGlobal(
+  'IntersectionObserver',
+  class {
+    // biome-ignore lint/correctness/noUnusedVariables: constructor param captured for potential use
+    constructor(_cb: IntersectionObserverCallback) {}
+    observe = mockObserve;
+    disconnect = mockDisconnect;
+  },
+);
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -93,7 +90,6 @@ describe('LogViewer', () => {
     mockExitCode = null;
     tsVisible = true;
     autoscrollPaused = false;
-    ioCallback = null;
     mockObserve.mockClear();
     mockDisconnect.mockClear();
   });
@@ -165,8 +161,10 @@ describe('LogViewer', () => {
     const { useUiStore } = await import('../stores/uiStore.js');
     vi.mocked(useUiStore).mockImplementation((selector) =>
       selector({
+        sidebarCollapsed: false,
         logTimestampVisible: true,
         logAutoscrollPaused: true,
+        toggleSidebar: vi.fn(),
         setLogTimestampVisible: vi.fn(),
         setLogAutoscrollPaused: setAutoscrollPaused,
       }),

@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLogWebSocket } from '../hooks/useLogWebSocket.js';
 import { useWsStore } from '../stores/wsStore.js';
@@ -94,9 +94,7 @@ describe('useLogWebSocket', () => {
       getWs()._open();
     });
 
-    expect(getWs().send).toHaveBeenCalledWith(
-      JSON.stringify({ type: 'subscribe', sinceSeq: 0 }),
-    );
+    expect(getWs().send).toHaveBeenCalledWith(JSON.stringify({ type: 'subscribe', sinceSeq: 0 }));
     unmount();
   });
 
@@ -107,8 +105,20 @@ describe('useLogWebSocket', () => {
       getWs()._open();
     });
     await act(async () => {
-      getWs()._message({ type: 'chunk', seq: 1, stream: 'stdout', ts: '2026-01-01T00:00:00Z', data: 'line 1\n' });
-      getWs()._message({ type: 'chunk', seq: 2, stream: 'stderr', ts: '2026-01-01T00:00:01Z', data: 'err line\n' });
+      getWs()._message({
+        type: 'chunk',
+        seq: 1,
+        stream: 'stdout',
+        ts: '2026-01-01T00:00:00Z',
+        data: 'line 1\n',
+      });
+      getWs()._message({
+        type: 'chunk',
+        seq: 2,
+        stream: 'stderr',
+        ts: '2026-01-01T00:00:01Z',
+        data: 'err line\n',
+      });
     });
 
     expect(result.current.chunks).toHaveLength(2);
@@ -156,7 +166,13 @@ describe('useLogWebSocket', () => {
       getWs()._open();
     });
     await act(async () => {
-      getWs()._message({ type: 'chunk', seq: 3, stream: 'stdout', ts: '2026-01-01T00:00:00Z', data: 'x\n' });
+      getWs()._message({
+        type: 'chunk',
+        seq: 3,
+        stream: 'stdout',
+        ts: '2026-01-01T00:00:00Z',
+        data: 'x\n',
+      });
     });
 
     const firstWs = getWs();
@@ -182,9 +198,7 @@ describe('useLogWebSocket', () => {
     });
 
     // sinceSeq should be lastSeenSeq + 1 = 3 + 1 = 4
-    expect(secondWs.send).toHaveBeenCalledWith(
-      JSON.stringify({ type: 'subscribe', sinceSeq: 4 }),
-    );
+    expect(secondWs.send).toHaveBeenCalledWith(JSON.stringify({ type: 'subscribe', sinceSeq: 4 }));
 
     unmount();
   });

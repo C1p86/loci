@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AgentsList } from './agents/AgentsList.js';
+import { DlqList } from './dlq/DlqList.js';
 import { publicOnlyLoader } from './guards.js';
 import { HistoryList } from './history/HistoryList.js';
 import { ForgotPassword } from './public/ForgotPassword.js';
@@ -11,6 +12,8 @@ import { Signup } from './public/Signup.js';
 import { VerifyEmail } from './public/VerifyEmail.js';
 import { RootLayout, rootLoader } from './RootLayout.js';
 import { RunDetail } from './runs/RunDetail.js';
+import { OrgSettings } from './settings/OrgSettings.js';
+import { PluginSettings } from './settings/PluginSettings.js';
 import { TaskEditor } from './tasks/TaskEditor.js';
 import { TasksList } from './tasks/TasksList.js';
 import { TaskTrigger } from './tasks/TaskTrigger.js';
@@ -34,6 +37,9 @@ export const router = createBrowserRouter([
       { path: 'tasks/:id/trigger', element: <TaskTrigger /> },
       { path: 'runs/:id', element: <RunDetail /> },
       { path: 'history', element: <HistoryList /> },
+      { path: 'settings/org', element: <OrgSettings /> },
+      { path: 'settings/plugins', element: <PluginSettings /> },
+      { path: 'dlq', element: <DlqList /> },
       { path: '*', element: <NotFound /> },
     ],
   },

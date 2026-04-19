@@ -77,6 +77,62 @@ export interface Usage {
   concurrent: { current: number; max: number };
   retentionDays: number;
 }
+
+export interface Member {
+  id: string;
+  userId: string;
+  email: string;
+  role: Role;
+  createdAt: string;
+}
+
+export interface Invite {
+  id: string;
+  email: string;
+  role: 'member' | 'viewer';
+  createdAt: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+}
+
+export interface WebhookTokenRow {
+  id: string;
+  pluginName: 'github' | 'perforce';
+  hasPluginSecret: boolean;
+  createdAt: string;
+  revokedAt: string | null;
+}
+
+export interface CreateTokenResponse {
+  ok: true;
+  tokenId: string;
+  plaintextToken: string;
+  endpointUrl: string;
+}
+
+export type DlqFailureReason =
+  | 'signature_invalid'
+  | 'parse_failed'
+  | 'no_task_matched'
+  | 'task_validation_failed'
+  | 'internal';
+
+export type DlqRetryResult = 'succeeded' | 'failed_same_reason' | 'failed_new_reason';
+
+export interface DlqEntry {
+  id: string;
+  pluginName: 'github' | 'perforce';
+  deliveryId: string | null;
+  failureReason: DlqFailureReason;
+  scrubbedBody: unknown;
+  scrubbedHeaders: Record<string, string>;
+  httpStatus: number | null;
+  receivedAt: string;
+  retriedAt: string | null;
+  retryResult: DlqRetryResult | null;
+}
+
 export interface LogChunk {
   seq: number;
   stream: 'stdout' | 'stderr';
