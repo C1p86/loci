@@ -58,7 +58,9 @@ describe('AgentsEmptyState', () => {
   it('renders Generate registration token button', async () => {
     const { AgentsEmptyState } = await import('../routes/agents/AgentsEmptyState.js');
     render(<AgentsEmptyState />);
-    expect(screen.getByRole('button', { name: /generate registration token/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /generate registration token/i }),
+    ).toBeInTheDocument();
   });
 
   it('calls mutate when Generate button clicked', async () => {

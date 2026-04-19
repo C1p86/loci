@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { AgentsList } from './agents/AgentsList.js';
 import { publicOnlyLoader } from './guards.js';
 import { ForgotPassword } from './public/ForgotPassword.js';
 import { InviteAccept } from './public/InviteAccept.js';
@@ -8,6 +9,10 @@ import { ResetPassword } from './public/ResetPassword.js';
 import { Signup } from './public/Signup.js';
 import { VerifyEmail } from './public/VerifyEmail.js';
 import { RootLayout, rootLoader } from './RootLayout.js';
+import { RunDetail } from './runs/RunDetail.js';
+import { TaskEditor } from './tasks/TaskEditor.js';
+import { TasksList } from './tasks/TasksList.js';
+import { TaskTrigger } from './tasks/TaskTrigger.js';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <Login />, loader: publicOnlyLoader },
@@ -22,7 +27,11 @@ export const router = createBrowserRouter([
     loader: rootLoader,
     children: [
       { index: true, element: <Navigate to="/agents" replace /> },
-      // Feature routes wired in Plans 13-03/04/05
+      { path: 'agents', element: <AgentsList /> },
+      { path: 'tasks', element: <TasksList /> },
+      { path: 'tasks/:id/edit', element: <TaskEditor /> },
+      { path: 'tasks/:id/trigger', element: <TaskTrigger /> },
+      { path: 'runs/:id', element: <RunDetail /> },
       { path: '*', element: <NotFound /> },
     ],
   },
