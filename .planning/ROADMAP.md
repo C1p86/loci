@@ -228,7 +228,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A duplicate webhook delivery (same `X-GitHub-Delivery` ID) is ignored with a warning log and does not create a second task run
   4. DLQ entries are visible in the UI with their failure reason; a manual retry from the UI re-processes the event through the full verify → parse → mapToTask pipeline
   5. No Authorization, X-Hub-Signature, or X-GitHub-Token header values appear in the persisted DLQ payload
-**Plans**: TBD
+**Plans**: 5 plans
+- [ ] 12-01-PLAN.md — Schema + 0005 migration [BLOCKING] + 3 new org-scoped repos (webhook-tokens w/ envelope encryption, webhook-deliveries, dlq-entries) + adminRepo cross-org helpers + isolation tests
+- [ ] 12-02-PLAN.md — TriggerPlugin interface + GitHub (HMAC-SHA256) & Perforce (X-Xci-Token) plugins + registry + glob helper + contract test harness + 6 new error classes
+- [ ] 12-03-PLAN.md — Webhook routes (/hooks/:plugin/:orgToken) + shared handler (verify→dedup→parse→mapToTask→dispatch→DLQ) + rawBody capture + scrub + rate-limit + SC-5 integration test
+- [ ] 12-04-PLAN.md — Webhook-token CRUD routes + DLQ list + DLQ retry (skips verify per D-20) + tasks trigger_configs validation on save + integration tests
+- [ ] 12-05-PLAN.md — xci CLI agent-emit-perforce-trigger (Node-free sh/bat/ps1 emit) + Perforce E2E integration test + READMEs + STATE/REQUIREMENTS/ROADMAP traceability + human-verify checkpoint
+**UI hint**: yes
 
 ### Phase 13: Web Dashboard SPA
 **Goal**: A logged-in user can manage agents, define tasks, trigger runs, watch live logs, browse history, manage org members, configure plugins, and see build-status badges — with role-based access enforced throughout
