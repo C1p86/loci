@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { registerAdminRoutes } from './admin/index.js';
 import { registerAgentRoutes } from './agents/index.js';
 import { registerAuthRoutes } from './auth/index.js';
 import { registerInviteRoutes } from './invites/index.js';
@@ -30,4 +31,8 @@ export const registerRoutes: FastifyPluginAsync = async (fastify) => {
   // Phase 9: Secrets CRUD + audit-log routes (mounted under /orgs)
   // Paths: /api/orgs/:orgId/secrets[/...] and /api/orgs/:orgId/secret-audit-log
   await fastify.register(registerSecretsRoutes, { prefix: '/orgs' });
+
+  // Phase 9 SEC-08: Admin routes — MEK rotation (platform-admin gated)
+  // Final path: /api/admin/rotate-mek
+  await fastify.register(registerAdminRoutes, { prefix: '/admin' });
 };

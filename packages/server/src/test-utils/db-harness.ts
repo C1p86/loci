@@ -49,8 +49,19 @@ export function getTestDb(): PostgresJsDatabase {
  */
 /**
  * A stable 32-byte test MEK for integration tests that call makeRepos(db, mek).
- * Tests that only use repos.admin.* don't interact with secrets/DEKs, so any
- * valid 32-byte Buffer is sufficient. Reused across the test session for consistency.
+ * Derived from process.env.XCI_MASTER_KEY so that makeRepos() and buildApp() both
+ * use the same key during integration tests (D-13 / Phase 9).
+ * Must be called AFTER global-setup sets process.env.XCI_MASTER_KEY.
+ */
+export function getTestMek(): Buffer {
+  const raw = process.env.XCI_MASTER_KEY;
+  if (!raw) throw new Error('getTestMek: process.env.XCI_MASTER_KEY not set — missing globalSetup?');
+  return Buffer.from(raw, 'base64');
+}
+
+/**
+ * @deprecated Use getTestMek() for consistency with buildApp() MEK parsing.
+ * Kept for backward compat with existing tests that already import TEST_MEK.
  */
 export const TEST_MEK: Buffer = randomBytes(32);
 
