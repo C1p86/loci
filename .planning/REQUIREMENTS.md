@@ -115,14 +115,14 @@
 ### Dashboard UX (UI)
 
 - [x] **UI-01**: SPA React 19 + Vite 8 + Tailwind 4 + shadcn/ui + TanStack Query + Zustand.
-- [ ] **UI-02**: Vista "Agents": lista con stato, labels, hostname (rename inline per Owner/Member), azione "Drain", last-seen.
-- [ ] **UI-03**: Vista "Tasks": lista + editor YAML con syntax highlighting, validation inline, save con diff.
-- [ ] **UI-04**: Vista "Run": stato corrente, log live con autoscroll pausabile, link download raw log, timestamp toggle.
+- [x] **UI-02**: Vista "Agents": lista con stato, labels, hostname (rename inline per Owner/Member), azione "Drain", last-seen.
+- [x] **UI-03**: Vista "Tasks": lista + editor YAML con syntax highlighting, validation inline, save con diff.
+- [x] **UI-04**: Vista "Run": stato corrente, log live con autoscroll pausabile, link download raw log, timestamp toggle.
 - [ ] **UI-05**: Vista "History" run: tabella paginata con filtri (status, task, date range).
 - [ ] **UI-06**: Settings Org: members + ruoli + inviti (email).
 - [ ] **UI-07**: Settings Plugin: config per-org per GitHub (webhook URL + HMAC secret) e Perforce (endpoint + script generato scaricabile).
 - [ ] **UI-08**: Indicatore connessione WS (connected / reconnecting / disconnected) sempre visibile.
-- [ ] **UI-09**: Empty states first-run: istruzioni per registrare il primo agente (comando `xci --agent ...` con token copiabile).
+- [x] **UI-09**: Empty states first-run: istruzioni per registrare il primo agente (comando `xci --agent ...` con token copiabile).
 - [x] **UI-10**: Role Viewer: UI read-only state-driven (bottoni disabled con tooltip, non nascosti).
 - [x] **UI-11**: Responsive layout: funziona da 1024px desktop in su (mobile out of scope v2.0).
 
@@ -399,14 +399,14 @@ Quali fasi coprono quali requirement.
 | PLUG-07 | 12-plugin-webhooks | Complete |
 | PLUG-08 | 12-plugin-webhooks | Complete |
 | UI-01 | 13-web-dashboard | Complete |
-| UI-02 | 13-web-dashboard | Pending |
-| UI-03 | 13-web-dashboard | Pending |
-| UI-04 | 13-web-dashboard | Pending |
+| UI-02 | 13-web-dashboard | Complete |
+| UI-03 | 13-web-dashboard | Complete |
+| UI-04 | 13-web-dashboard | Complete |
 | UI-05 | 13-web-dashboard | Pending |
 | UI-06 | 13-web-dashboard | Pending |
 | UI-07 | 13-web-dashboard | Pending |
 | UI-08 | 13-web-dashboard | Pending |
-| UI-09 | 13-web-dashboard | Pending |
+| UI-09 | 13-web-dashboard | Complete |
 | UI-10 | 13-web-dashboard | Complete |
 | UI-11 | 13-web-dashboard | Complete |
 | BADGE-01 | 13-web-dashboard | Complete |
