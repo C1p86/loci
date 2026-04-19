@@ -379,7 +379,16 @@ export const taskRuns = pgTable(
     // UI-supplied param overrides for ${VAR} placeholders (DISP-09).
     paramOverrides: jsonb('param_overrides').notNull().default({}),
     state: text('state', {
-      enum: ['queued', 'dispatched', 'running', 'succeeded', 'failed', 'cancelled', 'timed_out', 'orphaned'],
+      enum: [
+        'queued',
+        'dispatched',
+        'running',
+        'succeeded',
+        'failed',
+        'cancelled',
+        'timed_out',
+        'orphaned',
+      ],
     })
       .notNull()
       .default('queued'),

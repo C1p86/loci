@@ -4,18 +4,14 @@
 
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { taskRuns } from '../../db/schema.js';
 import { makeAdminRepo } from '../../repos/admin.js';
-import { makeTaskRunsRepo } from '../../repos/task-runs.js';
 import { makeRepos } from '../../repos/index.js';
+import { makeTaskRunsRepo } from '../../repos/task-runs.js';
+import { clearAllRunTimers, registerRunTimer } from '../../services/timeout-manager.js';
 import { getTestDb, getTestMek, resetDb } from '../../test-utils/db-harness.js';
 import { seedTwoOrgs } from '../../test-utils/two-org-fixture.js';
-import { taskRuns } from '../../db/schema.js';
 import type { TaskSnapshot } from '../../ws/types.js';
-import {
-  cancelRunTimer,
-  clearAllRunTimers,
-  registerRunTimer,
-} from '../../services/timeout-manager.js';
 
 const TASK_SNAPSHOT: TaskSnapshot = {
   task_id: 'xci_task_test',
@@ -149,7 +145,7 @@ describe('timeout-manager — handleRunTimeout (real DB)', () => {
 
     expect(mockSend).toHaveBeenCalledOnce();
     const firstCall = mockSend.mock.calls[0];
-    const sentFrame = JSON.parse(firstCall![0] as string) as Record<string, unknown>;
+    const sentFrame = JSON.parse(firstCall?.[0] as string) as Record<string, unknown>;
     expect(sentFrame.type).toBe('cancel');
     expect(sentFrame.run_id).toBe(runRow.id);
     expect(sentFrame.reason).toBe('timeout');

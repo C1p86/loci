@@ -17,7 +17,6 @@
 import { sql } from 'drizzle-orm';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
-import type { WebSocket } from 'ws';
 import { makeRepos } from '../repos/index.js';
 import type { TaskSnapshot } from '../ws/types.js';
 import { selectEligibleAgent } from './agent-selector.js';
@@ -142,15 +141,12 @@ export async function tickDispatcher(fastify: FastifyInstance): Promise<void> {
 
       // CAS queued → dispatched (atomic guard against parallel dispatch)
       const repos = makeRepos(fastify.db, fastify.mek);
-      const updated = await repos.forOrg(entry.orgId).taskRuns.updateState(
-        entry.runId,
-        'queued',
-        'dispatched',
-        {
+      const updated = await repos
+        .forOrg(entry.orgId)
+        .taskRuns.updateState(entry.runId, 'queued', 'dispatched', {
           agentId,
           dispatchedAt: sql`now()` as unknown as Date,
-        },
-      );
+        });
 
       if (!updated) {
         // CAS miss — someone else already transitioned this run (or run no longer exists).

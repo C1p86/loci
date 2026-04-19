@@ -20,15 +20,15 @@ describe('parseAgentFrame — register', () => {
   });
 
   it('rejects register without token', () => {
-    expect(() =>
-      parseAgentFrame(JSON.stringify({ type: 'register', labels: {} })),
-    ).toThrow(AgentFrameInvalidError);
+    expect(() => parseAgentFrame(JSON.stringify({ type: 'register', labels: {} }))).toThrow(
+      AgentFrameInvalidError,
+    );
   });
 
   it('rejects register without labels', () => {
-    expect(() =>
-      parseAgentFrame(JSON.stringify({ type: 'register', token: 'tok' })),
-    ).toThrow(AgentFrameInvalidError);
+    expect(() => parseAgentFrame(JSON.stringify({ type: 'register', token: 'tok' }))).toThrow(
+      AgentFrameInvalidError,
+    );
   });
 
   it('rejects register with non-string label value', () => {
@@ -68,9 +68,7 @@ describe('parseAgentFrame — reconnect', () => {
 
 describe('parseAgentFrame — goodbye', () => {
   it('parses goodbye with empty running_runs', () => {
-    const frame = parseAgentFrame(
-      JSON.stringify({ type: 'goodbye', running_runs: [] }),
-    );
+    const frame = parseAgentFrame(JSON.stringify({ type: 'goodbye', running_runs: [] }));
     expect(frame.type).toBe('goodbye');
     if (frame.type === 'goodbye') {
       expect(frame.running_runs).toEqual([]);
@@ -94,9 +92,9 @@ describe('parseAgentFrame — goodbye', () => {
   });
 
   it('rejects goodbye with missing running_runs', () => {
-    expect(() =>
-      parseAgentFrame(JSON.stringify({ type: 'goodbye' })),
-    ).toThrow(AgentFrameInvalidError);
+    expect(() => parseAgentFrame(JSON.stringify({ type: 'goodbye' }))).toThrow(
+      AgentFrameInvalidError,
+    );
   });
 });
 
@@ -124,9 +122,9 @@ describe('parseAgentFrame — state (incoming, Phase 10)', () => {
 
   // Test 3: missing run_id
   it('Test 3: rejects state frame missing run_id', () => {
-    expect(() =>
-      parseAgentFrame(JSON.stringify({ type: 'state', state: 'running' })),
-    ).toThrow(/run_id/);
+    expect(() => parseAgentFrame(JSON.stringify({ type: 'state', state: 'running' }))).toThrow(
+      /run_id/,
+    );
   });
 });
 
@@ -265,9 +263,7 @@ describe('parseAgentFrame — server-to-agent types rejected as incoming', () =>
 
   it('Test 9b: rejects cancel as incoming (server-to-agent only)', () => {
     expect(() =>
-      parseAgentFrame(
-        JSON.stringify({ type: 'cancel', run_id: 'r', reason: 'timeout' }),
-      ),
+      parseAgentFrame(JSON.stringify({ type: 'cancel', run_id: 'r', reason: 'timeout' })),
     ).toThrow(/server-to-agent only/);
   });
 });
@@ -297,7 +293,7 @@ describe('parseAgentFrame — general validation', () => {
 // The existence of these imports proves compilation succeeds.
 describe('TaskSnapshot type (compile-time check)', () => {
   it('Test 10: TaskSnapshot can be imported and has the expected shape', async () => {
-    const { } = await import('../../ws/types.js');
+    await import('../../ws/types.js');
     // If this file compiles, TaskSnapshot is exported with its 5 fields.
     // Runtime test: just verify the import succeeds.
     expect(true).toBe(true);

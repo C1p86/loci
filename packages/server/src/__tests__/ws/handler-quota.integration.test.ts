@@ -2,15 +2,15 @@
 // Uses the same ephemeral-port pattern as ws-handshake.integration.test.ts.
 
 import type { AddressInfo } from 'node:net';
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { buildApp } from '../../app.js';
+import { orgPlans } from '../../db/schema.js';
 import { makeAdminRepo } from '../../repos/admin.js';
 import { makeRegistrationTokensRepo } from '../../repos/registration-tokens.js';
 import { getTestDb, resetDb } from '../../test-utils/db-harness.js';
 import { seedTwoOrgs } from '../../test-utils/two-org-fixture.js';
-import { eq } from 'drizzle-orm';
-import { orgPlans } from '../../db/schema.js';
 
 describe('QUOTA-03: agent registration quota enforcement', () => {
   let app: Awaited<ReturnType<typeof buildApp>>;
@@ -25,7 +25,9 @@ describe('QUOTA-03: agent registration quota enforcement', () => {
 
   afterAll(async () => {
     for (const s of sockets) {
-      try { s.terminate(); } catch {}
+      try {
+        s.terminate();
+      } catch {}
     }
     await app.close();
   });
@@ -59,7 +61,10 @@ describe('QUOTA-03: agent registration quota enforcement', () => {
   }
 
   /** Register agent and also capture the close code (waits for both message + close). */
-  async function registerAgentWithClose(orgId: string, userId: string): Promise<{
+  async function registerAgentWithClose(
+    orgId: string,
+    userId: string,
+  ): Promise<{
     frame: Record<string, unknown>;
     closeCode: number;
     closeReason: string;
@@ -128,7 +133,9 @@ describe('QUOTA-03: agent registration quota enforcement', () => {
     }
 
     // Create a token manually to track it
-    const { tokenPlaintext } = await makeRegistrationTokensRepo(db, orgA.id).create(orgA.ownerUser.id);
+    const { tokenPlaintext } = await makeRegistrationTokensRepo(db, orgA.id).create(
+      orgA.ownerUser.id,
+    );
 
     const ws = connect();
     await new Promise<void>((r) => ws.once('open', () => r()));
@@ -139,7 +146,9 @@ describe('QUOTA-03: agent registration quota enforcement', () => {
     // Re-using same token should fail (it was consumed)
     const ws2 = connect();
     await new Promise<void>((r) => ws2.once('open', () => r()));
-    ws2.send(JSON.stringify({ type: 'register', token: tokenPlaintext, labels: { hostname: 'h' } }));
+    ws2.send(
+      JSON.stringify({ type: 'register', token: tokenPlaintext, labels: { hostname: 'h' } }),
+    );
     const close2 = await new Promise<{ code: number }>((resolve) => {
       ws2.once('close', (code) => resolve({ code }));
     });
@@ -152,7 +161,7 @@ describe('QUOTA-03: agent registration quota enforcement', () => {
     const db = getTestDb();
     const f = await seedTwoOrgs(db);
     const { orgA } = f;
-    const admin = makeAdminRepo(db);
+    const _admin = makeAdminRepo(db);
 
     // Register 5 agents, track first agent ID
     let firstAgentId: string | undefined;

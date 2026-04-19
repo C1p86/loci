@@ -7,9 +7,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { buildApp } from '../../app.js';
 import { makeAdminRepo } from '../../repos/admin.js';
+import { makeRepos } from '../../repos/index.js';
 import { getTestDb, getTestMek, resetDb } from '../../test-utils/db-harness.js';
 import { seedTwoOrgs } from '../../test-utils/two-org-fixture.js';
-import { makeRepos } from '../../repos/index.js';
 import type { TaskSnapshot } from '../../ws/types.js';
 
 const TASK_SNAPSHOT: TaskSnapshot = {
@@ -33,7 +33,9 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
 
   afterAll(async () => {
     for (const s of sockets) {
-      try { s.terminate(); } catch {}
+      try {
+        s.terminate();
+      } catch {}
     }
     await app.close();
   });
@@ -59,7 +61,9 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
   async function authenticateAgent(credentialPlaintext: string): Promise<WebSocket> {
     const ws = connect();
     await new Promise<void>((r) => ws.once('open', () => r()));
-    ws.send(JSON.stringify({ type: 'reconnect', credential: credentialPlaintext, running_runs: [] }));
+    ws.send(
+      JSON.stringify({ type: 'reconnect', credential: credentialPlaintext, running_runs: [] }),
+    );
     await recvOneFrame(ws); // consume reconnect_ack
     return ws;
   }
@@ -77,7 +81,8 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
     // Update to requested state + agentId using raw Drizzle
     const { taskRuns } = await import('../../db/schema.js');
     const { eq } = await import('drizzle-orm');
-    await db.update(taskRuns)
+    await db
+      .update(taskRuns)
       .set({ state: state as never, agentId })
       .where(eq(taskRuns.id, run.id));
     return run.id;
@@ -90,7 +95,9 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
     const f = await seedTwoOrgs(db);
     const admin = makeAdminRepo(db);
     const { agentId, credentialPlaintext } = await admin.registerNewAgent({
-      orgId: f.orgA.id, hostname: 'h', labels: {},
+      orgId: f.orgA.id,
+      hostname: 'h',
+      labels: {},
     });
 
     const runId = await seedRun(f.orgA.id, agentId, 'dispatched');
@@ -113,7 +120,9 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
     const f = await seedTwoOrgs(db);
     const admin = makeAdminRepo(db);
     const { agentId, credentialPlaintext } = await admin.registerNewAgent({
-      orgId: f.orgA.id, hostname: 'h', labels: {},
+      orgId: f.orgA.id,
+      hostname: 'h',
+      labels: {},
     });
 
     const runId = await seedRun(f.orgA.id, agentId, 'running');
@@ -136,7 +145,9 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
     const f = await seedTwoOrgs(db);
     const admin = makeAdminRepo(db);
     const { agentId, credentialPlaintext } = await admin.registerNewAgent({
-      orgId: f.orgA.id, hostname: 'h', labels: {},
+      orgId: f.orgA.id,
+      hostname: 'h',
+      labels: {},
     });
 
     const runId = await seedRun(f.orgA.id, agentId, 'running');
@@ -158,13 +169,23 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
     const f = await seedTwoOrgs(db);
     const admin = makeAdminRepo(db);
     const { agentId, credentialPlaintext } = await admin.registerNewAgent({
-      orgId: f.orgA.id, hostname: 'h', labels: {},
+      orgId: f.orgA.id,
+      hostname: 'h',
+      labels: {},
     });
 
     const runId = await seedRun(f.orgA.id, agentId, 'running');
     const ws = await authenticateAgent(credentialPlaintext);
 
-    ws.send(JSON.stringify({ type: 'result', run_id: runId, exit_code: 130, duration_ms: 100, cancelled: true }));
+    ws.send(
+      JSON.stringify({
+        type: 'result',
+        run_id: runId,
+        exit_code: 130,
+        duration_ms: 100,
+        cancelled: true,
+      }),
+    );
     await new Promise((r) => setTimeout(r, 100));
 
     const repos = makeRepos(db, mek);
@@ -180,7 +201,9 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
     const f = await seedTwoOrgs(db);
     const admin = makeAdminRepo(db);
     const { agentId, credentialPlaintext } = await admin.registerNewAgent({
-      orgId: f.orgA.id, hostname: 'h', labels: {},
+      orgId: f.orgA.id,
+      hostname: 'h',
+      labels: {},
     });
 
     const runId = await seedRun(f.orgA.id, agentId, 'timed_out');
@@ -204,13 +227,17 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
 
     // Create run in orgA with agentA
     const { agentId: agentAId } = await admin.registerNewAgent({
-      orgId: f.orgA.id, hostname: 'hA', labels: {},
+      orgId: f.orgA.id,
+      hostname: 'hA',
+      labels: {},
     });
     const runAId = await seedRun(f.orgA.id, agentAId, 'running');
 
     // Open WS as agentB (orgB)
     const { credentialPlaintext: credB } = await admin.registerNewAgent({
-      orgId: f.orgB.id, hostname: 'hB', labels: {},
+      orgId: f.orgB.id,
+      hostname: 'hB',
+      labels: {},
     });
     const wsB = await authenticateAgent(credB);
 
@@ -237,7 +264,9 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
     const f = await seedTwoOrgs(db);
     const admin = makeAdminRepo(db);
     const { agentId, credentialPlaintext } = await admin.registerNewAgent({
-      orgId: f.orgA.id, hostname: 'h', labels: {},
+      orgId: f.orgA.id,
+      hostname: 'h',
+      labels: {},
     });
 
     const runId = await seedRun(f.orgA.id, agentId, 'running');
@@ -245,14 +274,16 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
 
     // Send 10 log_chunk frames rapidly
     for (let i = 0; i < 10; i++) {
-      ws.send(JSON.stringify({
-        type: 'log_chunk',
-        run_id: runId,
-        seq: i,
-        stream: 'stdout',
-        data: `line ${i}`,
-        ts: new Date().toISOString(),
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'log_chunk',
+          run_id: runId,
+          seq: i,
+          stream: 'stdout',
+          data: `line ${i}`,
+          ts: new Date().toISOString(),
+        }),
+      );
     }
     await new Promise((r) => setTimeout(r, 200));
 
@@ -270,7 +301,9 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
     const f = await seedTwoOrgs(db);
     const admin = makeAdminRepo(db);
     const { agentId, credentialPlaintext } = await admin.registerNewAgent({
-      orgId: f.orgA.id, hostname: 'h', labels: {},
+      orgId: f.orgA.id,
+      hostname: 'h',
+      labels: {},
     });
 
     const runId = await seedRun(f.orgA.id, agentId, 'running');
@@ -279,7 +312,8 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
     // Read initial last_seen_at
     const { agents: agentsTable } = await import('../../db/schema.js');
     const { eq: eqDrizzle } = await import('drizzle-orm');
-    const before = await db.select({ lastSeenAt: agentsTable.lastSeenAt })
+    const before = await db
+      .select({ lastSeenAt: agentsTable.lastSeenAt })
       .from(agentsTable)
       .where(eqDrizzle(agentsTable.id, agentId))
       .limit(1);
@@ -287,18 +321,21 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
 
     // Send 5 log_chunk frames
     for (let i = 0; i < 5; i++) {
-      ws.send(JSON.stringify({
-        type: 'log_chunk',
-        run_id: runId,
-        seq: i,
-        stream: 'stdout',
-        data: 'x',
-        ts: new Date().toISOString(),
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'log_chunk',
+          run_id: runId,
+          seq: i,
+          stream: 'stdout',
+          data: 'x',
+          ts: new Date().toISOString(),
+        }),
+      );
     }
     await new Promise((r) => setTimeout(r, 200));
 
-    const after = await db.select({ lastSeenAt: agentsTable.lastSeenAt })
+    const after = await db
+      .select({ lastSeenAt: agentsTable.lastSeenAt })
       .from(agentsTable)
       .where(eqDrizzle(agentsTable.id, agentId))
       .limit(1);
@@ -314,12 +351,16 @@ describe('WS authenticated frame routing (state/result/log_chunk)', () => {
     const f = await seedTwoOrgs(db);
     const admin = makeAdminRepo(db);
     const { credentialPlaintext } = await admin.registerNewAgent({
-      orgId: f.orgA.id, hostname: 'h', labels: {},
+      orgId: f.orgA.id,
+      hostname: 'h',
+      labels: {},
     });
 
     const ws = connect();
     await new Promise<void>((r) => ws.once('open', () => r()));
-    ws.send(JSON.stringify({ type: 'reconnect', credential: credentialPlaintext, running_runs: [] }));
+    ws.send(
+      JSON.stringify({ type: 'reconnect', credential: credentialPlaintext, running_runs: [] }),
+    );
 
     const frame = await recvOneFrame(ws);
     expect(frame.type).toBe('reconnect_ack');

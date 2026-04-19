@@ -14,9 +14,8 @@
 //   2. POST /cancel (Plan 10-04) will call cancelRunTimer.
 //   3. clearAllRunTimers() is called from app.ts onClose hook.
 
-import { eq, inArray, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { taskRuns } from '../db/schema.js';
 import { makeRepos } from '../repos/index.js';
 
 interface TimerEntry {

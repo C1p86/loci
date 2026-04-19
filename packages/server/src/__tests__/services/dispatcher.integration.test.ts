@@ -1,20 +1,18 @@
 // Integration tests for tickDispatcher + dispatcherPlugin (Plan 10-03 Task 2).
 // Tests 3-5, 7-10 require real DB via testcontainers.
 
-import type { AddressInfo } from 'node:net';
 import { eq } from 'drizzle-orm';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { WebSocket } from 'ws';
 import { buildApp } from '../../app.js';
+import { agents, taskRuns } from '../../db/schema.js';
 import { makeAdminRepo } from '../../repos/admin.js';
 import { makeRepos } from '../../repos/index.js';
 import { makeTaskRunsRepo } from '../../repos/task-runs.js';
+import { tickDispatcher } from '../../services/dispatcher.js';
 import { clearAllRunTimers } from '../../services/timeout-manager.js';
-import { agents, taskRuns } from '../../db/schema.js';
 import { getTestDb, getTestMek, resetDb } from '../../test-utils/db-harness.js';
 import { seedTwoOrgs } from '../../test-utils/two-org-fixture.js';
 import type { TaskSnapshot } from '../../ws/types.js';
-import { tickDispatcher } from '../../services/dispatcher.js';
 
 const TASK_SNAPSHOT: TaskSnapshot = {
   task_id: 'xci_task_test',
@@ -147,17 +145,13 @@ describe('tickDispatcher integration', () => {
   // Test 5: CAS race — run already dispatched before tick → silently dequeued
   it('Test 5: CAS loser (run already dispatched) → silently dequeued, no WS send', async () => {
     const db = getTestDb();
-    const mek = getTestMek();
     const f = await seedTwoOrgs(db);
 
     const agentId = await seedOnlineAgent(f.orgA.id);
     const runId = await seedQueuedRun(f.orgA.id);
 
     // Manually transition run to dispatched before tick runs (simulating CAS race)
-    await db
-      .update(taskRuns)
-      .set({ state: 'dispatched', agentId })
-      .where(eq(taskRuns.id, runId));
+    await db.update(taskRuns).set({ state: 'dispatched', agentId }).where(eq(taskRuns.id, runId));
 
     app.dispatchQueue.enqueue({
       runId,
@@ -183,12 +177,10 @@ describe('tickDispatcher integration', () => {
 
 describe('dispatcherPlugin + app.ts integration', () => {
   let app: Awaited<ReturnType<typeof buildApp>>;
-  let port: number;
 
   beforeAll(async () => {
     app = await buildApp({ logLevel: 'warn' });
     await app.listen({ port: 0, host: '127.0.0.1' });
-    port = (app.server.address() as AddressInfo).port;
   });
 
   afterAll(async () => {
@@ -266,7 +258,6 @@ describe('dispatcherPlugin + app.ts integration', () => {
   // Test 10: round-robin — 3 runs distributed across 2 tied agents
   it('Test 10: round-robin — 3 runs alternate between 2 tied agents', async () => {
     const db = getTestDb();
-    const mek = getTestMek();
     const f = await seedTwoOrgs(db);
 
     const agent1 = await seedOnlineAgent(f.orgA.id);

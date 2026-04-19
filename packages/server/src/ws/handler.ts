@@ -14,6 +14,7 @@ import { sql } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { WebSocket } from 'ws';
 import { makeRepos } from '../repos/index.js';
+import { buildReconnectReconciliation } from '../services/reconciler.js';
 import { cancelRunTimer } from '../services/timeout-manager.js';
 import { parseAgentFrame } from './frames.js';
 import { startHeartbeat, stopHeartbeat } from './heartbeat.js';
@@ -213,8 +214,9 @@ async function handleHandshake(
     if (prior) prior.close(4004, 'superseded');
     fastify.agentRegistry.set(agentId, socket);
 
-    // D-18: reconciliation stub — empty array (Phase 10-03 populates with real run data)
-    send(socket, { type: 'reconnect_ack', reconciliation: [] });
+    // D-18: reconciliation — Plan 10-03 activates real run data (replaces [] stub)
+    const reconciliation = await buildReconnectReconciliation(fastify, orgId, frame.running_runs);
+    send(socket, { type: 'reconnect_ack', reconciliation });
 
     // Mark online + update last_seen_at (D-12 + AGENT-05)
     await repos.forOrg(orgId).agents.updateState(agentId, 'online');

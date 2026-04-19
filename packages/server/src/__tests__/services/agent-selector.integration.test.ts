@@ -2,13 +2,13 @@
 // All tests use testcontainers Postgres — JSONB @> semantics require real DB.
 
 import { eq, sql } from 'drizzle-orm';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { agents, taskRuns } from '../../db/schema.js';
 import { makeAdminRepo } from '../../repos/admin.js';
 import { makeTaskRunsRepo } from '../../repos/task-runs.js';
 import { selectEligibleAgent } from '../../services/agent-selector.js';
 import { getTestDb, resetDb } from '../../test-utils/db-harness.js';
 import { seedTwoOrgs } from '../../test-utils/two-org-fixture.js';
-import { agents, taskRuns } from '../../db/schema.js';
 import type { TaskSnapshot } from '../../ws/types.js';
 
 const TASK_SNAPSHOT: TaskSnapshot = {
@@ -38,12 +38,16 @@ async function seedAgent(
   });
   // Update state / lastSeenAt / maxConcurrent as needed
   const updates: Record<string, unknown> = {};
-  if (opts.state !== undefined) updates['state'] = opts.state;
-  if (opts.lastSeenAt !== undefined) updates['last_seen_at'] = opts.lastSeenAt;
-  if (opts.maxConcurrent !== undefined) updates['max_concurrent'] = opts.maxConcurrent;
+  if (opts.state !== undefined) updates.state = opts.state;
+  if (opts.lastSeenAt !== undefined) updates.last_seen_at = opts.lastSeenAt;
+  if (opts.maxConcurrent !== undefined) updates.max_concurrent = opts.maxConcurrent;
   if (Object.keys(updates).length > 0) {
     await db.execute(
-      sql`UPDATE agents SET ${sql.raw(Object.keys(updates).map((k) => `${k} = ${db.execute.length}`).join(', '))} WHERE id = ${agentId}`,
+      sql`UPDATE agents SET ${sql.raw(
+        Object.keys(updates)
+          .map((k) => `${k} = ${db.execute.length}`)
+          .join(', '),
+      )} WHERE id = ${agentId}`,
     );
     // Use drizzle update instead
     const setPayload = {} as Record<string, unknown>;
@@ -77,10 +81,7 @@ async function seedActiveRun(
     taskSnapshot: TASK_SNAPSHOT as unknown as Record<string, unknown>,
     timeoutSeconds: 3600,
   });
-  await db
-    .update(taskRuns)
-    .set({ state, agentId })
-    .where(eq(taskRuns.id, run.id));
+  await db.update(taskRuns).set({ state, agentId }).where(eq(taskRuns.id, run.id));
   return run.id;
 }
 
@@ -166,7 +167,7 @@ describe('agent-selector integration (JSONB @> + concurrency + round-robin)', ()
     const db = getTestDb();
     const f = await seedTwoOrgs(db);
 
-    const agentId = await seedAgent(f.orgA.id, {
+    await seedAgent(f.orgA.id, {
       labels: { os: 'linux' },
       state: 'online',
       // Set lastSeenAt to 2 hours ago
@@ -181,7 +182,7 @@ describe('agent-selector integration (JSONB @> + concurrency + round-robin)', ()
     const db = getTestDb();
     const f = await seedTwoOrgs(db);
 
-    const agentId = await seedAgent(f.orgA.id, {
+    await seedAgent(f.orgA.id, {
       labels: { os: 'linux' },
       state: 'draining',
       lastSeenAt: new Date(),

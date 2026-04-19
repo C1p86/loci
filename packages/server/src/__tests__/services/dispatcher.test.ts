@@ -3,8 +3,8 @@
 // Integration tests (3-5, 7-10) are in dispatcher.integration.test.ts.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DispatchQueue, tickDispatcher } from '../../services/dispatcher.js';
 import type { QueueEntry } from '../../services/dispatcher.js';
+import { DispatchQueue, tickDispatcher } from '../../services/dispatcher.js';
 
 // Mock agent-selector so we can control when selectEligibleAgent resolves.
 vi.mock('../../services/agent-selector.js', () => ({
@@ -74,7 +74,9 @@ describe('DispatchQueue — in-memory FIFO', () => {
     // Make selectEligibleAgent hang until manually released
     mockSelector.mockImplementation((): Promise<string | null> => {
       selectorCallCount++;
-      return new Promise<string | null>((res) => { resolvers.push(() => res(null)); });
+      return new Promise<string | null>((res) => {
+        resolvers.push(() => res(null));
+      });
     });
 
     const localQueue = new DispatchQueue();
@@ -139,15 +141,19 @@ describe('DispatchQueue — in-memory FIFO', () => {
 
   it('start is idempotent (second start is ignored)', () => {
     let count = 0;
-    const tick = async (): Promise<void> => { count++; };
+    const tick = async (): Promise<void> => {
+      count++;
+    };
     queue.start(tick, 50);
     queue.start(tick, 50); // should not start a second interval
     // Wait just enough for one tick
-    return new Promise((r) => setTimeout(() => {
-      queue.stop();
-      // count should be small (not doubled from two intervals)
-      expect(count).toBeLessThanOrEqual(3);
-      r(undefined);
-    }, 120));
+    return new Promise((r) =>
+      setTimeout(() => {
+        queue.stop();
+        // count should be small (not doubled from two intervals)
+        expect(count).toBeLessThanOrEqual(3);
+        r(undefined);
+      }, 120),
+    );
   });
 });
