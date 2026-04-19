@@ -36,8 +36,27 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Pre-publish validation (D-19 / D-38). Blocks the changesets action if anything is broken.
+      # Runs on every push to main — catches regressions even on the Version PR flight path
+      # (where changesets action only opens/updates the PR without publishing).
+      - name: Typecheck all packages
+        run: pnpm turbo run typecheck
+
+      - name: Lint all packages
+        run: pnpm turbo run lint
+
       - name: Build all packages (required before publish)
         run: pnpm turbo run build
+
+      - name: Test all packages
+        run: pnpm turbo run test
+
+      # D-38: dry-run publish proves the release script can publish without actually pushing to npm.
+      # --no-git-checks skips branch/dirty-tree guards because dry-run runs before the changesets
+      # action has bumped versions (so working tree is technically clean but on main, not a tag).
+      # The real publish (inside changesets/action) runs AFTER version bumps on a clean tree.
+      - name: Dry-run publish
+        run: pnpm -r publish --dry-run --access=public --no-git-checks
 
       - name: Create Release Pull Request or Publish
         uses: changesets/action@v1
