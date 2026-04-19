@@ -10,6 +10,8 @@ import {
   orgs,
   registrationTokens,
   sessions,
+  taskRuns,
+  tasks,
   users,
 } from './schema.js';
 
@@ -56,4 +58,17 @@ export const agentCredentialsRelations = relations(agentCredentials, ({ one }) =
 export const registrationTokensRelations = relations(registrationTokens, ({ one }) => ({
   org: one(orgs, { fields: [registrationTokens.orgId], references: [orgs.id] }),
   createdBy: one(users, { fields: [registrationTokens.createdByUserId], references: [users.id] }),
+}));
+
+export const tasksRelations = relations(tasks, ({ one, many }) => ({
+  org: one(orgs, { fields: [tasks.orgId], references: [orgs.id] }),
+  runs: many(taskRuns),
+}));
+
+export const taskRunsRelations = relations(taskRuns, ({ one }) => ({
+  org: one(orgs, { fields: [taskRuns.orgId], references: [orgs.id] }),
+  task: one(tasks, { fields: [taskRuns.taskId], references: [tasks.id] }),
+  agent: one(agents, { fields: [taskRuns.agentId], references: [agents.id] }),
+  triggeredBy: one(users, { fields: [taskRuns.triggeredByUserId], references: [users.id] }),
+  cancelledBy: one(users, { fields: [taskRuns.cancelledByUserId], references: [users.id] }),
 }));

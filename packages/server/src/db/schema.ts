@@ -178,6 +178,7 @@ export const agents = pgTable(
       .references(() => orgs.id, { onDelete: 'cascade' }),
     hostname: text('hostname').notNull(),
     labels: jsonb('labels').$type<Record<string, string>>().notNull().default({}),
+    maxConcurrent: integer('max_concurrent').notNull().default(1),
     state: text('state', { enum: ['online', 'offline', 'draining'] })
       .notNull()
       .default('offline'),
@@ -284,6 +285,7 @@ export const tasks = pgTable(
     description: text('description').notNull().default(''),
     yamlDefinition: text('yaml_definition').notNull(),
     labelRequirements: jsonb('label_requirements').$type<string[]>().notNull().default([]),
+    defaultTimeoutSeconds: integer('default_timeout_seconds'),
     createdByUserId: text('created_by_user_id').references(() => users.id, {
       onDelete: 'set null',
     }),
@@ -360,3 +362,56 @@ export type Secret = typeof secrets.$inferSelect;
 export type NewSecret = typeof secrets.$inferInsert;
 export type SecretAuditLogEntry = typeof secretAuditLog.$inferSelect;
 export type NewSecretAuditLogEntry = typeof secretAuditLog.$inferInsert;
+
+// Phase 10 D-01: task_runs table — full state machine for dispatched task executions.
+export const taskRuns = pgTable(
+  'task_runs',
+  {
+    id: text('id').primaryKey(), // xci_run_<rand>
+    orgId: text('org_id')
+      .notNull()
+      .references(() => orgs.id, { onDelete: 'cascade' }),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    // Full task definition at dispatch time — reproducibility even if task is later edited/deleted.
+    taskSnapshot: jsonb('task_snapshot').notNull(),
+    // UI-supplied param overrides for ${VAR} placeholders (DISP-09).
+    paramOverrides: jsonb('param_overrides').notNull().default({}),
+    state: text('state', {
+      enum: ['queued', 'dispatched', 'running', 'succeeded', 'failed', 'cancelled', 'timed_out', 'orphaned'],
+    })
+      .notNull()
+      .default('queued'),
+    // Nullable until a dispatcher picks the run.
+    agentId: text('agent_id').references(() => agents.id, { onDelete: 'set null' }),
+    exitCode: integer('exit_code'),
+    triggeredByUserId: text('triggered_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    triggerSource: text('trigger_source', { enum: ['manual', 'webhook'] })
+      .notNull()
+      .default('manual'),
+    timeoutSeconds: integer('timeout_seconds').notNull().default(3600),
+    queuedAt: timestamp('queued_at', { withTimezone: true }).notNull().defaultNow(),
+    dispatchedAt: timestamp('dispatched_at', { withTimezone: true }),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    cancelledByUserId: text('cancelled_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // D-01: 4 indexes for queue scans, per-agent concurrency counts, FIFO selection, orphan detection.
+    index('task_runs_org_state_idx').on(t.orgId, t.state),
+    index('task_runs_agent_state_idx').on(t.agentId, t.state),
+    index('task_runs_state_queued_idx').on(t.state, t.queuedAt),
+    index('task_runs_state_dispatched_idx').on(t.state, t.dispatchedAt),
+  ],
+);
+
+export type TaskRun = typeof taskRuns.$inferSelect;
+export type NewTaskRun = typeof taskRuns.$inferInsert;
+export type TaskRunState = TaskRun['state'];
