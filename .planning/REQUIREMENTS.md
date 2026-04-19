@@ -72,7 +72,7 @@
 - [ ] **DISP-01**: Task triggerata (manuale UI o webhook plugin) entra in dispatch queue in-memory sul server.
 - [ ] **DISP-02**: Selezione agente idoneo: `online` + tutte le `label_requirements` soddisfatte; tra idonei sceglie least-busy; fallback round-robin.
 - [ ] **DISP-03**: Frame `dispatch` all'agente contiene: `run_id`, task definition snapshot, params risolti (org secrets decifrati in plaintext, OK su WS-over-TLS).
-- [ ] **DISP-04**: `TaskRun` persisto con stati: `queued → dispatched → running → (succeeded | failed | cancelled | timed_out | orphaned)`.
+- [x] **DISP-04**: `TaskRun` persisto con stati: `queued → dispatched → running → (succeeded | failed | cancelled | timed_out | orphaned)`.
 - [ ] **DISP-05**: Concurrency per-agent default 1 (configurabile); per-org limit dal Plan (Free: `maxConcurrentTasks`).
 - [ ] **DISP-06**: Timeout: default 1h per task, configurabile per-task; scaduto → frame `cancel` all'agente + run marcato `timed_out`.
 - [ ] **DISP-07**: Cancellazione manuale dalla UI → frame `cancel` all'agente → task killed → run marcato `cancelled`.
@@ -130,8 +130,8 @@
 
 - [x] **QUOTA-01**: Entity `OrgPlan` con fields: `plan_name`, `max_agents`, `max_concurrent_tasks`, `log_retention_days`, `created_at`, `updated_at`.
 - [x] **QUOTA-02**: Plan "Free" di default per ogni org: `max_agents=5`, `max_concurrent_tasks=5`, `log_retention_days=30`.
-- [ ] **QUOTA-03**: Enforcement registrazione agente: tentativo oltre `max_agents` → registration rifiutata con errore esplicito user-visible.
-- [ ] **QUOTA-04**: Enforcement concurrent: dispatch oltre `max_concurrent_tasks` → task in coda standard; se coda > threshold → error UI "quota exceeded, retry later".
+- [x] **QUOTA-03**: Enforcement registrazione agente: tentativo oltre `max_agents` → registration rifiutata con errore esplicito user-visible.
+- [x] **QUOTA-04**: Enforcement concurrent: dispatch oltre `max_concurrent_tasks` → task in coda standard; se coda > threshold → error UI "quota exceeded, retry later".
 - [ ] **QUOTA-05**: Retention cleanup (LOG-08) usa `log_retention_days` del Plan corrente dell'org.
 - [ ] **QUOTA-06**: Settings Org mostra uso corrente: `agents N/5`, `concurrent X/5`, `retention Y days`.
 - [x] **QUOTA-07**: Nessuna integrazione Stripe in v2.0; nessuna UI di upgrade; piano "Free" è l'unico disponibile.
@@ -372,14 +372,14 @@ Quali fasi coprono quali requirement.
 | DISP-01 | 10-dispatch-quota | Pending |
 | DISP-02 | 10-dispatch-quota | Pending |
 | DISP-03 | 10-dispatch-quota | Pending |
-| DISP-04 | 10-dispatch-quota | Pending |
+| DISP-04 | 10-dispatch-quota | Complete |
 | DISP-05 | 10-dispatch-quota | Pending |
 | DISP-06 | 10-dispatch-quota | Pending |
 | DISP-07 | 10-dispatch-quota | Pending |
 | DISP-08 | 10-dispatch-quota | Pending |
 | DISP-09 | 10-dispatch-quota | Pending |
-| QUOTA-03 | 10-dispatch-quota | Pending |
-| QUOTA-04 | 10-dispatch-quota | Pending |
+| QUOTA-03 | 10-dispatch-quota | Complete |
+| QUOTA-04 | 10-dispatch-quota | Complete |
 | QUOTA-05 | 10-dispatch-quota | Pending |
 | QUOTA-06 | 10-dispatch-quota | Pending |
 | LOG-01 | 11-log-streaming | Pending |

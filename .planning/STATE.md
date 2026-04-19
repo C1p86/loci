@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: Ready to execute
-stopped_at: Phase 10 context gathered
-last_updated: "2026-04-19T00:51:56.037Z"
-last_activity: 2026-04-19 -- Phase 10 planning complete
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-04-19T12:13:23.169Z"
+last_activity: 2026-04-19
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 44
-  completed_plans: 39
-  percent: 89
+  completed_plans: 40
+  percent: 91
 ---
 
 # Project State
@@ -21,13 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Phase 9 — Task Definitions & Secrets Management
+**Current focus:** Phase 10 — Dispatch Pipeline & Quota Enforcement
 
 ## Current Position
 
-Phase: 9 (Task Definitions & Secrets Management) — COMPLETE
+Phase: 10 (Dispatch Pipeline & Quota Enforcement) — EXECUTING
+Plan: 2 of 5
 Next: Phase 10 (Dispatch Pipeline & Quota Enforcement) — pending planning
-Last activity: 2026-04-19 -- Phase 10 planning complete
+Last activity: 2026-04-19
 
 Progress (Phase 09): [██████████] 100% (6/6 plans)
 Progress (v2.0 milestone): [████░░░░░░] 44% (4/9 phases complete: 06, 07, 08, 09)
@@ -103,6 +104,7 @@ Progress (v2.0 milestone): [████░░░░░░] 44% (4/9 phases comp
 | Phase 09-task-definitions-secrets-management P03 | 6 | 2 tasks | 41 files |
 | Phase 09-task-definitions-secrets-management P04 | 9 | 2 tasks | 12 files |
 | Phase 09-task-definitions-secrets-management P05 | 12 | 2 tasks | 13 files |
+| Phase 10-dispatch-pipeline-quota-enforcement P01 | 35 | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -234,6 +236,9 @@ Recent decisions affecting current work:
 - [Phase 09]: Cross-package fence: @xci/server imports only xci/dsl; xci never imports @xci/server (D-37/D-38) — Biome noRestrictedImports enforces both directions
 - [Phase 09]: dsl.mjs bundle externalises yaml (22.9KB); commander NOT present in dsl entry (Pitfall 4 / D-39)
 - [Phase 09]: resolveTaskParams is a pure function (no DB, no logger) — Phase 10 dispatcher calls it at dispatch time with decrypted orgSecrets dict (D-33)
+- [Phase 10-dispatch-pipeline-quota-enforcement]: CAS update returns undefined on miss — repos do not throw; service/handler layer decides the appropriate error
+- [Phase 10-dispatch-pipeline-quota-enforcement]: orgId included in every CAS WHERE clause for task_runs (T-10-01-03 frame spoofing guard)
+- [Phase 10-dispatch-pipeline-quota-enforcement]: findRunsForReconciliation() has no orgId param — adminRepo cross-tenant by design (D-03/D-30 boot scan)
 
 ### Pending Todos
 
@@ -264,7 +269,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-19T00:16:38.949Z
-Stopped at: Phase 10 context gathered
+Last session: 2026-04-19T12:13:23.128Z
+Stopped at: Completed 10-01-PLAN.md
 Phase 9 closed: all 6 plans complete, all 14 requirements traced, 5/5 SC covered
 Resume: Phase 10 planning (Dispatch Pipeline & Quota Enforcement — needs Phase 8 + Phase 9)
