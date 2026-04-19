@@ -27,9 +27,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 ### v2.0 — Remote CI: Agents + Web Dashboard (phases 06–14)
 
 - [x] **Phase 6: Monorepo Setup & Backward-Compat Fence** - pnpm workspaces, Turborepo, Changesets; CI ws-fence + cold-start gate + v1 regression suite active. Bundle-size gate deferred (baseline 760KB vs 200KB target — to revisit).
-- [ ] **Phase 7: Database Schema & Auth** - Drizzle schema, migrations, signup/login/sessions/password-reset, org model, multi-tenant isolation, quota entities
+- [x] **Phase 7: Database Schema & Auth** - Drizzle schema, migrations, signup/login/sessions/password-reset, org model, multi-tenant isolation, quota entities
 - [x] **Phase 8: Agent Registration & WebSocket Protocol** - TOFU agent registration, persistent WS with heartbeat/reconnect, agent lifecycle (online/offline/drain/reconcile/shutdown), registration tokens
-- [ ] **Phase 9: Task Definitions & Secrets Management** - server-side YAML DSL (shared parser with xci), CRUD API, YAML validation; org-level envelope encryption, secrets CRUD, dispatch-time resolution
+- [x] **Phase 9: Task Definitions & Secrets Management** - server-side YAML DSL (shared parser with xci), CRUD API, YAML validation; org-level envelope encryption, secrets CRUD, dispatch-time resolution
 - [ ] **Phase 10: Dispatch Pipeline & Quota Enforcement** - label-match dispatcher, in-memory queue with DB reconciliation, TaskRun state machine, timeout/cancel/orphan, per-org quota enforcement
 - [ ] **Phase 11: Log Streaming & Persistence** - agent log_chunk streaming, in-memory RunBuffer, Postgres persistence, UI WebSocket fanout, retention cleanup
 - [ ] **Phase 12: Plugin System & Webhooks** - TriggerPlugin interface, GitHub + Perforce plugins, Dead Letter Queue, idempotency, DLQ UI
@@ -182,7 +182,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 09-03-PLAN.md — forOrg repos (tasks, secrets, secret-audit-log) + adminRepo getOrgDek/rotateMek + Biome D-37/D-38 cross-package fence + isolation tests
 - [x] 09-04-PLAN.md — Task CRUD routes + 4-step D-12 validation pipeline (parse, structure, cycle, unknown-alias with suggest) + integration tests
 - [x] 09-05-PLAN.md — Secret CRUD routes + secret-audit-log endpoint + SEC-04 no-plaintext invariant guard (grep + runtime test)
-- [ ] 09-06-PLAN.md — rotate-mek admin endpoint (SEC-08, D-26 + D-28 verified) + dispatch-resolver service (TASK-06) + Phase closeout
+- [x] 09-06-PLAN.md — rotate-mek admin endpoint (SEC-08, D-26 + D-28 verified) + dispatch-resolver service (TASK-06) + Phase closeout
 **UI hint**: yes
 
 ### Phase 10: Dispatch Pipeline & Quota Enforcement
@@ -263,7 +263,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 6. Monorepo Setup & Backward-Compat Fence | 0/? | Not started | - |
 | 7. Database Schema & Auth | 9/9 | Complete | 2026-04-18 |
 | 8. Agent Registration & WebSocket Protocol | 5/5 | Complete | 2026-04-18 |
-| 9. Task Definitions & Secrets Management | 1/6 | In Progress|  |
+| 9. Task Definitions & Secrets Management | 6/6 | Complete | 2026-04-19 |
 | 10. Dispatch Pipeline & Quota Enforcement | 0/? | Not started | - |
 | 11. Log Streaming & Persistence | 0/? | Not started | - |
 | 12. Plugin System & Webhooks | 0/? | Not started | - |

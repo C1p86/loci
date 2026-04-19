@@ -49,18 +49,15 @@ export function resolveTaskParams(input: ResolveInput): ResolveOutput {
   // Replace each ${VAR} occurrence:
   // - if key is in merged → substitute the value
   // - otherwise → leave as '${VAR}' and record in unresolved
-  const resolvedYaml = input.task.yamlDefinition.replace(
-    PLACEHOLDER_RE,
-    (match, key: string) => {
-      const name = key.trim();
-      if (Object.hasOwn(merged, name)) {
-        // biome-ignore lint/style/noNonNullAssertion: hasOwn guard above confirms key exists
-        return merged[name]!;
-      }
-      unresolvedSet.add(name);
-      return match;
-    },
-  );
+  const resolvedYaml = input.task.yamlDefinition.replace(PLACEHOLDER_RE, (match, key: string) => {
+    const name = key.trim();
+    if (Object.hasOwn(merged, name)) {
+      // biome-ignore lint/style/noNonNullAssertion: hasOwn guard above confirms key exists
+      return merged[name]!;
+    }
+    unresolvedSet.add(name);
+    return match;
+  });
 
   return { resolvedYaml, unresolved: [...unresolvedSet] };
 }

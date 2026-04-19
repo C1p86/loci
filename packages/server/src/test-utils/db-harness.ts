@@ -55,7 +55,8 @@ export function getTestDb(): PostgresJsDatabase {
  */
 export function getTestMek(): Buffer {
   const raw = process.env.XCI_MASTER_KEY;
-  if (!raw) throw new Error('getTestMek: process.env.XCI_MASTER_KEY not set — missing globalSetup?');
+  if (!raw)
+    throw new Error('getTestMek: process.env.XCI_MASTER_KEY not set — missing globalSetup?');
   return Buffer.from(raw, 'base64');
 }
 

@@ -291,11 +291,111 @@ Three new tables added in migration `0001_agents_websocket.sql`:
 - **Token security** — all token comparisons use `crypto.timingSafeEqual()` (ATOK-06). Credentials are never logged (pino redact rules cover `req.body.credential` and `*.credential`).
 - **Phase 10 scope** — quota enforcement (`max_agents=5` per Free plan) and task dispatch frames are implemented in Phase 10. Phase 8 delivers the full registration/auth/heartbeat/lifecycle framework.
 
+## Secrets & Tasks (Phase 9)
+
+Phase 9 introduced server-side task definitions (stored YAML DSL, validated at save) and org-level encrypted secrets. The full API is documented inline; the section below covers operational runbook for MEK rotation.
+
+### API Endpoints (Phase 9)
+
+**Task routes** (`/api/orgs/:orgId/tasks/*`, session required):
+
+| Method | Path | Role | CSRF | Description |
+|--------|------|------|------|-------------|
+| `GET` | `/api/orgs/:orgId/tasks` | any member | no | List tasks (metadata, no yamlDefinition) |
+| `GET` | `/api/orgs/:orgId/tasks/:taskId` | any member | no | Get full task including yamlDefinition |
+| `POST` | `/api/orgs/:orgId/tasks` | Owner/Member | yes | Create task; validates YAML at save (4-step D-12 pipeline) |
+| `PATCH` | `/api/orgs/:orgId/tasks/:taskId` | Owner/Member | yes | Update task; same validation as POST |
+| `DELETE` | `/api/orgs/:orgId/tasks/:taskId` | Owner only | yes | Delete task |
+
+**Secrets routes** (`/api/orgs/:orgId/secrets/*`, session required):
+
+| Method | Path | Role | CSRF | Description |
+|--------|------|------|------|-------------|
+| `GET` | `/api/orgs/:orgId/secrets` | any member | no | List secrets (metadata only — name, created_at; no plaintext ever) |
+| `POST` | `/api/orgs/:orgId/secrets` | Owner/Member | yes | Create secret; encrypts value under org DEK; never returns plaintext |
+| `PATCH` | `/api/orgs/:orgId/secrets/:secretId` | Owner/Member | yes | Update secret value; re-encrypts with new IV |
+| `DELETE` | `/api/orgs/:orgId/secrets/:secretId` | Owner only | yes | Delete secret; audit log entry written |
+| `GET` | `/api/orgs/:orgId/secret-audit-log` | Owner only | no | List audit log entries (action history, metadata only) |
+
+**Admin routes** (`/api/admin/*`, platform-admin only):
+
+| Method | Path | Auth | CSRF | Description |
+|--------|------|------|------|-------------|
+| `POST` | `/api/admin/rotate-mek` | Platform admin session + PLATFORM_ADMIN_EMAIL match | yes | Re-wrap all org DEKs under new MEK atomically |
+
+### Envelope Encryption Overview
+
+Secrets use two-layer envelope encryption (AES-256-GCM):
+
+1. **MEK (Master Encryption Key)**: 32-byte key stored in `XCI_MASTER_KEY` env var. Parsed once at boot as `fastify.mek`. Never logged.
+2. **DEK (Data Encryption Key)**: 32-byte random key per org. Wrapped under MEK and stored in `org_deks` table.
+3. **Secret value**: Encrypted under the org's DEK using AES-256-GCM with a random 12-byte IV per call. The AAD (`<orgId>:<secretName>`) binds each ciphertext to its location — moving a row to another org causes authentication tag failure.
+
+No API endpoint ever returns plaintext secret values. The `resolveByName()` repo method is the only code path that returns plaintext, and it is called exclusively by the Phase 10 dispatcher.
+
+### MEK Rotation Runbook
+
+MEK rotation re-wraps all org DEKs under a new MEK without changing any plaintext secret value. The operation is atomic (single Postgres transaction with SELECT FOR UPDATE) and idempotent (calling again with the same new MEK returns `rotated=0`).
+
+**Prerequisites:**
+- Shell access to the server environment
+- Ability to update the `XCI_MASTER_KEY` environment variable and redeploy
+- A session for the account whose email matches `PLATFORM_ADMIN_EMAIL`
+
+**Step 0 — Generate a new 32-byte MEK:**
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+# Output example: bGV0IG1lIGJlIGEgc2VjcmV0IGtleQ==
+```
+
+Save this as `<NEW_MEK>`.
+
+**Step 1 — Deploy the server with the current (old) `XCI_MASTER_KEY`.**
+
+The server that performs the rotation reads the OLD mek from `fastify.mek` (set at boot). No transition env vars are needed — the rotation endpoint accepts the new MEK in the request body.
+
+**Step 2 — Call the rotate endpoint:**
+
+```bash
+curl -X POST https://<server>/api/admin/rotate-mek \
+  -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: <csrf-token>" \
+  -b "xci_sid=<session-cookie>" \
+  -d '{"newMekBase64": "<NEW_MEK>"}'
+```
+
+Expected response:
+
+```json
+{ "rotated": 3, "mekVersion": 2 }
+```
+
+`rotated` is the number of org DEKs re-wrapped. `mekVersion` is the new version counter applied to all rows.
+
+**Step 3 — Redeploy with `XCI_MASTER_KEY=<NEW_MEK>`.**
+
+After redeployment, `fastify.mek` is the new key. All DEKs are already wrapped under it, so decryption resumes immediately.
+
+**Step 4 — Verify:**
+
+Log in, list secrets (metadata should be intact), and confirm a dispatch (Phase 10 once available) succeeds end-to-end.
+
+**Failure handling:**
+
+If Step 2 fails mid-rotation, Drizzle rolls back the entire transaction (atomicity). On retry with the SAME `newMekBase64`, the D-28 idempotency guard skips rows already at the new `mek_version` — `rotated` returns the remaining count or 0. Safe to re-run.
+
+**Accepted downtime risk (T-09-06-10):**
+
+Between Step 2 commit and Step 3 server restart, the running server still has the OLD `fastify.mek`. Any secret read attempt using the old mek against newly re-wrapped DEKs will fail with a decryption error. Plan the rotation during a low-traffic window or accept a short read outage. A future enhancement would hot-swap via SIGHUP + env re-read.
+
 ## Design References
 
 - `.planning/phases/07-database-schema-auth/07-CONTEXT.md` — 39 locked decisions
 - `.planning/phases/07-database-schema-auth/07-RESEARCH.md` — full stack research and code examples
 - `.planning/phases/08-agent-registration-websocket-protocol/08-CONTEXT.md` — 43 locked decisions for Phase 8
+- `.planning/phases/09-task-definitions-secrets-management/09-CONTEXT.md` — 44 locked decisions for Phase 9
+- `.planning/phases/09-task-definitions-secrets-management/09-TRACEABILITY.md` — Phase 9 requirement-to-test mapping
 
 ## License
 
@@ -303,4 +403,4 @@ MIT. See root `LICENSE`.
 
 ---
 
-*v2.0 Phase 8 — part of the xci monorepo. See [packages/xci](../xci/README.md) for the v1 CLI.*
+*v2.0 Phase 9 — part of the xci monorepo. See [packages/xci](../xci/README.md) for the v1 CLI.*

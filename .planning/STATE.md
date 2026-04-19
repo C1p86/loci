@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: — Local CLI
+milestone: v2.0
+milestone_name: Remote CI — Agents + Web Dashboard
 status: executing
-stopped_at: Completed 09-05-PLAN.md (Secret CRUD routes + audit-log + SEC-04 invariant guard)
-last_updated: "2026-04-18T23:57:19.295Z"
-last_activity: 2026-04-18
+stopped_at: Completed 09-06-PLAN.md (rotate-mek endpoint + dispatch-resolver + Phase 9 closeout)
+last_updated: "2026-04-19T00:15:00.000Z"
+last_activity: 2026-04-19
 progress:
-  total_phases: 9
-  completed_phases: 8
+  total_phases: 14
+  completed_phases: 9
   total_plans: 39
-  completed_plans: 38
-  percent: 97
+  completed_plans: 39
+  percent: 64
 ---
 
 # Project State
@@ -25,13 +25,12 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 
 ## Current Position
 
-Phase: 9 (Task Definitions & Secrets Management) — EXECUTING
-Plan: 6 of 6
-Status: Ready to execute
-Last activity: 2026-04-18
+Phase: 9 (Task Definitions & Secrets Management) — COMPLETE
+Next: Phase 10 (Dispatch Pipeline & Quota Enforcement) — pending planning
+Last activity: 2026-04-19
 
-Progress (Phase 08): [██████████] 100%
-Progress (v2.0 milestone): [███░░░░░░░] 33% (3/9 phases)
+Progress (Phase 09): [██████████] 100% (6/6 plans)
+Progress (v2.0 milestone): [████░░░░░░] 44% (4/9 phases complete: 06, 07, 08, 09)
 
 ## Performance Metrics
 
@@ -225,6 +224,16 @@ Recent decisions affecting current work:
 - [Phase 09-task-definitions-secrets-management]: validateTaskYaml exported from create.ts and imported by update.ts for D-12 deduplication; requireOwnerOrMemberAndOrgMatch exported from create.ts for Owner/Member guard
 - [Phase 09-task-definitions-secrets-management]: SEC-04 enforced by AJV additionalProperties:false + explicit field selection in reply.send + grep CI gate + no-plaintext-leak integration test scanning 5 response bodies per CRUD cycle
 - [Phase 09-task-definitions-secrets-management]: AJV maximum:1000 on audit-log limit returns 400 for limit>1000 (strict validation preferred over silent clamping)
+- [Phase 09]: DSL is a re-export facade; NO behavior change in packages/xci/ — v1 302-test suite still green (D-05 / BC-01 / D-40)
+- [Phase 09]: AAD for secrets = `${orgId}:${name}`; for DEK wrap = 'dek-wrap' constant (D-16) — binds ciphertext to location, prevents cross-org decryption
+- [Phase 09]: Every encrypt call uses randomBytes(12) IV; audit log written in same transaction as mutation (D-22) — failure to log fails the action
+- [Phase 09]: MEK parsed once via `app.decorate('mek', Buffer.from(...,'base64'))` at boot; length check throws with remediation hint (Pitfall 8)
+- [Phase 09]: No plaintext secret endpoint ever exists — SEC-04 architectural invariant enforced by AJV additionalProperties:false + grep CI gate
+- [Phase 09]: requirePlatformAdmin middleware compares req.user.email to PLATFORM_ADMIN_EMAIL env var (case-insensitive) — throws PlatformAdminRequiredError (D-24)
+- [Phase 09]: MEK rotation is single db.transaction + FOR UPDATE + mek_version idempotency guard (D-25/D-28); repeating with same newMekBase64 returns rotated=0
+- [Phase 09]: Cross-package fence: @xci/server imports only xci/dsl; xci never imports @xci/server (D-37/D-38) — Biome noRestrictedImports enforces both directions
+- [Phase 09]: dsl.mjs bundle externalises yaml (22.9KB); commander NOT present in dsl entry (Pitfall 4 / D-39)
+- [Phase 09]: resolveTaskParams is a pure function (no DB, no logger) — Phase 10 dispatcher calls it at dispatch time with decrypted orgSecrets dict (D-33)
 
 ### Pending Todos
 
@@ -255,6 +264,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T23:57:19.244Z
-Stopped at: Completed 09-05-PLAN.md (Secret CRUD routes + audit-log + SEC-04 invariant guard)
-Resume file: None
+Last session: 2026-04-19T00:15:00.000Z
+Stopped at: Completed 09-06-PLAN.md (rotate-mek endpoint + dispatch-resolver + Phase 9 closeout)
+Phase 9 closed: all 6 plans complete, all 14 requirements traced, 5/5 SC covered
+Resume: Phase 10 planning (Dispatch Pipeline & Quota Enforcement — needs Phase 8 + Phase 9)

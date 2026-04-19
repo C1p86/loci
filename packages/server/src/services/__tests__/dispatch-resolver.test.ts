@@ -3,8 +3,8 @@
 // No side effects — no DB, no logger, no network.
 
 import { describe, expect, it } from 'vitest';
-import { resolveTaskParams } from '../dispatch-resolver.js';
 import type { ResolveInput } from '../dispatch-resolver.js';
+import { resolveTaskParams } from '../dispatch-resolver.js';
 
 function makeTask(yamlDefinition: string): ResolveInput['task'] {
   return { id: 'xci_tsk_test', name: 'test-task', yamlDefinition };
