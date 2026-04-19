@@ -84,7 +84,7 @@
 - [x] **LOG-01**: Agente stream stdout/stderr in frame `log_chunk` con sequence number per ordering deterministico.
 - [x] **LOG-02**: Server persiste chunk in Postgres (jsonb, compressione), retention configurabile; default Free plan **30 giorni**.
 - [x] **LOG-03**: UI sottoscrive WS per log live con autoscroll pausabile; indicatore connessione WS (connected / reconnecting / disconnected); reconnect trasparente.
-- [ ] **LOG-04**: Ogni chunk ha timestamp assoluto (origine agente); UI mostra/nasconde timestamp con toggle.
+- [x] **LOG-04**: Ogni chunk ha timestamp assoluto (origine agente); UI mostra/nasconde timestamp con toggle.
 - [x] **LOG-05**: Download log completo di un run come file `.log` plaintext (endpoint autenticato, org-scoped, `Content-Disposition: attachment`).
 - [x] **LOG-06**: Redazione pre-persist: valori di org secrets + agent-local secrets sostituiti da `***`; coprire varianti base64 (`Buffer.from(value).toString('base64')`); pino-http non logga request body contenente params.
 - [x] **LOG-07**: Backpressure: subscriber UI lento non blocca stream agente; buffer drop-head per subscriber.
@@ -385,7 +385,7 @@ Quali fasi coprono quali requirement.
 | LOG-01 | 11-log-streaming | Complete |
 | LOG-02 | 11-log-streaming | Complete |
 | LOG-03 | 11-log-streaming | Complete |
-| LOG-04 | 11-log-streaming | Pending |
+| LOG-04 | 11-log-streaming | Complete |
 | LOG-05 | 11-log-streaming | Complete |
 | LOG-06 | 11-log-streaming | Complete |
 | LOG-07 | 11-log-streaming | Complete |

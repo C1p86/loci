@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: — Local CLI
-status: Ready to execute
-stopped_at: Completed 11-log-streaming-persistence/11-03-PLAN.md
-last_updated: "2026-04-19T14:39:55.212Z"
+milestone: v2.0
+milestone_name: — Remote CI (Agents + Web Dashboard)
+status: Phase 11 complete — ready for Phase 12
+stopped_at: Completed Phase 11 — all 4 plans, log streaming + persistence + retention + agent redaction
+last_updated: "2026-04-19T15:00:00.000Z"
 last_activity: 2026-04-19
 progress:
-  total_phases: 11
-  completed_phases: 10
-  total_plans: 48
-  completed_plans: 48
-  percent: 100
+  total_phases: 14
+  completed_phases: 11
+  total_plans: 52
+  completed_plans: 52
+  percent: 79
 ---
 
 # Project State
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Phase 11 — Log Streaming & Persistence
+**Current focus:** Phase 12 — Plugin System & Webhooks
 
 ## Current Position
 
-Phase: 11 (Log Streaming & Persistence) — EXECUTING
-Plan: 4 of 4
-Next: Phase 11 — Log Streaming & Persistence
+Phase: 12 (Plugin System & Webhooks) — NEXT
+Plan: 1 of TBD
+Next: Phase 12 — Plugin System & Webhooks
 Last activity: 2026-04-19
 
-Progress (Phase 10): [██████████] 100% (5/5 plans)
-Progress (v2.0 milestone): [█████░░░░░] 56% (5/9 phases complete: 06, 07, 08, 09, 10)
+Progress (Phase 11): [██████████] 100% (4/4 plans)
+Progress (v2.0 milestone): [██████░░░░] 79% (6/9 phases complete: 06, 07, 08, 09, 10, 11)
 
 ## Performance Metrics
 
@@ -113,6 +113,7 @@ Progress (v2.0 milestone): [█████░░░░░] 56% (5/9 phases comp
 | Phase 11-log-streaming-persistence P01 | 30 | 2 tasks | 9 files |
 | Phase 11-log-streaming-persistence P02 | 608 | 3 tasks | 10 files |
 | Phase 11-log-streaming-persistence P03 | 45m | 2 tasks | 9 files |
+| Phase 11-log-streaming-persistence P04 | ~20m | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -273,6 +274,10 @@ Recent decisions affecting current work:
 - [Phase 11-log-streaming-persistence]: WS route registered at root level (not under /api prefix) — matches agent WS pattern; cookie auth works because authPlugin fires on HTTP upgrade
 - [Phase 11-log-streaming-persistence]: reply.hijack() chosen for download streaming per D-15; raw.writeHead called manually after hijack
 - [Phase 11-log-streaming-persistence]: LOG_RETENTION_INTERVAL_MS default 86400000 (24h); setInterval unref'd; onReady immediate boot pass (D-20)
+- [Phase 11-log-streaming-persistence P04]: Agent-side redactLine applies .xci/secrets.yml values (≥4 chars, longest-first) per chunk BEFORE onChunk fires — defense-in-depth complementing server-side org-secret redaction (D-08/D-24)
+- [Phase 11-log-streaming-persistence P04]: splitChunk iterates code points (for..of) to avoid splitting multi-byte UTF-8 sequences; 8KB cap leaves 8x headroom under the 65536 WS maxPayload (D-03/D-24)
+- [Phase 11-log-streaming-persistence P04]: redactionValues passed as sorted copy at spawnTask setup time (not per-chunk) — O(n log n) once vs O(n*m) per chunk where m=secrets count
+- [Phase 11-log-streaming-persistence P04]: E2E log-streaming test is Linux+Docker gated (describe.runIf) matching existing Phase 10 E2E pattern; covers SC-1 (seq contiguity), SC-2 (DB persistence), SC-3 (slow-subscriber gap), SC-4 (redaction end-to-end), SC-5 (download endpoint)
 
 ### Pending Todos
 
@@ -289,9 +294,9 @@ Recent decisions affecting current work:
 - Future (post-v2.0): agent audit log (register/revoke events) — paired with Phase 7 audit log deferral
 - Future (Phase 11): WS log_chunk frame type (reserved in D-15); backpressure handling revisit at that time
 
-- Deferred (Phase 11): log_chunk persistence + server-side storage — Phase 10 agent sends frames; server discards (fire-and-forget); Phase 11 owns RunBuffer + DB write + UI fanout
-- Deferred (Phase 11): LOG-06 pre-persist redaction of secrets in log_chunk data — Phase 10 forwards raw stdout/stderr
-- Deferred (future phase): sequence/parallel task dispatch on agent — Phase 10 supports single-command only; multi-step dispatch needs Phase 11 log_chunk storage maturity for correct per-step streaming
+- [DONE Phase 11]: log_chunk persistence + server-side storage — log_chunks table, LogBatcher, forOrg.logChunks.insertBatch all active
+- [DONE Phase 11]: LOG-06 pre-persist redaction — server-side runRedactionTables (org secrets, 4 variants, longest-first) + agent-side redactLine (.xci/secrets.yml values)
+- Deferred (future phase): sequence/parallel task dispatch on agent — Phase 10 supports single-command only; multi-step dispatch needs further design
 
 ### Blockers/Concerns
 
@@ -307,7 +312,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-19T14:39:55.171Z
-Stopped at: Completed 11-log-streaming-persistence/11-03-PLAN.md
-Phase 10 closed: all 5 plans complete, 13 requirement IDs traced (DISP-01..09 + QUOTA-03..06), 5/5 SC covered, E2E test CI-deferred (Docker unavailable in dev env)
-Resume: Phase 11 — Log Streaming & Persistence (needs Phase 10 complete — SATISFIED)
+Last session: 2026-04-19T15:00:00.000Z
+Stopped at: Completed Phase 11 — all 4 plans, log streaming + persistence + retention + agent redaction
+Phase 11 closed: all 4 plans complete, 8 requirement IDs traced (LOG-01..08), 5/5 SC covered, integration tests written (Docker-deferred for 11-03 routes; E2E test Linux+Docker gated for 11-04)
+Resume: Phase 12 — Plugin System & Webhooks (needs Phase 10 complete — SATISFIED)

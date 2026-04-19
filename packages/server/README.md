@@ -473,6 +473,41 @@ On `app.ready()`:
 
 Per-run `setTimeout(timeoutSeconds * 1000)` registered when run enters `dispatched` state. On timeout: server sends `{type:'cancel', run_id, reason:'timeout'}` to agent and transitions run to `timed_out`. On result received: timer cleared. On server crash: boot reconciliation (#3 above) catches expired timers.
 
+## Phase 11 — Log Streaming & Persistence
+
+Agent `log_chunk` frames are persisted to Postgres and fanned out to subscribed UI clients in real time.
+
+- **Table**: `log_chunks` — columns: `run_id` (FK → task_runs ON DELETE CASCADE), `seq` (integer), `stream` (stdout/stderr), `data` (text, Postgres TOAST), `ts` (timestamptz), `persisted_at`; unique index on `(run_id, seq)` for idempotent replay
+- **Pipeline**: `handleLogChunkFrame` → `redactChunk` (server-side org-secret redaction, longest-first) → `LogBatcher` (flush at 50 chunks OR 200ms, 1000-item drop-head overflow) → `forOrg.logChunks.insertBatch`; live fanout via `LogFanout` (500-queue drop-head per subscriber, gap frame on overflow)
+- **Subscribe endpoint**: `GET /ws/orgs/:orgId/runs/:runId/logs` — WebSocket upgrade (no `/api` prefix); cookie auth via `authPlugin.onRequest` before upgrade; client sends `{type:'subscribe', sinceSeq?}`; server replays from DB then streams live; terminal run sends `{type:'end'}` + 5s close grace
+- **Download endpoint**: `GET /api/orgs/:orgId/runs/:runId/logs.log` — `text/plain; charset=utf-8` attachment; streaming via `reply.hijack()` + cursor pagination (1000 rows/page); `Cache-Control: no-store`
+- **Retention**: `startLogRetentionJob` runs one immediate pass on `onReady` + `setInterval().unref()` every `LOG_RETENTION_INTERVAL_MS`; CTE DELETE batched at 10k rows/iteration across all orgs using `org_plan.log_retention_days`
+- **Server-side redaction**: `runRedactionTables` Map seeded at dispatch time (org secrets + raw/base64/URL/hex variants, sorted longest-first); `clearRedactionTable` called on terminal result frame
+- **Agent-side redaction**: `runner.ts redactLine` applies `.xci/secrets.yml` values (≥4 chars, longest-first) to each chunk before the `onChunk` callback fires; chunks split to 8KB max via `splitChunk`
+
+### Environment Variables (Phase 11)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOG_RETENTION_INTERVAL_MS` | `86400000` (24h) | How often the log retention cleanup job runs |
+
+### WebSocket Frame Grammar (`/ws/orgs/:orgId/runs/:runId/logs`)
+
+**Client → Server:**
+
+| Frame | Description |
+|-------|-------------|
+| `{type:'subscribe', sinceSeq?: number}` | First and only client frame; `sinceSeq` resumes replay after a reconnect |
+
+**Server → Client:**
+
+| Frame | Description |
+|-------|-------------|
+| `{type:'chunk', seq, stream, data, ts}` | Log chunk (catch-up replay or live) |
+| `{type:'gap', droppedCount}` | Slow subscriber buffer overflow; `droppedCount` chunks were dropped |
+| `{type:'end', state, exitCode}` | Run reached terminal state; socket closed after 5s |
+| `{type:'error', code}` | Auth or validation failure; socket closed |
+
 ## Design References
 
 - `.planning/phases/07-database-schema-auth/07-CONTEXT.md` — 39 locked decisions

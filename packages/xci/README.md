@@ -787,6 +787,14 @@ Server sends `{type:'cancel', run_id, reason}`. Agent:
 3. Waits up to 5 seconds; if still running, sends `SIGKILL`.
 4. On process exit, sends `{type:'result', run_id, exit_code, duration_ms, cancelled:true}`.
 
+#### Agent-side log redaction (Phase 11)
+
+Each chunk of stdout/stderr from the dispatched subprocess is redacted against values from `.xci/secrets.yml` (values with length >= 4 chars, sorted longest-first) before the `log_chunk` frame is sent to the server. Chunks exceeding 8KB in UTF-8 byte length are split into multiple frames with contiguous sequence numbers — no codepoint is split across frames.
+
+The server applies an additional redaction pass against org-level secrets (including raw, base64, URL-encoded, and hex variants) before persisting chunks to Postgres. This gives two independent redaction layers: agent-local and server-side.
+
+**Discipline for `.xci/secrets.yml`:** any value you do not want to appear in server-persisted logs or WS streams should be defined in `.xci/secrets.yml` with a length of at least 4 characters. Values shorter than 4 characters are not redacted (length floor prevents replacing common substrings like `OK` or `no`).
+
 #### SEC-06: Agent-local secrets precedence
 
 The agent loads `.xci/secrets.yml` from its current working directory **on every dispatch** (not cached). This means secrets file changes are picked up without restarting the agent.

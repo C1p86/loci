@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 8: Agent Registration & WebSocket Protocol** - TOFU agent registration, persistent WS with heartbeat/reconnect, agent lifecycle (online/offline/drain/reconcile/shutdown), registration tokens
 - [x] **Phase 9: Task Definitions & Secrets Management** - server-side YAML DSL (shared parser with xci), CRUD API, YAML validation; org-level envelope encryption, secrets CRUD, dispatch-time resolution
 - [x] **Phase 10: Dispatch Pipeline & Quota Enforcement** - label-match dispatcher, in-memory queue with DB reconciliation, TaskRun state machine, timeout/cancel/orphan, per-org quota enforcement
-- [ ] **Phase 11: Log Streaming & Persistence** - agent log_chunk streaming, in-memory RunBuffer, Postgres persistence, UI WebSocket fanout, retention cleanup
+- [x] **Phase 11: Log Streaming & Persistence** - agent log_chunk streaming, in-memory RunBuffer, Postgres persistence, UI WebSocket fanout, retention cleanup
 - [ ] **Phase 12: Plugin System & Webhooks** - TriggerPlugin interface, GitHub + Perforce plugins, Dead Letter Queue, idempotency, DLQ UI
 - [ ] **Phase 13: Web Dashboard SPA** - React 19 + Vite 8 + Tailwind 4 SPA: auth, agents, tasks, log viewer, run history, org settings, plugin settings, build-status badge endpoint
 - [ ] **Phase 14: Docker & Publishing** - multi-stage Docker image, docker-compose dev stack, CI smoke-test, npm publish pipeline, Changesets release flow
@@ -216,7 +216,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 11-01-PLAN.md — log_chunks schema + migration 0004 [BLOCKING] + logChunks repo + adminRepo runRetentionCleanup + isolation test
 - [x] 11-02-PLAN.md — redaction-table + log-batcher + log-fanout services; handleLogChunkFrame rewire (redact/batch/fanout); trigger.ts seeds runRedactionTables
 - [x] 11-03-PLAN.md — WS subscribe endpoint /ws/orgs/:orgId/runs/:runId/logs (sinceSeq catch-up) + GET logs.log download + log-retention service on onReady + integration tests
-- [ ] 11-04-PLAN.md — Agent-side redactLine + 8KB chunk split in runner.ts; E2E test; Phase closeout (READMEs + STATE + REQUIREMENTS traceability + human-verify)
+- [x] 11-04-PLAN.md — Agent-side redactLine + 8KB chunk split in runner.ts; E2E test; Phase closeout (READMEs + STATE + REQUIREMENTS traceability + human-verify)
 
 ### Phase 12: Plugin System & Webhooks
 **Goal**: Incoming GitHub and Perforce webhooks are verified, parsed, and mapped to task runs; unprocessed events land in a Dead Letter Queue visible in the UI with manual retry
@@ -274,7 +274,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 8. Agent Registration & WebSocket Protocol | 5/5 | Complete | 2026-04-18 |
 | 9. Task Definitions & Secrets Management | 6/6 | Complete | 2026-04-19 |
 | 10. Dispatch Pipeline & Quota Enforcement | 6/5 | Complete   | 2026-04-19 |
-| 11. Log Streaming & Persistence | 3/4 | In Progress|  |
+| 11. Log Streaming & Persistence | 4/4 | Complete | 2026-04-19 |
 | 12. Plugin System & Webhooks | 0/? | Not started | - |
 | 13. Web Dashboard SPA | 0/? | Not started | - |
 | 14. Docker & Publishing | 0/? | Not started | - |
