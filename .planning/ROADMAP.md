@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 11: Log Streaming & Persistence** - agent log_chunk streaming, in-memory RunBuffer, Postgres persistence, UI WebSocket fanout, retention cleanup
 - [x] **Phase 12: Plugin System & Webhooks** - TriggerPlugin interface, GitHub + Perforce plugins, Dead Letter Queue, idempotency, DLQ UI
 - [x] **Phase 13: Web Dashboard SPA** - React 19 + Vite 8 + Tailwind 4 SPA: auth, agents, tasks, log viewer, run history, org settings, plugin settings, build-status badge endpoint
-- [ ] **Phase 14: Docker & Publishing** - multi-stage Docker image, docker-compose dev stack, CI smoke-test, npm publish pipeline, Changesets release flow
+- [x] **Phase 14: Docker & Publishing** - multi-stage Docker image, docker-compose dev stack, CI smoke-test, npm publish pipeline, Changesets release flow, release runbook
 
 ## Phase Details
 
@@ -120,12 +120,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. `pnpm turbo run build` completes with all three packages building in correct dependency order (xci first, then @xci/server, then @xci/web)
   5. `xci --version` cold-start is verified under 300ms on Linux CI after the monorepo restructure
 **Plans**: 6 plans
-- [ ] 06-01-PLAN.md — Pre-flight: verify npm scope @xci is available for @xci/server and @xci/web (blocking per D-14)
-- [ ] 06-02-PLAN.md — Monorepo restructure: migrate src/ to packages/xci/, create server+web stubs, split tsconfig, swap root README, update .gitignore
-- [ ] 06-03-PLAN.md — pnpm workspace + Turborepo + Changesets wiring + clean-cut package-lock.json deletion
-- [ ] 06-04-PLAN.md — 3-layer ws-exclusion fence: tsup external (Pitfall 1 fix) + Biome noRestrictedImports override (Pitfall 2 fix, `includes` plural)
-- [ ] 06-05-PLAN.md — CI workflows: rewrite ci.yml with pnpm+turbo+fence-gates (size/grep/hyperfine), create release.yml with changesets/action@v1
-- [ ] 06-06-PLAN.md — End-to-end verification: fresh build + v1 test suite + all 5 ROADMAP success criteria green, human-verify checkpoint before Phase 7
+- [x] 06-01-PLAN.md — Pre-flight: verify npm scope @xci is available for @xci/server and @xci/web (blocking per D-14)
+- [x] 06-02-PLAN.md — Monorepo restructure: migrate src/ to packages/xci/, create server+web stubs, split tsconfig, swap root README, update .gitignore
+- [x] 06-03-PLAN.md — pnpm workspace + Turborepo + Changesets wiring + clean-cut package-lock.json deletion
+- [x] 06-04-PLAN.md — 3-layer ws-exclusion fence: tsup external (Pitfall 1 fix) + Biome noRestrictedImports override (Pitfall 2 fix, `includes` plural)
+- [x] 06-05-PLAN.md — CI workflows: rewrite ci.yml with pnpm+turbo+fence-gates (size/grep/hyperfine), create release.yml with changesets/action@v1
+- [x] 06-06-PLAN.md — End-to-end verification: fresh build + v1 test suite + all 5 ROADMAP success criteria green, human-verify checkpoint before Phase 7
 
 ### Phase 7: Database Schema & Auth
 **Goal**: Users can sign up, log in, and belong to an org; the full multi-tenant isolation layer is in place with a two-org test fixture that catches any missing `org_id` filter
@@ -146,7 +146,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 07-06-PLAN.md — Auth HTTP routes: signup + verify-email + login (xci_sid httpOnly+secure+sameSite=strict) + logout (CSRF-protected, AUTH-12) + request-reset + reset (AUTH-04 single-use 1h) + csrf token
 - [x] 07-07-PLAN.md — Org & invite routes: create/list/revoke invite (owner-only, 7d expiry), role change (owner-immutable), invite acceptance with email-pinning D-15
 - [x] 07-08-PLAN.md — CI integration-tests Linux-only job (needs build-test-lint) + branch-protection checkpoint
-- [ ] 07-09-PLAN.md — Phase closeout: packages/server/README.md + STATE.md update + traceability matrix (15 reqs → tests) + human-verify checkpoint on green CI
+- [x] 07-09-PLAN.md — Phase closeout: packages/server/README.md + STATE.md update + traceability matrix (15 reqs → tests) + human-verify checkpoint on green CI
 **UI hint**: yes
 
 ### Phase 8: Agent Registration & WebSocket Protocol
@@ -268,7 +268,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 14-01-PLAN.md — Dockerfile + .dockerignore + @fastify/static + programmatic migrator at boot
 - [x] 14-02-PLAN.md — docker-compose.yml + .env.example + packages/server/README Docker section
 - [x] 14-03-PLAN.md — scripts/smoke.mjs + .github/workflows/docker.yml + release.yml pre-publish validation
-- [ ] 14-04-PLAN.md — Release runbook + root README v2.0 + CHANGELOG + milestone closeout
+- [x] 14-04-PLAN.md — Release runbook + root README v2.0 + CHANGELOG + milestone closeout
 
 ## Progress
 
@@ -285,12 +285,14 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 3. Commands & Resolver | 2/2 | Complete | 2026-04-14 |
 | 4. Executor & CLI | 2/2 | Complete | 2026-04-14 |
 | 5. Init & Distribution | 3/3 | Complete | 2026-04-15 |
-| 6. Monorepo Setup & Backward-Compat Fence | 0/? | Not started | - |
+| 6. Monorepo Setup & Backward-Compat Fence | 6/6 | Complete | 2026-04-16 |
 | 7. Database Schema & Auth | 9/9 | Complete | 2026-04-18 |
 | 8. Agent Registration & WebSocket Protocol | 5/5 | Complete | 2026-04-18 |
 | 9. Task Definitions & Secrets Management | 6/6 | Complete | 2026-04-19 |
-| 10. Dispatch Pipeline & Quota Enforcement | 6/5 | Complete   | 2026-04-19 |
+| 10. Dispatch Pipeline & Quota Enforcement | 5/5 | Complete | 2026-04-19 |
 | 11. Log Streaming & Persistence | 4/4 | Complete | 2026-04-19 |
 | 12. Plugin System & Webhooks | 5/5 | Complete | 2026-04-19 |
 | 13. Web Dashboard SPA | 6/6 | Complete | 2026-04-19 |
-| 14. Docker & Publishing | 3/4 | In Progress|  |
+| 14. Docker & Publishing | 4/4 | Complete | 2026-04-19 |
+
+**v2.0 milestone: [██████████] 100% complete (9 phases, 68 plans, 99/99 requirements)**

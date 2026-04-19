@@ -14,9 +14,9 @@
 
 ### Packaging & Distribution (PKG)
 
-- [ ] **PKG-01**: Monorepo con pnpm workspaces; 3 package npm pubblicati: `xci`, `@xci/server`, `@xci/web`.
-- [ ] **PKG-02**: Build orchestrato da Turborepo (pipeline caching locale e CI).
-- [ ] **PKG-03**: Versioning coordinato via `@changesets/cli` per release dei 3 package.
+- [x] **PKG-01**: Monorepo con pnpm workspaces; 3 package npm pubblicati: `xci`, `@xci/server`, `@xci/web`.
+- [x] **PKG-02**: Build orchestrato da Turborepo (pipeline caching locale e CI).
+- [x] **PKG-03**: Versioning coordinato via `@changesets/cli` per release dei 3 package.
 - [x] **PKG-04**: Docker image `xci/server` pubblicata, basata su `node:22-slim` (non Alpine), multi-stage build.
 - [x] **PKG-05**: Docker image include `@xci/server` + build statico di `@xci/web` servito da `@fastify/static`.
 - [x] **PKG-06**: Docker image gira come utente non-root, ha healthcheck HTTP, gestisce SIGTERM/SIGINT come PID 1.
@@ -142,6 +142,10 @@
 - [x] **BADGE-02**: `Cache-Control: public, max-age=30` sulla risposta.
 - [x] **BADGE-03**: Task non esistente o org privata: badge "unknown" (200 con SVG grigio), no 404.
 - [x] **BADGE-04**: Toggle per-task "Expose badge" (default: off) — solo task con toggle ON sono raggiungibili via endpoint pubblico.
+
+---
+
+**v2.0 coverage:** 99 requirements → 99 mapped → **99 Complete. No orphans. Milestone CLOSED 2026-04-19.**
 
 ---
 

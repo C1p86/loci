@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: — Local CLI
-status: Ready to execute
-stopped_at: Completed 14-03-PLAN.md
-last_updated: "2026-04-19T20:06:16.285Z"
+milestone: v2.0
+milestone_name: — Remote CI (Agents + Web Dashboard)
+status: "Phase 14 complete — milestone v2.0 shipped"
+stopped_at: "Completed Phase 14 — Docker image + compose + CI release pipeline + runbook + root README for v2.0"
+last_updated: "2026-04-19T21:00:00.000Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 14
-  completed_phases: 13
-  total_plans: 63
-  completed_plans: 64
+  completed_phases: 14
+  total_plans: 68
+  completed_plans: 68
   percent: 100
 ---
 
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Phase 14 — Docker & Publishing
+**Current focus:** v2.0 MILESTONE COMPLETE — ready for release (see .github/RUNBOOK-RELEASE.md)
 
 ## Current Position
 
-Phase: 14 (Docker & Publishing) — EXECUTING
+Phase: 14 (Docker & Publishing) — COMPLETE
 Plan: 4 of 4
-Next: Phase 14 — Docker & Publishing
+Next: v2.1 planning (post-v2.0 triage of Deferred/Future requirements — FUT-01..10)
 Last activity: 2026-04-19
 
-Progress (Phase 13): [██████████] 100% (6/6 plans)
-Progress (v2.0 milestone): [█████████░] 93% (13/14 phases complete: 06, 07, 08, 09, 10, 11, 12, 13)
+Progress (Phase 14): [██████████] 100% (4/4 plans)
+Progress (v2.0 milestone): [██████████] 100% (14/14 phases complete: 01-05 (v1.0), 06, 07, 08, 09, 10, 11, 12, 13, 14)
 
 ## Performance Metrics
 
@@ -340,6 +340,17 @@ Recent decisions affecting current work:
 - [Phase 14-docker-publishing]: docker compose config validation deferred to CI — docker not available in WSL dev environment; YAML syntax verified against Compose spec manually
 - [Phase 14-docker-publishing]: docker.yml uses single job (no cross-job artifact transfer) — simpler and avoids image upload/download overhead
 - [Phase 14-docker-publishing]: release.yml dry-run publish uses --no-git-checks (tree is clean but untagged during Version PR flight path)
+- [Phase 14-01]: runMigrations() called in server.ts BEFORE argon2SelfTest + app.listen() — PKG-07 in-action; drizzle-kit devDep only
+- [Phase 14-01]: @fastify/static conditional on WEB_STATIC_ROOT env; setNotFoundHandler SPA fallback guards /api/*, /ws/*, /hooks/*, /badge/* precedence
+- [Phase 14-01]: Dockerfile HEALTHCHECK curls /api/healthz (NOT /healthz — healthz lives under /api prefix per routes/index.ts)
+- [Phase 14-01]: pnpm deploy --prod --legacy /deploy produces pruned node_modules — drizzle-kit absent; image <400MB; UID 10001:10001
+- [Phase 14-02]: docker-compose.yml uses depends_on.condition:service_healthy for postgres gate; mailhog SMTP at 1025, UI at 8025
+- [Phase 14-02]: .env.example documents 5 required vars + SMTP + optional WEB_STATIC_ROOT; XCI_MASTER_KEY placeholder is the 44-char all-A pattern (valid regex, dev-only)
+- [Phase 14-03]: scripts/smoke.mjs is zero-npm-dep Node 22 ESM script; 13 steps; MailHog API extracts verify-email token; queued-state assertion (agent round-trip covered by Phase 10 E2E)
+- [Phase 14-03]: docker.yml tag-triggered (v*.*.*); build → smoke → Trivy (HIGH/CRITICAL block, ignore-unfixed) → push ghcr.io; pre-release tags push versioned only
+- [Phase 14-03]: release.yml extended with typecheck + lint + build + test + pnpm publish --dry-run before changesets/action (D-19/D-38)
+- [Phase 14-04]: First release is rc.1 dry-run per D-22; runbook documents rc flow + subsequent release + break-glass
+- [Phase 14]: Milestone v2.0 COMPLETE — all 99 requirements traced green; BC-01..04 preserved (v1 CLI observable identical)
 
 ### Pending Todos
 
