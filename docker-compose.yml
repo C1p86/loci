@@ -1,0 +1,70 @@
+# Local dev stack. NOT suitable for production.
+# Prod deployments should use orchestrator of choice (k8s/ECS/etc.) with
+# the published ghcr.io/xci/server image + external managed Postgres + real SMTP.
+#
+# Quick start:
+#   cp .env.example .env          # copy dev defaults; never commit .env
+#   docker compose up -d --build  # builds Dockerfile, starts postgres + mailhog + server
+#   docker compose logs -f server # follow server logs
+#
+# The stack is up when `docker compose ps` shows server status "healthy".
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-xci}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-xci_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-xci}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-xci}", "-d", "${POSTGRES_DB:-xci}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP ingress
+      - "8025:8025"   # Web UI — open http://localhost:8025 to inspect emails
+
+  server:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      # These override anything in .env — fixed by the compose network topology.
+      # DATABASE_URL points at the compose-internal "postgres" hostname, not localhost.
+      DATABASE_URL: postgres://${POSTGRES_USER:-xci}:${POSTGRES_PASSWORD:-xci_dev_password}@postgres:5432/${POSTGRES_DB:-xci}
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      EMAIL_TRANSPORT: smtp
+      SMTP_FROM: xci-dev@localhost
+      # NODE_ENV=production is baked into the image; override to development for pino-pretty logs
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  pgdata:

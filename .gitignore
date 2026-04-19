@@ -15,3 +15,6 @@ dist/
 packages/*/dist/
 packages/*/.turbo/
 packages/*/coverage/
+
+# Phase 14 — never commit the local secrets file (copy of .env.example)
+.env
