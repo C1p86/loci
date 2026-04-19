@@ -1,8 +1,16 @@
 import { buildApp } from './app.js';
 import { argon2SelfTest } from './crypto/password.js';
+import { runMigrations } from './db/migrator.js';
 
 async function main(): Promise<void> {
   const app = await buildApp();
+
+  // PKG-07: apply Drizzle migrations at boot using the programmatic migrator.
+  // drizzle-kit is a devDependency and is NOT present in the production image (D-02).
+  // DATABASE_URL is validated by @fastify/env before we get here.
+  app.log.info('running database migrations');
+  await runMigrations(app.config.DATABASE_URL);
+  app.log.info('migrations complete');
 
   // Pitfall 3: warm up argon2 + time the first hash to catch weak/strong param drift
   await argon2SelfTest(app.log);

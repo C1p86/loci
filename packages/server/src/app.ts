@@ -193,6 +193,33 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
   const { registerBadgeRoutes } = await import('./routes/badge/index.js');
   await app.register(registerBadgeRoutes);
 
+  // Phase 14 D-04 / PKG-05: serve @xci/web static bundle when WEB_STATIC_ROOT is configured.
+  // Registered LAST so /api/*, /ws/*, /hooks/*, /badge/* all take precedence.
+  // wildcard:false means static plugin does NOT catch unknown paths; we add an explicit
+  // SPA fallback via setNotFoundHandler constrained to GET + non-API prefixes.
+  if (app.config.WEB_STATIC_ROOT) {
+    const { default: fastifyStatic } = await import('@fastify/static');
+    await app.register(fastifyStatic, {
+      root: app.config.WEB_STATIC_ROOT,
+      prefix: '/',
+      wildcard: false,
+      decorateReply: false,
+    });
+    // SPA fallback: any GET request that did not match a route and does not start with
+    // /api, /ws, /hooks, /badge should serve index.html so client-side routing works.
+    app.setNotFoundHandler((req, reply) => {
+      const url = req.raw.url ?? '/';
+      const isApi = url.startsWith('/api/') || url.startsWith('/api?') || url === '/api';
+      const isWs = url.startsWith('/ws/');
+      const isHooks = url.startsWith('/hooks/');
+      const isBadge = url.startsWith('/badge/');
+      if (req.method !== 'GET' || isApi || isWs || isHooks || isBadge) {
+        return reply.code(404).send({ error: 'NotFound' });
+      }
+      return reply.type('text/html').sendFile('index.html');
+    });
+  }
+
   return app;
 }
 

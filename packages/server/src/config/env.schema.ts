@@ -49,6 +49,9 @@ export const envSchema = {
       type: 'number',
       default: 86400000,
     },
+    // Phase 14 D-05: optional path to @xci/web dist bundle; enables @fastify/static when set.
+    // When unset (default), static serving is disabled — server acts as pure API.
+    WEB_STATIC_ROOT: { type: 'string' },
   },
   additionalProperties: false,
 } as const;
@@ -74,6 +77,8 @@ declare module 'fastify' {
       PLATFORM_ADMIN_EMAIL: string;
       // Phase 11 D-17
       LOG_RETENTION_INTERVAL_MS: number;
+      // Phase 14 D-05: optional static root for @fastify/static (set in Docker image)
+      WEB_STATIC_ROOT?: string;
     };
   }
 }
