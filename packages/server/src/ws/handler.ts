@@ -11,12 +11,14 @@
 //   4006 quota_exceeded   — org has reached max_agents limit (QUOTA-03)
 
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { sql } from 'drizzle-orm';
 import type { WebSocket } from 'ws';
 import { makeRepos } from '../repos/index.js';
+import { cancelRunTimer } from '../services/timeout-manager.js';
 import { parseAgentFrame } from './frames.js';
 import { startHeartbeat, stopHeartbeat } from './heartbeat.js';
 import type { AgentConnection } from './registry.js';
-import type { ServerOutgoingFrame } from './types.js';
+import type { AgentIncomingFrame, ServerOutgoingFrame } from './types.js';
 
 const HANDSHAKE_TIMEOUT_MS = 5_000;
 
@@ -68,8 +70,11 @@ export function handleAgentConnection(
       return;
     }
 
-    // Authenticated frames: update last_seen_at on every message (D-16)
-    if (conn) {
+    // Authenticated frames: update last_seen_at on every message EXCEPT log_chunk.
+    // Pitfall 7 (RESEARCH): log_chunk frames arrive thousands/sec during verbose tasks.
+    // Skipping recordHeartbeat on log_chunk prevents DB thrash. Pong frames still update
+    // last_seen_at via the heartbeat module, so agent-online detection is unaffected.
+    if (conn && frame.type !== 'log_chunk') {
       try {
         const repos = makeRepos(fastify.db, fastify.mek);
         await repos.forOrg(conn.orgId).agents.recordHeartbeat(conn.agentId);
@@ -84,7 +89,20 @@ export function handleAgentConnection(
       socket.close(1000, 'normal');
       return;
     }
-    // dispatch/cancel/result/log_chunk frames — reserved for Phase 10/11; not handled here
+
+    // Phase 10: authenticated run-keyed frame routing
+    if (frame.type === 'state' && conn) {
+      await handleStateAck(fastify, socket, conn, frame);
+      return;
+    }
+    if (frame.type === 'result' && conn) {
+      await handleResultFrame(fastify, socket, conn, frame);
+      return;
+    }
+    if (frame.type === 'log_chunk' && conn) {
+      await handleLogChunkFrame(fastify, socket, conn, frame);
+      return;
+    }
   });
 
   socket.on('close', async () => {
@@ -195,7 +213,7 @@ async function handleHandshake(
     if (prior) prior.close(4004, 'superseded');
     fastify.agentRegistry.set(agentId, socket);
 
-    // D-18: reconciliation stub — empty array (Phase 10 populates with real run data)
+    // D-18: reconciliation stub — empty array (Phase 10-03 populates with real run data)
     send(socket, { type: 'reconnect_ack', reconciliation: [] });
 
     // Mark online + update last_seen_at (D-12 + AGENT-05)
@@ -222,6 +240,137 @@ async function handleHandshake(
   });
   socket.close(4002, 'frame_invalid');
   return null;
+}
+
+// ---- Phase 10: authenticated run-keyed frame handlers ----
+
+/**
+ * Cross-tenant frame spoofing guard (T-10-02-01 / RESEARCH Pitfall 5).
+ * Verifies the run_id belongs to the authenticated agent's org BEFORE any DB mutation.
+ * Returns true if guard passes; returns false and sends error frame if mismatch.
+ */
+async function verifyRunOwnership(
+  fastify: FastifyInstance,
+  socket: WebSocket,
+  conn: AgentConnection,
+  runId: string,
+): Promise<boolean> {
+  const repos = makeRepos(fastify.db, fastify.mek);
+  const belongs = await repos.forOrg(conn.orgId).taskRuns.verifyBelongsToOrg(runId);
+  if (!belongs) {
+    send(socket, {
+      type: 'error',
+      code: 'AUTHZ_RUN_CROSS_ORG',
+      message: 'run not found or belongs to another org',
+      close: false,
+    });
+    fastify.log.warn(
+      { agentId: conn.agentId, runId, orgId: conn.orgId },
+      'frame spoofing attempt: run_id does not belong to agent org',
+    );
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Handle incoming `state` frame (agent → server transition ack).
+ * CAS transition: dispatched → running, sets started_at = now().
+ * Guards against cross-tenant spoofing via verifyRunOwnership.
+ */
+async function handleStateAck(
+  fastify: FastifyInstance,
+  socket: WebSocket,
+  conn: AgentConnection,
+  frame: Extract<AgentIncomingFrame, { type: 'state' }>,
+): Promise<void> {
+  if (!(await verifyRunOwnership(fastify, socket, conn, frame.run_id))) return;
+
+  const repos = makeRepos(fastify.db, fastify.mek);
+  const updated = await repos.forOrg(conn.orgId).taskRuns.updateState(
+    frame.run_id,
+    'dispatched',
+    'running',
+    { startedAt: sql`now()` as unknown as Date },
+  );
+  if (!updated) {
+    fastify.log.debug(
+      { runId: frame.run_id, agentId: conn.agentId },
+      'state ack for non-dispatched run — CAS miss (possibly already running or terminal)',
+    );
+  }
+}
+
+/**
+ * Handle incoming `result` frame (agent → server execution result).
+ * Steps:
+ *   1. Cancel server-side run timer FIRST (Pitfall 1 — always before DB write).
+ *   2. Cross-tenant guard via verifyRunOwnership.
+ *   3. CAS transition: (dispatched|running) → (succeeded|failed|cancelled) based on exit_code.
+ *   4. If CAS misses (already terminal), log at debug level and ignore silently.
+ */
+async function handleResultFrame(
+  fastify: FastifyInstance,
+  socket: WebSocket,
+  conn: AgentConnection,
+  frame: Extract<AgentIncomingFrame, { type: 'result' }>,
+): Promise<void> {
+  // Step 1: cancel run timer BEFORE DB write (RESEARCH Pitfall 1 discipline).
+  // This is a no-op stub in Plan 10-02; Plan 10-03 replaces with real timer management.
+  cancelRunTimer(frame.run_id);
+
+  if (!(await verifyRunOwnership(fastify, socket, conn, frame.run_id))) return;
+
+  // Determine target state: cancelled takes priority over exit_code comparison
+  // (agent sends cancelled:true when responding to a cancel/timeout frame).
+  const targetState = frame.cancelled
+    ? ('cancelled' as const)
+    : frame.exit_code === 0
+      ? ('succeeded' as const)
+      : ('failed' as const);
+
+  const repos = makeRepos(fastify.db, fastify.mek);
+  const updated = await repos.forOrg(conn.orgId).taskRuns.updateStateMulti(
+    frame.run_id,
+    ['running', 'dispatched'],
+    targetState,
+    {
+      exitCode: frame.exit_code,
+      finishedAt: sql`now()` as unknown as Date,
+    },
+  );
+
+  if (!updated) {
+    // CAS loser — run already in a terminal state (e.g. timed_out arrived first).
+    // This is expected when server sends cancel + agent responds with result after server
+    // already marked timed_out. Silent debug log only — no error frame back to agent.
+    fastify.log.debug(
+      { runId: frame.run_id, agentId: conn.agentId },
+      'result frame for already-terminal run — CAS miss, ignored',
+    );
+  }
+}
+
+/**
+ * Handle incoming `log_chunk` frame (agent → server streaming).
+ * Phase 10: SERVER DISCARDS payload (Phase 11 adds storage).
+ * Still applies verifyRunOwnership guard — accepting log_chunk for wrong-org run
+ * would allow probing run_id existence across tenants (T-10-02-01).
+ */
+async function handleLogChunkFrame(
+  fastify: FastifyInstance,
+  socket: WebSocket,
+  conn: AgentConnection,
+  frame: Extract<AgentIncomingFrame, { type: 'log_chunk' }>,
+): Promise<void> {
+  if (!(await verifyRunOwnership(fastify, socket, conn, frame.run_id))) return;
+
+  // Phase 10: discard payload. Phase 11 wires storage here.
+  // Trace log for debugging; never log frame.data (may contain secrets — D-10).
+  fastify.log.trace(
+    { runId: frame.run_id, seq: frame.seq, stream: frame.stream, agentId: conn.agentId },
+    'log_chunk discarded (Phase 11 will store)',
+  );
 }
 
 /**
