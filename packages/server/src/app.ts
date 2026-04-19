@@ -53,6 +53,12 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
           '*.ciphertext',
           '*.dek',
           '*.mek',
+          // Phase 10 Plan 04 T-10-04-02: param_overrides may contain plaintext secrets
+          'req.body.param_overrides',
+          'req.body.param_overrides.*',
+          '*.taskSnapshot.params',
+          '*.params',
+          '*.paramOverrides',
         ],
         censor: '[REDACTED]',
       },
