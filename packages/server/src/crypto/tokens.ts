@@ -30,7 +30,10 @@ export function generateId(
     | 'sec'
     | 'sal'
     | 'run'
-    | 'lch',
+    | 'lch'
+    | 'whk'
+    | 'whd'
+    | 'dlq',
 ): string {
   return `xci_${prefix}_${randomBytes(15).toString('base64url')}`;
 }

@@ -468,6 +468,58 @@ export class LogSubscriptionUnauthorizedError extends AuthzError {
   }
 }
 
+/* ---------- Concrete subclasses (Phase 12 webhooks) ---------- */
+
+export class WebhookSignatureInvalidError extends AuthnError {
+  constructor() {
+    // Zero-arg: never include signature bytes or token plaintext (T-12-01-05 / D-10 discipline).
+    super('Webhook signature is invalid or missing', {
+      code: 'AUTHN_WEBHOOK_SIGNATURE_INVALID',
+      suggestion: 'Verify the webhook secret matches the one configured in your repository',
+    });
+  }
+}
+
+export class WebhookTokenNotFoundError extends NotFoundError {
+  constructor() {
+    super('Webhook token not found or revoked', { code: 'NF_WEBHOOK_TOKEN' });
+  }
+}
+
+export class WebhookPluginNotFoundError extends NotFoundError {
+  constructor() {
+    super('Webhook plugin not found', {
+      code: 'NF_WEBHOOK_PLUGIN',
+      suggestion: 'Supported plugins: github, perforce',
+    });
+  }
+}
+
+/**
+ * D-23: Duplicate delivery — NOT a true error (returns 200 to sender).
+ * Thrown by the webhook handler to signal the dedup path; route handler maps to 200 + JSON body.
+ */
+export class WebhookDuplicateDeliveryError extends ConflictError {
+  public readonly deliveryId: string;
+  constructor(deliveryId: string) {
+    // deliveryId is a UUID/opaque string from the sender — not a secret, safe to include.
+    super(`Duplicate delivery: ${deliveryId}`, { code: 'CONFLICT_WEBHOOK_DUPLICATE_DELIVERY' });
+    this.deliveryId = deliveryId;
+  }
+}
+
+export class DlqEntryNotFoundError extends NotFoundError {
+  constructor() {
+    super('DLQ entry not found', { code: 'NF_DLQ_ENTRY' });
+  }
+}
+
+export class DlqRetryFailedError extends InternalError {
+  constructor(message: string, cause?: unknown) {
+    super(message, { code: 'INT_DLQ_RETRY_FAILED', cause });
+  }
+}
+
 /* ---------- Category → HTTP status exhaustive mapping ---------- */
 
 /**

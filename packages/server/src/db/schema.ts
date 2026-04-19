@@ -1,7 +1,7 @@
 // packages/server/src/db/schema.ts
 // Source: https://orm.drizzle.team/docs/sql-schema-declaration
 
-import { sql } from 'drizzle-orm';
+import { desc, sql } from 'drizzle-orm';
 import {
   boolean,
   customType,
@@ -273,6 +273,25 @@ export const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   },
 });
 
+// Phase 12 D-10/D-15: Trigger config union — stored as JSONB in tasks.trigger_configs.
+// Each element has a `plugin` discriminator plus plugin-specific fields.
+export interface GitHubTriggerConfig {
+  plugin: 'github';
+  events: Array<'push' | 'pull_request'>;
+  repository?: string; // glob, e.g. 'acme/*' or 'acme/infra'
+  branch?: string; // glob, e.g. 'main', 'release/*'
+  actions?: Array<'opened' | 'synchronize' | 'closed' | 'reopened'>; // PR only
+}
+
+export interface PerforceTriggerConfig {
+  plugin: 'perforce';
+  depot?: string; // glob, e.g. '//depot/infra/...'
+  user?: string; // glob
+  client?: string; // glob
+}
+
+export type TriggerConfig = GitHubTriggerConfig | PerforceTriggerConfig;
+
 // Phase 9 D-07: Task definitions (org-scoped; yaml_definition kept as text per D-09).
 export const tasks = pgTable(
   'tasks',
@@ -285,6 +304,8 @@ export const tasks = pgTable(
     description: text('description').notNull().default(''),
     yamlDefinition: text('yaml_definition').notNull(),
     labelRequirements: jsonb('label_requirements').$type<string[]>().notNull().default([]),
+    // Phase 12 D-16: explicit trigger configs; default '[]' (no triggers = manual-only).
+    triggerConfigs: jsonb('trigger_configs').$type<TriggerConfig[]>().notNull().default([]),
     defaultTimeoutSeconds: integer('default_timeout_seconds'),
     createdByUserId: text('created_by_user_id').references(() => users.id, {
       onDelete: 'set null',
@@ -449,3 +470,115 @@ export const logChunks = pgTable(
 
 export type LogChunk = typeof logChunks.$inferSelect;
 export type NewLogChunk = typeof logChunks.$inferInsert;
+
+// Phase 12 D-28: webhook_tokens — per-org token for authenticating inbound webhook senders.
+// token_hash stores sha256 hex of the plaintext; plaintext never persisted.
+// plugin_secret_encrypted/iv/tag: AES-256-GCM encrypted GitHub webhook secret (NULL for Perforce).
+export const webhookTokens = pgTable(
+  'webhook_tokens',
+  {
+    id: text('id').primaryKey(), // xci_whk_<rand>
+    orgId: text('org_id')
+      .notNull()
+      .references(() => orgs.id, { onDelete: 'cascade' }),
+    pluginName: text('plugin_name', { enum: ['github', 'perforce'] }).notNull(),
+    tokenHash: text('token_hash').notNull(), // sha256 hex of plaintext
+    pluginSecretEncrypted: bytea('plugin_secret_encrypted'), // nullable — NULL for Perforce
+    pluginSecretIv: bytea('plugin_secret_iv'),
+    pluginSecretTag: bytea('plugin_secret_tag'),
+    createdByUserId: text('created_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (t) => [
+    // Active-token unique index: prevents two active tokens with the same hash (D-28).
+    uniqueIndex('webhook_tokens_hash_active').on(t.tokenHash).where(sql`revoked_at IS NULL`),
+    index('webhook_tokens_org_plugin_idx').on(t.orgId, t.pluginName),
+  ],
+);
+
+export type WebhookToken = typeof webhookTokens.$inferSelect;
+export type NewWebhookToken = typeof webhookTokens.$inferInsert;
+
+// Phase 12 D-22: webhook_deliveries — idempotency table.
+// Unique index on (plugin_name, delivery_id) enforces dedup at DB level per D-22.
+// GitHub delivery IDs are globally unique UUIDs; Perforce generates them per request.
+export const webhookDeliveries = pgTable(
+  'webhook_deliveries',
+  {
+    id: text('id').primaryKey(), // xci_whd_<rand>
+    orgId: text('org_id')
+      .notNull()
+      .references(() => orgs.id, { onDelete: 'cascade' }),
+    pluginName: text('plugin_name', { enum: ['github', 'perforce'] }).notNull(),
+    deliveryId: text('delivery_id').notNull(),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // D-22: unique on (plugin_name, delivery_id) — INSERT conflict = duplicate delivery.
+    uniqueIndex('webhook_deliveries_plugin_delivery_unique').on(t.pluginName, t.deliveryId),
+    // Cleanup job helper: scan by receivedAt for 90-day retention.
+    index('webhook_deliveries_received_idx').on(t.receivedAt),
+  ],
+);
+
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+export type NewWebhookDelivery = typeof webhookDeliveries.$inferInsert;
+
+// Phase 12 D-19: dlq_entries — dead-letter queue for failed webhook deliveries.
+// scrubbed_body/scrubbed_headers: caller pre-strips sensitive headers before insert (PLUG-08).
+export type DlqFailureReason =
+  | 'signature_invalid'
+  | 'parse_failed'
+  | 'no_task_matched'
+  | 'task_validation_failed'
+  | 'internal';
+
+export type DlqRetryResult = 'succeeded' | 'failed_same_reason' | 'failed_new_reason';
+
+export const dlqEntries = pgTable(
+  'dlq_entries',
+  {
+    id: text('id').primaryKey(), // xci_dlq_<rand>
+    orgId: text('org_id')
+      .notNull()
+      .references(() => orgs.id, { onDelete: 'cascade' }),
+    pluginName: text('plugin_name', { enum: ['github', 'perforce'] }).notNull(),
+    deliveryId: text('delivery_id'), // nullable — null if parse failed before ID extraction
+    failureReason: text('failure_reason', {
+      enum: [
+        'signature_invalid',
+        'parse_failed',
+        'no_task_matched',
+        'task_validation_failed',
+        'internal',
+      ],
+    })
+      .notNull()
+      .$type<DlqFailureReason>(),
+    scrubbedBody: jsonb('scrubbed_body').notNull(), // request body; caller pre-scrubs
+    scrubbedHeaders: jsonb('scrubbed_headers').notNull(), // headers minus sensitive keys
+    httpStatus: integer('http_status'), // nullable — status returned to sender
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+    retriedAt: timestamp('retried_at', { withTimezone: true }),
+    retryResult: text('retry_result', {
+      enum: ['succeeded', 'failed_same_reason', 'failed_new_reason'],
+    }).$type<DlqRetryResult>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // D-21: list endpoint ordered by (org_id, received_at DESC).
+    index('dlq_entries_org_received_idx').on(t.orgId, desc(t.receivedAt)),
+    // D-19: replay-dedup lookup by (plugin_name, delivery_id) WHERE delivery_id IS NOT NULL.
+    index('dlq_entries_plugin_delivery_idx')
+      .on(t.pluginName, t.deliveryId)
+      .where(sql`delivery_id IS NOT NULL`),
+  ],
+);
+
+export type DlqEntry = typeof dlqEntries.$inferSelect;
+export type NewDlqEntry = typeof dlqEntries.$inferInsert;
