@@ -77,4 +77,15 @@ export interface Usage {
   concurrent: { current: number; max: number };
   retentionDays: number;
 }
+export interface LogChunk {
+  seq: number;
+  stream: 'stdout' | 'stderr';
+  ts: string; // ISO
+  data: string;
+}
+
+export interface LogGap {
+  fromSeq: number;
+  toSeq: number;
+}
 // Extend as views land in 13-03/04/05
