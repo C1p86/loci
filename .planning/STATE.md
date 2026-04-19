@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: Ready to execute
-stopped_at: Completed 12-plugin-system-webhooks-03-PLAN.md
-last_updated: "2026-04-19T15:56:35.829Z"
+stopped_at: Completed 12-plugin-system-webhooks 12-04-PLAN.md
+last_updated: "2026-04-19T16:15:00.868Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 12
   completed_phases: 11
   total_plans: 53
-  completed_plans: 52
-  percent: 98
+  completed_plans: 53
+  percent: 100
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 12 (Plugin System & Webhooks) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Next: Phase 12 — Plugin System & Webhooks
 Last activity: 2026-04-19
 
@@ -117,6 +117,7 @@ Progress (v2.0 milestone): [██████░░░░] 79% (6/9 phases comp
 | Phase 12-plugin-system-webhooks P01 | 15 | 3 tasks | 15 files |
 | Phase 12-plugin-system-webhooks P02 | 9 | 3 tasks | 10 files |
 | Phase 12-plugin-system-webhooks P03 | 35 | 3 tasks | 8 files |
+| Phase 12-plugin-system-webhooks P04 | 922 | 2 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -289,6 +290,8 @@ Recent decisions affecting current work:
 - [Phase 12-plugin-system-webhooks]: rawBody captured inside encapsulated registerHookRoutes scope — HMAC verify works for /hooks, /api routes unaffected
 - [Phase 12-plugin-system-webhooks]: DLQ writes are best-effort (writeDlq catches insert errors) — DLQ failure must not convert a 401 into a 500
 - [Phase 12-plugin-system-webhooks]: triggerSource='webhook' added to task-runs create(); default 'manual' preserves backward compat
+- [Phase 12-plugin-system-webhooks]: list.ts uses sql<boolean> IS NOT NULL projection for hasPluginSecret — avoids DEK decryption in list path
+- [Phase 12-plugin-system-webhooks]: DLQ retry skips verify (D-20); WARN log 'dlq_retry_skipping_signature_verify' on every invocation
 
 ### Pending Todos
 
@@ -323,7 +326,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-19T15:56:35.784Z
-Stopped at: Completed 12-plugin-system-webhooks-03-PLAN.md
+Last session: 2026-04-19T16:15:00.822Z
+Stopped at: Completed 12-plugin-system-webhooks 12-04-PLAN.md
 Phase 11 closed: all 4 plans complete, 8 requirement IDs traced (LOG-01..08), 5/5 SC covered, integration tests written (Docker-deferred for 11-03 routes; E2E test Linux+Docker gated for 11-04)
 Resume: Phase 12 — Plugin System & Webhooks (needs Phase 10 complete — SATISFIED)
