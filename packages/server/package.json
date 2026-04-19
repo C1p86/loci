@@ -23,7 +23,8 @@
     "test": "pnpm test:unit",
     "test:watch": "vitest --config vitest.unit.config.ts",
     "typecheck": "tsc -b --noEmit",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "smoke-test": "node ../../scripts/smoke.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "11.0.2",
