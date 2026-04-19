@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: Ready to execute
-stopped_at: Completed 10-dispatch-pipeline-quota-enforcement/10-03-PLAN.md
-last_updated: "2026-04-19T13:00:34.835Z"
+stopped_at: Completed 10-dispatch-pipeline-quota-enforcement/10-04-PLAN.md
+last_updated: "2026-04-19T13:16:08.350Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 44
-  completed_plans: 42
-  percent: 95
+  completed_plans: 43
+  percent: 98
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 10 (Dispatch Pipeline & Quota Enforcement) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Next: Phase 10 (Dispatch Pipeline & Quota Enforcement) — pending planning
 Last activity: 2026-04-19
 
@@ -107,6 +107,7 @@ Progress (v2.0 milestone): [████░░░░░░] 44% (4/9 phases comp
 | Phase 10-dispatch-pipeline-quota-enforcement P01 | 35 | 3 tasks | 12 files |
 | Phase 10-dispatch-pipeline-quota-enforcement P02 | 866s | 3 tasks | 7 files |
 | Phase 10-dispatch-pipeline-quota-enforcement P03 | 90 | 3 tasks | 12 files |
+| Phase 10-dispatch-pipeline-quota-enforcement P04 | 738 | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -246,6 +247,8 @@ Recent decisions affecting current work:
 - [Phase 10-dispatch-pipeline-quota-enforcement]: Store orgId in timer Map entry so handleRunTimeout calls forOrg() without cross-org SELECT
 - [Phase 10-dispatch-pipeline-quota-enforcement]: DispatchQueue.getEntries() returns immutable snapshot to prevent FIFO corruption during mid-loop dequeue
 - [Phase 10-dispatch-pipeline-quota-enforcement]: reconciler uses run.taskSnapshot (not fresh task.getById) for D-01 reproducibility; paramOverrides used as params pending Plan 10-05 dispatch-resolver wiring
+- [Phase 10-dispatch-pipeline-quota-enforcement]: Resolve params at trigger time (not dispatch tick): snapshot stores resolved YAML, secrets captured at trigger time for reproducibility
+- [Phase 10-dispatch-pipeline-quota-enforcement]: Cancel for dispatched/running: annotate cancelled_by_user_id + 30s fallback timer (not immediate CAS) per D-25; queued cancel is immediate
 
 ### Pending Todos
 
@@ -276,7 +279,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-19T13:00:34.794Z
-Stopped at: Completed 10-dispatch-pipeline-quota-enforcement/10-03-PLAN.md
+Last session: 2026-04-19T13:16:08.311Z
+Stopped at: Completed 10-dispatch-pipeline-quota-enforcement/10-04-PLAN.md
 Phase 9 closed: all 6 plans complete, all 14 requirements traced, 5/5 SC covered
 Resume: Phase 10 planning (Dispatch Pipeline & Quota Enforcement — needs Phase 8 + Phase 9)

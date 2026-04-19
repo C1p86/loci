@@ -199,7 +199,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 10-01-PLAN.md — task_runs schema + Drizzle migration 0003 [BLOCKING] + makeTaskRunsRepo with atomic CAS + adminRepo count/reconciliation helpers + isolation tests
 - [x] 10-02-PLAN.md — Frame protocol (state/result/log_chunk parsers) + WS handler routing + frame-spoofing guard + QUOTA-03 registration gate (close code 4006) + timeout-manager stub
 - [x] 10-03-PLAN.md — Dispatcher service (DispatchQueue + 250ms tick + JSONB label-match selector) + timeout-manager full impl + boot + reconnect reconciliation (activates Phase 8 D-18)
-- [ ] 10-04-PLAN.md — REST routes (POST /runs trigger + /cancel + GET list/get/usage) + DISP-09 param override resolution + QUOTA-04/05/06 + Pino redaction
+- [x] 10-04-PLAN.md — REST routes (POST /runs trigger + /cancel + GET list/get/usage) + DISP-09 param override resolution + QUOTA-04/05/06 + Pino redaction
 - [ ] 10-05-PLAN.md — Agent dispatch/cancel handlers + runner.ts (execa spawn + log_chunk streaming + SIGTERM/SIGKILL) + SEC-06 agent-local merge + E2E test + Phase closeout
 
 ### Phase 11: Log Streaming & Persistence
@@ -269,7 +269,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 7. Database Schema & Auth | 9/9 | Complete | 2026-04-18 |
 | 8. Agent Registration & WebSocket Protocol | 5/5 | Complete | 2026-04-18 |
 | 9. Task Definitions & Secrets Management | 6/6 | Complete | 2026-04-19 |
-| 10. Dispatch Pipeline & Quota Enforcement | 3/5 | In Progress|  |
+| 10. Dispatch Pipeline & Quota Enforcement | 4/5 | In Progress|  |
 | 11. Log Streaming & Persistence | 0/? | Not started | - |
 | 12. Plugin System & Webhooks | 0/? | Not started | - |
 | 13. Web Dashboard SPA | 0/? | Not started | - |
