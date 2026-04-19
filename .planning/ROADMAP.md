@@ -213,7 +213,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Org secret values (and their base64-encoded variants) are replaced by `***` in persisted log chunks before they reach the DB
   5. A user can download the full log of any completed run as a `.log` plaintext file via an authenticated, org-scoped endpoint
 **Plans**: 4 plans
-- [ ] 11-01-PLAN.md — log_chunks schema + migration 0004 [BLOCKING] + logChunks repo + adminRepo runRetentionCleanup + isolation test
+- [x] 11-01-PLAN.md — log_chunks schema + migration 0004 [BLOCKING] + logChunks repo + adminRepo runRetentionCleanup + isolation test
 - [ ] 11-02-PLAN.md — redaction-table + log-batcher + log-fanout services; handleLogChunkFrame rewire (redact/batch/fanout); trigger.ts seeds runRedactionTables
 - [ ] 11-03-PLAN.md — WS subscribe endpoint /ws/orgs/:orgId/runs/:runId/logs (sinceSeq catch-up) + GET logs.log download + log-retention service on onReady + integration tests
 - [ ] 11-04-PLAN.md — Agent-side redactLine + 8KB chunk split in runner.ts; E2E test; Phase closeout (READMEs + STATE + REQUIREMENTS traceability + human-verify)
@@ -274,7 +274,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 8. Agent Registration & WebSocket Protocol | 5/5 | Complete | 2026-04-18 |
 | 9. Task Definitions & Secrets Management | 6/6 | Complete | 2026-04-19 |
 | 10. Dispatch Pipeline & Quota Enforcement | 6/5 | Complete   | 2026-04-19 |
-| 11. Log Streaming & Persistence | 0/? | Not started | - |
+| 11. Log Streaming & Persistence | 1/4 | In Progress|  |
 | 12. Plugin System & Webhooks | 0/? | Not started | - |
 | 13. Web Dashboard SPA | 0/? | Not started | - |
 | 14. Docker & Publishing | 0/? | Not started | - |

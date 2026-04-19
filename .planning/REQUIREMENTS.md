@@ -81,14 +81,14 @@
 
 ### Log Streaming (LOG)
 
-- [ ] **LOG-01**: Agente stream stdout/stderr in frame `log_chunk` con sequence number per ordering deterministico.
-- [ ] **LOG-02**: Server persiste chunk in Postgres (jsonb, compressione), retention configurabile; default Free plan **30 giorni**.
+- [x] **LOG-01**: Agente stream stdout/stderr in frame `log_chunk` con sequence number per ordering deterministico.
+- [x] **LOG-02**: Server persiste chunk in Postgres (jsonb, compressione), retention configurabile; default Free plan **30 giorni**.
 - [ ] **LOG-03**: UI sottoscrive WS per log live con autoscroll pausabile; indicatore connessione WS (connected / reconnecting / disconnected); reconnect trasparente.
 - [ ] **LOG-04**: Ogni chunk ha timestamp assoluto (origine agente); UI mostra/nasconde timestamp con toggle.
 - [ ] **LOG-05**: Download log completo di un run come file `.log` plaintext (endpoint autenticato, org-scoped, `Content-Disposition: attachment`).
 - [ ] **LOG-06**: Redazione pre-persist: valori di org secrets + agent-local secrets sostituiti da `***`; coprire varianti base64 (`Buffer.from(value).toString('base64')`); pino-http non logga request body contenente params.
 - [ ] **LOG-07**: Backpressure: subscriber UI lento non blocca stream agente; buffer drop-head per subscriber.
-- [ ] **LOG-08**: Retention cleanup job giornaliero cancella chunk più vecchi del retention del Plan dell'org.
+- [x] **LOG-08**: Retention cleanup job giornaliero cancella chunk più vecchi del retention del Plan dell'org.
 
 ### Secrets Management (SEC)
 
@@ -382,14 +382,14 @@ Quali fasi coprono quali requirement.
 | QUOTA-04 | 10-dispatch-quota | Complete |
 | QUOTA-05 | 10-dispatch-quota | Complete |
 | QUOTA-06 | 10-dispatch-quota | Complete |
-| LOG-01 | 11-log-streaming | Pending |
-| LOG-02 | 11-log-streaming | Pending |
+| LOG-01 | 11-log-streaming | Complete |
+| LOG-02 | 11-log-streaming | Complete |
 | LOG-03 | 11-log-streaming | Pending |
 | LOG-04 | 11-log-streaming | Pending |
 | LOG-05 | 11-log-streaming | Pending |
 | LOG-06 | 11-log-streaming | Pending |
 | LOG-07 | 11-log-streaming | Pending |
-| LOG-08 | 11-log-streaming | Pending |
+| LOG-08 | 11-log-streaming | Complete |
 | PLUG-01 | 12-plugin-webhooks | Pending |
 | PLUG-02 | 12-plugin-webhooks | Pending |
 | PLUG-03 | 12-plugin-webhooks | Pending |
