@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 9: Task Definitions & Secrets Management** - server-side YAML DSL (shared parser with xci), CRUD API, YAML validation; org-level envelope encryption, secrets CRUD, dispatch-time resolution
 - [x] **Phase 10: Dispatch Pipeline & Quota Enforcement** - label-match dispatcher, in-memory queue with DB reconciliation, TaskRun state machine, timeout/cancel/orphan, per-org quota enforcement
 - [x] **Phase 11: Log Streaming & Persistence** - agent log_chunk streaming, in-memory RunBuffer, Postgres persistence, UI WebSocket fanout, retention cleanup
-- [ ] **Phase 12: Plugin System & Webhooks** - TriggerPlugin interface, GitHub + Perforce plugins, Dead Letter Queue, idempotency, DLQ UI
+- [x] **Phase 12: Plugin System & Webhooks** - TriggerPlugin interface, GitHub + Perforce plugins, Dead Letter Queue, idempotency, DLQ UI
 - [ ] **Phase 13: Web Dashboard SPA** - React 19 + Vite 8 + Tailwind 4 SPA: auth, agents, tasks, log viewer, run history, org settings, plugin settings, build-status badge endpoint
 - [ ] **Phase 14: Docker & Publishing** - multi-stage Docker image, docker-compose dev stack, CI smoke-test, npm publish pipeline, Changesets release flow
 
@@ -233,7 +233,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 12-02-PLAN.md — TriggerPlugin interface + GitHub (HMAC-SHA256) & Perforce (X-Xci-Token) plugins + registry + glob helper + contract test harness + 6 new error classes
 - [x] 12-03-PLAN.md — Webhook routes (/hooks/:plugin/:orgToken) + shared handler (verify→dedup→parse→mapToTask→dispatch→DLQ) + rawBody capture + scrub + rate-limit + SC-5 integration test
 - [x] 12-04-PLAN.md — Webhook-token CRUD routes + DLQ list + DLQ retry (skips verify per D-20) + tasks trigger_configs validation on save + integration tests
-- [ ] 12-05-PLAN.md — xci CLI agent-emit-perforce-trigger (Node-free sh/bat/ps1 emit) + Perforce E2E integration test + READMEs + STATE/REQUIREMENTS/ROADMAP traceability + human-verify checkpoint
+- [x] 12-05-PLAN.md — xci CLI agent-emit-perforce-trigger (Node-free sh/bat/ps1 emit) + Perforce E2E integration test + READMEs + STATE/REQUIREMENTS/ROADMAP traceability + human-verify checkpoint
 **UI hint**: yes
 
 ### Phase 13: Web Dashboard SPA

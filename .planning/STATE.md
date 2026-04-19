@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: — Local CLI
-status: Ready to execute
-stopped_at: Completed 12-plugin-system-webhooks 12-04-PLAN.md
-last_updated: "2026-04-19T16:15:00.868Z"
-last_activity: 2026-04-19
+milestone: v2.0
+milestone_name: — Remote CI
+status: Phase 12 complete — ready for Phase 13
+stopped_at: Completed Phase 12 — all 5 plans, plugin system + webhooks + DLQ + Perforce emitter
+last_updated: "2026-04-18T00:00:00.000Z"
+last_activity: 2026-04-18
 progress:
-  total_phases: 12
-  completed_phases: 11
-  total_plans: 53
-  completed_plans: 53
-  percent: 100
+  total_phases: 14
+  completed_phases: 12
+  total_plans: 58
+  completed_plans: 58
+  percent: 86
 ---
 
 # Project State
@@ -25,13 +25,13 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 
 ## Current Position
 
-Phase: 12 (Plugin System & Webhooks) — EXECUTING
-Plan: 5 of 5
-Next: Phase 12 — Plugin System & Webhooks
-Last activity: 2026-04-19
+Phase: 13 (Web Dashboard SPA) — NEXT
+Plan: 1 of TBD
+Next: Phase 13 — Web Dashboard SPA
+Last activity: 2026-04-18
 
-Progress (Phase 11): [██████████] 100% (4/4 plans)
-Progress (v2.0 milestone): [██████░░░░] 79% (6/9 phases complete: 06, 07, 08, 09, 10, 11)
+Progress (Phase 12): [██████████] 100% (5/5 plans)
+Progress (v2.0 milestone): [███████░░░] 86% (7/9 phases complete: 06, 07, 08, 09, 10, 11, 12)
 
 ## Performance Metrics
 
@@ -61,7 +61,7 @@ Progress (v2.0 milestone): [██████░░░░] 79% (6/9 phases comp
 | 09 | TBD | - | - |
 | 10 | TBD | - | - |
 | 11 | TBD | - | - |
-| 12 | TBD | - | - |
+| 12 | 5 | - | - |
 | 13 | TBD | - | - |
 | 14 | TBD | - | - |
 
@@ -118,6 +118,7 @@ Progress (v2.0 milestone): [██████░░░░] 79% (6/9 phases comp
 | Phase 12-plugin-system-webhooks P02 | 9 | 3 tasks | 10 files |
 | Phase 12-plugin-system-webhooks P03 | 35 | 3 tasks | 8 files |
 | Phase 12-plugin-system-webhooks P04 | 922 | 2 tasks | 17 files |
+| Phase 12-plugin-system-webhooks P05 | — | 5 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -292,6 +293,17 @@ Recent decisions affecting current work:
 - [Phase 12-plugin-system-webhooks]: triggerSource='webhook' added to task-runs create(); default 'manual' preserves backward compat
 - [Phase 12-plugin-system-webhooks]: list.ts uses sql<boolean> IS NOT NULL projection for hasPluginSecret — avoids DEK decryption in list path
 - [Phase 12-plugin-system-webhooks]: DLQ retry skips verify (D-20); WARN log 'dlq_retry_skipping_signature_verify' on every invocation
+- [Phase 12]: TriggerPlugin interface is 3 methods (verify/parse/mapToTask) — bundled at build time, no dynamic load (PLUG-02 anti-feature)
+- [Phase 12]: GitHub plugin uses HMAC-SHA256 via compareToken timingSafeEqual; X-Hub-Signature-256 header; plugin_secret encrypted with Phase 9 org DEK (D-08/D-28)
+- [Phase 12]: Perforce plugin uses X-Xci-Token header (no HMAC — Perforce trigger can't do HMAC in shell); plugin_secret column NULL for Perforce (D-13)
+- [Phase 12]: Webhook routes mounted at /hooks/* (NO /api prefix) — external machine senders, no session, no CSRF; rate-limit 60/min/IP per D-07
+- [Phase 12]: Idempotency via webhook_deliveries (plugin, delivery_id) unique index + onConflictDoNothing; duplicate → 200 'duplicate' + WARN log, no second dispatch
+- [Phase 12]: DLQ scrub list D-25: Authorization, X-Hub-Signature, X-Hub-Signature-256, X-GitHub-Token, X-Xci-Token, Cookie, Set-Cookie (case-insensitive); body passes through unchanged per D-26
+- [Phase 12]: DLQ retry SKIPS signature verify (D-20) — admin action, logged 'dlq_retry_skipping_signature_verify'
+- [Phase 12]: xci `agent-emit-perforce-trigger` is the ONE xci change outside agent/ — lazy-loaded, cold-start <300ms preserved (BC-04)
+- [Phase 12]: Generated Perforce scripts (sh/bat/ps1) are Node-free — use curl / Invoke-WebRequest; token inline + chmod 700 admin responsibility documented
+- [Phase 12]: tasks.trigger_configs is JSONB array of GitHubTriggerConfig | PerforceTriggerConfig union; validated on save via validateTriggerConfigs; no naming convention (D-17/D-18)
+- [Phase 12]: Webhook-triggered task_runs have trigger_source='webhook', triggered_by_user_id=NULL (D-30); dispatch-resolver params = orgSecrets + mapToTask output
 
 ### Pending Todos
 
@@ -326,7 +338,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-19T16:15:00.822Z
-Stopped at: Completed 12-plugin-system-webhooks 12-04-PLAN.md
-Phase 11 closed: all 4 plans complete, 8 requirement IDs traced (LOG-01..08), 5/5 SC covered, integration tests written (Docker-deferred for 11-03 routes; E2E test Linux+Docker gated for 11-04)
-Resume: Phase 12 — Plugin System & Webhooks (needs Phase 10 complete — SATISFIED)
+Last session: 2026-04-18T00:00:00.000Z
+Stopped at: Completed Phase 12 — all 5 plans, plugins + webhooks + DLQ + Perforce emitter
+Phase 12 closed: 5 plans complete, 8 requirement IDs traced (PLUG-01..08), 5/5 SC covered, integration tests green (Linux-only E2E gated per Phase 10/11 pattern), v1 302-test + hyperfine + ws-fence regressions all pass
+Resume: Phase 13 — Web Dashboard SPA (needs Phase 7+8+9+10+11 complete — SATISFIED; Phase 12 consumed by UI for plugin settings + DLQ views)
