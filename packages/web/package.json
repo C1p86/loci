@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "typecheck": "tsc --noEmit"
@@ -48,7 +49,9 @@
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/user-event": "14.6.1",
     "msw": "2.13.4",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "@playwright/test": "1.49.0",
+    "playwright": "1.49.0"
   },
   "engines": {
     "node": ">=20.5.0"

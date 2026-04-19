@@ -37,7 +37,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck + Lint + Build + Test (turbo pipeline)
-        run: pnpm turbo run typecheck lint build test
+        run: pnpm turbo run typecheck lint build test --filter=xci --filter=@xci/server --filter=@xci/web
 
       - name: Smoke check - xci --version
         run: node packages/xci/dist/cli.mjs --version
@@ -92,6 +92,84 @@ jobs:
         with:
           name: hyperfine-results
           path: hyperfine.json
+
+  web-e2e:
+    # Linux-only Playwright smoke — runs after build-test-lint matrix passes.
+    # Spins up a real Postgres + @xci/server + vite preview and executes the smoke spec.
+    # Artifact retention: failure screenshots only, 7 days.
+    needs: [build-test-lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @xci/web exec playwright install --with-deps chromium
+
+      - name: Build server and web
+        run: pnpm turbo run build --filter=@xci/server --filter=@xci/web
+
+      - name: Start postgres
+        run: |
+          docker run -d --name xci-pg \
+            -e POSTGRES_PASSWORD=xci \
+            -e POSTGRES_USER=xci \
+            -e POSTGRES_DB=xci \
+            -p 5432:5432 \
+            postgres:16
+          for i in {1..30}; do docker exec xci-pg pg_isready -U xci && break; sleep 1; done
+
+      - name: Start server in background
+        env:
+          DATABASE_URL: postgres://xci:xci@localhost:5432/xci
+          XCI_MASTER_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+          SESSION_COOKIE_SECRET: test-session-secret-32-bytes-minimum-xx
+          EMAIL_TRANSPORT: stub
+          PORT: '3000'
+          NODE_ENV: test
+        run: |
+          node packages/server/dist/server.js &
+          echo $! > /tmp/server.pid
+          for i in {1..30}; do curl -sf http://localhost:3000/api/healthz && break; sleep 1; done
+
+      - name: Start vite preview in background
+        run: |
+          pnpm --filter @xci/web exec vite preview --port 5173 --strictPort --host &
+          echo $! > /tmp/web.pid
+          for i in {1..20}; do curl -sf http://localhost:5173 && break; sleep 1; done
+
+      - name: Playwright smoke
+        run: pnpm --filter @xci/web exec playwright test
+
+      - name: Stop background processes
+        if: always()
+        run: |
+          [ -f /tmp/server.pid ] && kill $(cat /tmp/server.pid) || true
+          [ -f /tmp/web.pid ]    && kill $(cat /tmp/web.pid)    || true
+          docker rm -f xci-pg || true
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: packages/web/playwright-report/
+          retention-days: 7
 
   integration-tests:
     # Linux-only (D-23) — testcontainers needs Docker, preinstalled on ubuntu-latest.
