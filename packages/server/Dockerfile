@@ -13,7 +13,7 @@ WORKDIR /workspace
 
 # Copy lockfile + workspace config FIRST for Docker layer caching (D-14).
 # When source changes but deps don't, the install layer is reused.
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json turbo.json ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json turbo.json tsconfig.base.json biome.json ./
 COPY .changeset ./.changeset/
 COPY packages/xci/package.json ./packages/xci/
 COPY packages/server/package.json ./packages/server/
