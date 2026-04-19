@@ -189,6 +189,10 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
   const { registerHookRoutes } = await import('./routes/hooks/index.js');
   await app.register(registerHookRoutes, { prefix: '/hooks' });
 
+  // Phase 13 D-29: badge endpoint at root level (no /api — embeddable in public READMEs)
+  const { registerBadgeRoutes } = await import('./routes/badge/index.js');
+  await app.register(registerBadgeRoutes);
+
   return app;
 }
 
