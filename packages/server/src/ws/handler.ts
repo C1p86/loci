@@ -1,6 +1,14 @@
 // Main WS connection handler — open-then-handshake auth flow (D-14).
 // D-13: NO session/cookie auth here; token arrives in the first frame.
 // Pitfall 4: register socket.on('message') synchronously at top.
+//
+// WS close code registry (Phase 8 + Phase 10):
+//   4001 revoked          — credential invalid or revoked
+//   4002 frame_invalid    — bad JSON, unknown type, invalid token
+//   4003 heartbeat_timeout — no pong within deadline
+//   4004 superseded       — new connection replaced this one
+//   4005 handshake_timeout — no first frame within 5s
+//   4006 quota_exceeded   — org has reached max_agents limit (QUOTA-03)
 
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { WebSocket } from 'ws';
@@ -120,6 +128,27 @@ async function handleHandshake(
     }
 
     const orgId = await repos.admin.consumeRegistrationToken(tokenRow.id);
+
+    // QUOTA-03 gate (D-10): check agent count AFTER consuming the token (security rationale in
+    // RESEARCH FA-9 — after-consume prevents quota-state probing via token reuse).
+    const [orgPlanRows, agentCount] = await Promise.all([
+      repos.forOrg(orgId).plan.get(),
+      repos.admin.countAgentsByOrg(orgId),
+    ]);
+    const orgPlan = orgPlanRows[0];
+    if (!orgPlan) {
+      fastify.log.error({ orgId }, 'no org plan found during registration quota check');
+    } else if (agentCount >= orgPlan.maxAgents) {
+      send(socket, {
+        type: 'error',
+        code: 'AGENT_QUOTA_EXCEEDED',
+        message: `Org has ${agentCount} of ${orgPlan.maxAgents} agents (${orgPlan.planName} plan limit). Revoke an existing agent or contact support.`,
+        close: true,
+      });
+      socket.close(4006, 'quota_exceeded');
+      return null;
+    }
+
     // Derive hostname from labels if provided; else default to 'unknown'
     const hostname = (frame.labels['hostname'] as string | undefined) ?? 'unknown';
     const { agentId, credentialPlaintext } = await repos.admin.registerNewAgent({
