@@ -445,6 +445,29 @@ export class NoEligibleAgentError extends InternalError {
   }
 }
 
+/* ---------- Concrete subclasses (Phase 11) ---------- */
+
+export class LogChunkStorageError extends InternalError {
+  constructor(message: string, cause?: unknown) {
+    super(message, { code: 'INT_LOG_CHUNK_STORAGE', cause });
+  }
+}
+
+export class LogRetentionJobError extends InternalError {
+  constructor(message: string, cause?: unknown) {
+    // `message` must be a short operator-facing string. Do NOT put chunk data or run ids here.
+    super(message, { code: 'INT_LOG_RETENTION', cause });
+  }
+}
+
+export class LogSubscriptionUnauthorizedError extends AuthzError {
+  constructor() {
+    super('Log subscription denied — run belongs to another org', {
+      code: 'AUTHZ_LOG_SUBSCRIPTION',
+    });
+  }
+}
+
 /* ---------- Category → HTTP status exhaustive mapping ---------- */
 
 /**

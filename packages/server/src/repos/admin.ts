@@ -25,6 +25,7 @@ import {
 import {
   DatabaseError,
   EmailAlreadyRegisteredError,
+  LogRetentionJobError,
   MekRotationError,
   OwnerRoleImmutableError,
   RegistrationTokenExpiredError,
@@ -528,6 +529,57 @@ export function makeAdminRepo(db: PostgresJsDatabase) {
         .select()
         .from(taskRuns)
         .where(inArray(taskRuns.state, ['queued', 'dispatched', 'running']));
+    },
+
+    /**
+     * D-18/D-19: Batched DELETE of log_chunks older than each org's log_retention_days.
+     * Uses a CTE subquery because PostgreSQL does not support LIMIT directly on DELETE.
+     * Loops until 0 rows deleted or maxIterations reached (default 100).
+     * Returns cumulative rowsDeleted, iterations count, and per-org breakdown.
+     * T-11-01-04: batchSize=10_000 + maxIterations=100 prevents long exclusive locks.
+     */
+    async runRetentionCleanup(
+      opts: {
+        batchSize?: number;
+        maxIterations?: number;
+        beforeFactory?: () => Date; // test override; production uses now() via SQL
+      } = {},
+    ): Promise<{ rowsDeleted: number; iterations: number; perOrg: Record<string, number> }> {
+      const batchSize = opts.batchSize ?? 10_000;
+      const maxIterations = opts.maxIterations ?? 100;
+      let rowsDeleted = 0;
+      let iterations = 0;
+      const perOrg: Record<string, number> = {};
+      try {
+        while (iterations < maxIterations) {
+          // D-19 batched DELETE … USING JOIN. LIMIT is applied via subquery because PG
+          // does not accept LIMIT directly on DELETE.
+          const rows = await db.execute(sql`
+            WITH victims AS (
+              SELECT lc.id AS id, tr.org_id AS org_id
+              FROM log_chunks lc
+              JOIN task_runs tr ON lc.run_id = tr.id
+              JOIN org_plans op ON op.org_id = tr.org_id
+              WHERE lc.persisted_at < now() - (op.log_retention_days || ' days')::interval
+              LIMIT ${batchSize}
+            )
+            DELETE FROM log_chunks
+            WHERE id IN (SELECT id FROM victims)
+            RETURNING (SELECT org_id FROM victims v WHERE v.id = log_chunks.id) AS org_id
+          `);
+          const deletedThisRound = (rows as unknown as Array<{ org_id: string }>).length;
+          if (deletedThisRound === 0) break;
+          rowsDeleted += deletedThisRound;
+          iterations++;
+          for (const r of rows as unknown as Array<{ org_id: string }>) {
+            if (!r.org_id) continue;
+            perOrg[r.org_id] = (perOrg[r.org_id] ?? 0) + 1;
+          }
+        }
+      } catch (err) {
+        throw new LogRetentionJobError('runRetentionCleanup failed', err);
+      }
+      return { rowsDeleted, iterations, perOrg };
     },
 
     async rotateMek(

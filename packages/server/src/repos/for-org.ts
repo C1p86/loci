@@ -2,6 +2,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { makeAgentCredentialsRepo } from './agent-credentials.js';
 import { makeAgentsRepo } from './agents.js';
 import { makeEmailVerificationsRepo } from './email-verifications.js';
+import { makeLogChunksRepo } from './log-chunks.js';
 import { makeOrgInvitesRepo } from './org-invites.js';
 import { makeOrgPlansRepo } from './org-plans.js';
 import { makePasswordResetsRepo } from './password-resets.js';
@@ -34,6 +35,7 @@ export function makeForOrg(db: PostgresJsDatabase, mek: Buffer) {
     taskRuns: makeTaskRunsRepo(db, orgId),
     secrets: makeSecretsRepo(db, orgId, mek),
     secretAuditLog: makeSecretAuditLogRepo(db, orgId),
+    logChunks: makeLogChunksRepo(db, orgId),
   });
 }
 
