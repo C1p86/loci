@@ -51,7 +51,10 @@ describe('webhook-deliveries repo isolation (D-04 / D-22)', () => {
     expect(github.inserted).toBe(true);
 
     // Different plugin — unique index is on (plugin_name, delivery_id), so this is distinct
-    const perforce = await repoA.recordDelivery({ pluginName: 'perforce', deliveryId: 'shared-id' });
+    const perforce = await repoA.recordDelivery({
+      pluginName: 'perforce',
+      deliveryId: 'shared-id',
+    });
     expect(perforce.inserted).toBe(true);
   });
 

@@ -8,7 +8,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { decryptSecret, encryptSecret, getOrCreateOrgDek } from '../crypto/secrets.js';
 import { generateId, generateToken, hashToken } from '../crypto/tokens.js';
-import { type NewWebhookToken, type WebhookToken, webhookTokens } from '../db/schema.js';
+import { type NewWebhookToken, webhookTokens } from '../db/schema.js';
 
 /**
  * D-28: Org-scoped repo for webhook_tokens.
@@ -57,9 +57,7 @@ export function makeWebhookTokensRepo(db: PostgresJsDatabase, orgId: string, mek
      * Returns undefined if not found or belongs to a different org (T-12-01-02).
      * Returns metadata only — no tokenHash or plugin_secret columns.
      */
-    async getById(
-      tokenId: string,
-    ): Promise<
+    async getById(tokenId: string): Promise<
       | {
           id: string;
           orgId: string;

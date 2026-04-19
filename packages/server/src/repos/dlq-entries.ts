@@ -3,15 +3,15 @@
 // Phase 12 D-19/D-21: org-scoped repo for dlq_entries (dead-letter queue).
 // Cursor-based pagination by (receivedAt, id) per D-21; limit clamped to 200 (D-21 / task-runs pattern).
 
-import { and, desc, eq, gt, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { generateId } from '../crypto/tokens.js';
 import {
   type DlqEntry,
   type DlqFailureReason,
   type DlqRetryResult,
-  type NewDlqEntry,
   dlqEntries,
+  type NewDlqEntry,
 } from '../db/schema.js';
 
 /**
@@ -114,10 +114,7 @@ export function makeDlqEntriesRepo(db: PostgresJsDatabase, orgId: string) {
      * Scoped to this org to prevent cross-tenant mutation (T-12-01-02).
      * Returns the updated row, or undefined if not found in this org.
      */
-    async markRetried(
-      dlqId: string,
-      result: DlqRetryResult,
-    ): Promise<DlqEntry | undefined> {
+    async markRetried(dlqId: string, result: DlqRetryResult): Promise<DlqEntry | undefined> {
       const rows = await db
         .update(dlqEntries)
         .set({

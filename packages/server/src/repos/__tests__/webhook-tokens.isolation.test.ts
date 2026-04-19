@@ -68,11 +68,7 @@ describe('webhook-tokens repo isolation (D-04 / T-12-01-02)', () => {
     // Verify the row via a raw SELECT to check no column contains the plaintext token
     const { webhookTokens } = await import('../../db/schema.js');
     const { eq } = await import('drizzle-orm');
-    const rows = await db
-      .select()
-      .from(webhookTokens)
-      .where(eq(webhookTokens.id, id))
-      .limit(1);
+    const rows = await db.select().from(webhookTokens).where(eq(webhookTokens.id, id)).limit(1);
     const row = rows[0];
     expect(row).toBeDefined();
 

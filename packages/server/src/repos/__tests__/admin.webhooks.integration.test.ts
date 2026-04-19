@@ -34,7 +34,7 @@ describe('adminRepo webhook helpers (Phase 12)', () => {
 
     it('returns undefined for an unknown plaintext', async () => {
       const db = getTestDb();
-      const mek = getTestMek();
+      const _mek = getTestMek();
       const admin = makeAdminRepo(db);
       await seedTwoOrgs(db);
 
@@ -83,7 +83,6 @@ describe('adminRepo webhook helpers (Phase 12)', () => {
       const admin = makeAdminRepo(db);
 
       // Insert 2 deliveries directly using raw SQL with old timestamps
-      const { webhookDeliveries: wdTable } = await import('../../db/schema.js');
       const { sql } = await import('drizzle-orm');
 
       // Insert 2 old rows (60 days ago) using Drizzle with manual receivedAt override
@@ -101,9 +100,7 @@ describe('adminRepo webhook helpers (Phase 12)', () => {
       await repoA.recordDelivery({ pluginName: 'github', deliveryId: 'recent-2' });
 
       // Verify all 4 exist before cleanup
-      const beforeCount = await db.execute(
-        sql`SELECT COUNT(*) as n FROM webhook_deliveries`,
-      );
+      const beforeCount = await db.execute(sql`SELECT COUNT(*) as n FROM webhook_deliveries`);
       expect(Number((beforeCount as unknown as Array<{ n: string }>)[0]?.n)).toBe(4);
 
       // Run cleanup with cutoff = 30 days ago
@@ -112,9 +109,7 @@ describe('adminRepo webhook helpers (Phase 12)', () => {
       expect(rowsDeleted).toBe(2);
 
       // Verify 2 recent rows remain
-      const afterCount = await db.execute(
-        sql`SELECT COUNT(*) as n FROM webhook_deliveries`,
-      );
+      const afterCount = await db.execute(sql`SELECT COUNT(*) as n FROM webhook_deliveries`);
       expect(Number((afterCount as unknown as Array<{ n: string }>)[0]?.n)).toBe(2);
     });
 
