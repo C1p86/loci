@@ -9,6 +9,7 @@ import { makeRegistrationTokensRepo } from './registration-tokens.js';
 import { makeSecretAuditLogRepo } from './secret-audit-log.js';
 import { makeSecretsRepo } from './secrets.js';
 import { makeSessionsRepo } from './sessions.js';
+import { makeTaskRunsRepo } from './task-runs.js';
 import { makeTasksRepo } from './tasks.js';
 import { makeUsersRepo } from './users.js';
 
@@ -30,6 +31,7 @@ export function makeForOrg(db: PostgresJsDatabase, mek: Buffer) {
     agentCredentials: makeAgentCredentialsRepo(db, orgId),
     registrationTokens: makeRegistrationTokensRepo(db, orgId),
     tasks: makeTasksRepo(db, orgId),
+    taskRuns: makeTaskRunsRepo(db, orgId),
     secrets: makeSecretsRepo(db, orgId, mek),
     secretAuditLog: makeSecretAuditLogRepo(db, orgId),
   });

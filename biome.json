@@ -140,6 +140,18 @@
                   },
                   "../repos/registration-tokens.js": {
                     "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "./repos/tasks.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "../repos/tasks.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "./repos/task-runs.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
+                  },
+                  "../repos/task-runs.js": {
+                    "message": "D-01: use forOrg()/adminRepo from ../repos/index.js"
                   }
                 }
               }

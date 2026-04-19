@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull, sql } from 'drizzle-orm';
+import { and, count, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { hashPassword } from '../crypto/password.js';
 import { getOrCreateOrgDek, unwrapDek, wrapDek } from '../crypto/secrets.js';
@@ -18,6 +18,8 @@ import {
   passwordResets,
   registrationTokens,
   sessions,
+  type TaskRun,
+  taskRuns,
   users,
 } from '../db/schema.js';
 import {
@@ -491,6 +493,43 @@ export function makeAdminRepo(db: PostgresJsDatabase) {
      * D-25 / D-26 / D-28: DEK plaintext unchanged — only wrapping changes.
      * NEVER log oldMek, newMek, or any unwrapped DEK.
      */
+    // ---- D-30 cross-org task_runs helpers (Phase 10) ----
+
+    /**
+     * Cross-org: count runs WHERE state IN ('dispatched','running') for a given org.
+     * Used by QUOTA-04 enforcement at dispatch time (D-11).
+     * Returns an integer count.
+     */
+    async countConcurrentByOrg(orgId: string): Promise<number> {
+      const rows = await db
+        .select({ n: count() })
+        .from(taskRuns)
+        .where(and(eq(taskRuns.orgId, orgId), inArray(taskRuns.state, ['dispatched', 'running'])));
+      return rows[0]?.n ?? 0;
+    },
+
+    /**
+     * Cross-org: count active agents WHERE org_id=X.
+     * Used by QUOTA-03 enforcement at registration time (D-10).
+     * Returns an integer count.
+     */
+    async countAgentsByOrg(orgId: string): Promise<number> {
+      const rows = await db.select({ n: count() }).from(agents).where(eq(agents.orgId, orgId));
+      return rows[0]?.n ?? 0;
+    },
+
+    /**
+     * Cross-org boot-time scan: returns ALL runs in active states (queued/dispatched/running).
+     * Used by startup reconciliation (DISP-08 / D-23) to rebuild in-memory queue and detect orphans.
+     * D-03: adminRepo is the correct home for cross-tenant queries — no orgId param.
+     */
+    async findRunsForReconciliation(): Promise<TaskRun[]> {
+      return db
+        .select()
+        .from(taskRuns)
+        .where(inArray(taskRuns.state, ['queued', 'dispatched', 'running']));
+    },
+
     async rotateMek(
       oldMek: Buffer,
       newMek: Buffer,

@@ -369,6 +369,82 @@ export class PlatformAdminRequiredError extends AuthzError {
   }
 }
 
+/* ---------- Concrete subclasses (Phase 10) ---------- */
+
+// NotFoundError subclasses (Phase 10 runs)
+export class RunNotFoundError extends NotFoundError {
+  constructor() {
+    super('Run not found', { code: 'NOT_FOUND_RUN' });
+  }
+}
+
+// ConflictError subclasses (Phase 10 runs)
+export class RunAlreadyTerminalError extends ConflictError {
+  constructor() {
+    super('Run is already in a terminal state', {
+      code: 'STATE_RUN_TERMINAL',
+      suggestion: 'Cancelling an already-terminal run is a no-op — check the current state first',
+    });
+  }
+}
+
+export class RunStateTransitionError extends ConflictError {
+  constructor() {
+    super('Run state transition rejected — expected state did not match', {
+      code: 'STATE_RUN_TRANSITION',
+      suggestion: 'The run may have been modified concurrently; refresh and retry',
+    });
+  }
+}
+
+// RateLimitError subclasses (Phase 10 quota)
+export class RunQuotaExceededError extends RateLimitError {
+  public readonly used: number;
+  public readonly max: number;
+  public readonly planName: string;
+  constructor(params: { used: number; max: number; planName: string }) {
+    super(
+      `Org has ${params.used} of ${params.max} concurrent runs (${params.planName} plan limit). Cancel a run or wait for one to finish.`,
+      {
+        code: 'QUOTA_RUN_EXCEEDED',
+        suggestion: 'Cancel a running task or contact support to upgrade',
+      },
+    );
+    this.used = params.used;
+    this.max = params.max;
+    this.planName = params.planName;
+  }
+}
+
+export class AgentQuotaExceededError extends RateLimitError {
+  public readonly used: number;
+  public readonly max: number;
+  public readonly planName: string;
+  constructor(params: { used: number; max: number; planName: string }) {
+    super(
+      `Org has ${params.used} of ${params.max} agents (${params.planName} plan limit). Revoke an existing agent or contact support.`,
+      {
+        code: 'QUOTA_AGENT_EXCEEDED',
+        suggestion: 'Revoke an existing agent or contact support to upgrade',
+      },
+    );
+    this.used = params.used;
+    this.max = params.max;
+    this.planName = params.planName;
+  }
+}
+
+// InternalError subclasses (Phase 10 dispatch — logged only, not surfaced to user)
+export class NoEligibleAgentError extends InternalError {
+  constructor() {
+    // NOT thrown to users — logged at warn level by dispatcher (CONTEXT §code_context).
+    // Run remains queued when this is raised.
+    super('No eligible agent found for run — run remains queued', {
+      code: 'DISP_NO_AGENT',
+    });
+  }
+}
+
 /* ---------- Category → HTTP status exhaustive mapping ---------- */
 
 /**
