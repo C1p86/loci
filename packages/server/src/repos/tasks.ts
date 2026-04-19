@@ -2,8 +2,8 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { generateId } from '../crypto/tokens.js';
 import { type NewTask, tasks } from '../db/schema.js';
-import type { TriggerConfig } from '../plugins-trigger/types.js';
 import { DatabaseError, TaskNameConflictError } from '../errors.js';
+import type { TriggerConfig } from '../plugins-trigger/types.js';
 
 /**
  * D-29: Org-scoped repo for task definitions.
@@ -53,6 +53,7 @@ export function makeTasksRepo(db: PostgresJsDatabase, orgId: string) {
       yamlDefinition: string;
       labelRequirements?: string[];
       createdByUserId: string;
+      triggerConfigs?: TriggerConfig[];
     }): Promise<{ id: string }> {
       const id = generateId('tsk');
       const payload = {
@@ -63,6 +64,7 @@ export function makeTasksRepo(db: PostgresJsDatabase, orgId: string) {
         yamlDefinition: params.yamlDefinition,
         labelRequirements: params.labelRequirements ?? [],
         createdByUserId: params.createdByUserId,
+        triggerConfigs: params.triggerConfigs ?? [],
       } satisfies NewTask;
       try {
         await db.insert(tasks).values(payload);
@@ -88,6 +90,7 @@ export function makeTasksRepo(db: PostgresJsDatabase, orgId: string) {
         description: string;
         yamlDefinition: string;
         labelRequirements: string[];
+        triggerConfigs: TriggerConfig[];
       }>,
     ): Promise<{ rowCount: number }> {
       try {

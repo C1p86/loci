@@ -10,6 +10,7 @@ import {
   type TaskValidationDetail,
   TaskValidationError,
 } from '../../errors.js';
+import { validateTriggerConfigs } from '../../plugins-trigger/validate-trigger-configs.js';
 import { makeRepos } from '../../repos/index.js';
 
 export function requireOwnerOrMemberAndOrgMatch(req: FastifyRequest): void {
@@ -67,6 +68,7 @@ interface CreateTaskBody {
   description?: string;
   yamlDefinition: string;
   labelRequirements?: string[];
+  trigger_configs?: unknown[];
 }
 
 export const createTaskRoute: FastifyPluginAsync = async (fastify) => {
@@ -85,6 +87,7 @@ export const createTaskRoute: FastifyPluginAsync = async (fastify) => {
             description: { type: 'string', maxLength: 2000, default: '' },
             yamlDefinition: { type: 'string', minLength: 1, maxLength: 1048576 },
             labelRequirements: { type: 'array', items: { type: 'string' }, default: [] },
+            trigger_configs: { type: 'array', maxItems: 20 },
           },
         },
       },
@@ -98,6 +101,12 @@ export const createTaskRoute: FastifyPluginAsync = async (fastify) => {
       // D-12: Run 4-step validation pipeline. Throws TaskValidationError on first failure.
       validateTaskYaml(req.body.yamlDefinition);
 
+      // D-18: Validate trigger_configs entries against TriggerConfig union type.
+      if (req.body.trigger_configs !== undefined) {
+        const tcErrors = validateTriggerConfigs(req.body.trigger_configs);
+        if (tcErrors.length > 0) throw new TaskValidationError(tcErrors);
+      }
+
       const repos = makeRepos(fastify.db, fastify.mek);
       const created = await repos.forOrg(orgId).tasks.create({
         name: req.body.name,
@@ -105,6 +114,11 @@ export const createTaskRoute: FastifyPluginAsync = async (fastify) => {
         yamlDefinition: req.body.yamlDefinition,
         labelRequirements: req.body.labelRequirements ?? [],
         createdByUserId: userId,
+        // exactOptionalPropertyTypes: only spread triggerConfigs when defined
+        ...(req.body.trigger_configs !== undefined && {
+          triggerConfigs: req.body
+            .trigger_configs as import('../../plugins-trigger/types.js').TriggerConfig[],
+        }),
       });
 
       return reply.status(201).send({ id: created.id });

@@ -36,9 +36,10 @@ export function makeWebhookTokensRepo(db: PostgresJsDatabase, orgId: string, mek
         createdAt: Date;
         updatedAt: Date;
         revokedAt: Date | null;
+        hasPluginSecret: boolean;
       }>
     > {
-      return db
+      const rows = await db
         .select({
           id: webhookTokens.id,
           orgId: webhookTokens.orgId,
@@ -47,9 +48,12 @@ export function makeWebhookTokensRepo(db: PostgresJsDatabase, orgId: string, mek
           createdAt: webhookTokens.createdAt,
           updatedAt: webhookTokens.updatedAt,
           revokedAt: webhookTokens.revokedAt,
+          // Derive hasPluginSecret via IS NOT NULL check — never returns the ciphertext itself.
+          hasPluginSecret: sql<boolean>`plugin_secret_encrypted IS NOT NULL`,
         })
         .from(webhookTokens)
         .where(eq(webhookTokens.orgId, orgId));
+      return rows.map((r) => ({ ...r, hasPluginSecret: r.hasPluginSecret ?? false }));
     },
 
     /**
