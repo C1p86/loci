@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: — Local CLI
-status: Ready to execute
-stopped_at: Completed 13-05-PLAN.md
-last_updated: "2026-04-19T19:11:33.276Z"
+milestone: v2.0
+milestone_name: — Remote CI Agents + Web Dashboard
+status: Phase 13 complete — ready for Phase 14
+stopped_at: Completed Phase 13 — all 6 plans, full SPA shipped + badge endpoint + 0006 migration
+last_updated: "2026-04-19T19:15:00Z"
 last_activity: 2026-04-19
 progress:
-  total_phases: 13
-  completed_phases: 12
-  total_plans: 59
-  completed_plans: 60
-  percent: 100
+  total_phases: 14
+  completed_phases: 13
+  total_plans: 65
+  completed_plans: 64
+  percent: 93
 ---
 
 # Project State
@@ -25,13 +25,13 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 
 ## Current Position
 
-Phase: 13 (Web Dashboard SPA) — EXECUTING
-Plan: 6 of 6
-Next: Phase 13 — Web Dashboard SPA
+Phase: 14 (Docker & Publishing) — NEXT
+Plan: 1 of TBD
+Next: Phase 14 — Docker & Publishing
 Last activity: 2026-04-19
 
-Progress (Phase 12): [██████████] 100% (5/5 plans)
-Progress (v2.0 milestone): [███████░░░] 86% (7/9 phases complete: 06, 07, 08, 09, 10, 11, 12)
+Progress (Phase 13): [██████████] 100% (6/6 plans)
+Progress (v2.0 milestone): [█████████░] 93% (13/14 phases complete: 06, 07, 08, 09, 10, 11, 12, 13)
 
 ## Performance Metrics
 
@@ -124,6 +124,7 @@ Progress (v2.0 milestone): [███████░░░] 86% (7/9 phases comp
 | Phase 13-web-dashboard-spa P03 | 45 | 3 tasks | 19 files |
 | Phase 13-web-dashboard-spa P04 | 23 | 3 tasks | 10 files |
 | Phase 13-web-dashboard-spa P05 | 31 | 3 tasks | 14 files |
+| Phase 13-web-dashboard-spa P06 | ~20 | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -320,6 +321,14 @@ Recent decisions affecting current work:
 - [Phase 13-web-dashboard-spa]: Download link uses authStore orgId in LogViewer — no RunSummary schema change needed
 - [Phase 13-web-dashboard-spa]: beforeAll pre-warm pattern in Vitest avoids cold-start timeout for first test in each new test file
 - [Phase 13-web-dashboard-spa]: All UI mutation controls use RoleGate disabled-not-hidden; Viewer sees every button in DOM but pointer-events-none wrapped
+- [Phase 13]: @xci/web built with Vite 6.3.4 + React 19 + Tailwind 4 + shadcn/ui + TanStack Query 5 + Zustand 5 + react-router-dom 7; Monaco lazy-chunked (separate asset)
+- [Phase 13]: orgs.slug pre-existed in schema (Phase 7); migration 0006 added tasks.slug (unique within org) + tasks.expose_badge (default false)
+- [Phase 13]: RoleGate component = D-11 disabled-not-hidden invariant; every mutation button wrapped; Viewer sees disabled with tooltip
+- [Phase 13]: LogViewer uses IntersectionObserver on bottom sentinel for autoscroll pause/resume; wsStore.status drives UI-08 WS indicator
+- [Phase 13]: Badge endpoint returns 200 + grey SVG (never 404) for missing/disabled tasks — enumeration prevention
+- [Phase 13]: @xci/web flipped private:false (Phase 6 D-12 commitment fulfilled); first publish remains Phase 14
+- [Phase 13]: Playwright E2E smoke = Linux-only single happy path (signup→agents empty state→tasks→history→logout); real agent round-trip covered by Phase 8/10/11 integration tests
+- [Phase 13]: Main SPA bundle 177.83 KB gzip (under 200 KB target); monaco separate chunk 8.29 KB gzip; total build 50s on CI-class hardware
 
 ### Pending Todos
 
