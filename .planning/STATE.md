@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: — Remote CI Agents + Web Dashboard
-status: Phase 13 complete — ready for Phase 14
-stopped_at: Completed Phase 13 — all 6 plans, full SPA shipped + badge endpoint + 0006 migration
-last_updated: "2026-04-19T19:15:00Z"
-last_activity: 2026-04-19
+milestone: v1.0
+milestone_name: — Local CLI
+status: Ready to execute
+stopped_at: Completed 13-05-PLAN.md
+last_updated: "2026-04-19T19:48:35.443Z"
+last_activity: 2026-04-19 -- Phase 14 planning complete
 progress:
   total_phases: 14
   completed_phases: 13
-  total_plans: 65
-  completed_plans: 64
-  percent: 93
+  total_plans: 63
+  completed_plans: 61
+  percent: 97
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 Phase: 14 (Docker & Publishing) — NEXT
 Plan: 1 of TBD
 Next: Phase 14 — Docker & Publishing
-Last activity: 2026-04-19
+Last activity: 2026-04-19 -- Phase 14 planning complete
 
 Progress (Phase 13): [██████████] 100% (6/6 plans)
 Progress (v2.0 milestone): [█████████░] 93% (13/14 phases complete: 06, 07, 08, 09, 10, 11, 12, 13)
