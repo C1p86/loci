@@ -2,11 +2,13 @@ import type { FastifyPluginAsync } from 'fastify';
 import { registerAdminRoutes } from './admin/index.js';
 import { registerAgentRoutes } from './agents/index.js';
 import { registerAuthRoutes } from './auth/index.js';
+import { registerDlqRoutes } from './dlq/index.js';
 import { registerInviteRoutes } from './invites/index.js';
 import { registerOrgRoutes } from './orgs/index.js';
 import { registerRunRoutes } from './runs/index.js';
 import { registerSecretsRoutes } from './secrets/index.js';
 import { registerTaskRoutes } from './tasks/index.js';
+import { registerWebhookTokenRoutes } from './webhook-tokens/index.js';
 
 export const registerRoutes: FastifyPluginAsync = async (fastify) => {
   // Healthcheck — no auth, no CSRF, no rate-limit override
@@ -42,4 +44,12 @@ export const registerRoutes: FastifyPluginAsync = async (fastify) => {
   // Phase 9 SEC-08: Admin routes — MEK rotation (platform-admin gated)
   // Final path: /api/admin/rotate-mek
   await fastify.register(registerAdminRoutes, { prefix: '/admin' });
+
+  // Phase 12: Webhook token CRUD routes (D-29)
+  // Paths: /api/orgs/:orgId/webhook-tokens[/:id][/revoke]
+  await fastify.register(registerWebhookTokenRoutes, { prefix: '/orgs' });
+
+  // Phase 12: DLQ list + retry routes (D-21, D-20)
+  // Paths: /api/orgs/:orgId/dlq[/:dlqId/retry]
+  await fastify.register(registerDlqRoutes, { prefix: '/orgs' });
 };
