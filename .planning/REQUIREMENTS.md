@@ -138,10 +138,10 @@
 
 ### Build-Status Badge (BADGE)
 
-- [ ] **BADGE-01**: Endpoint pubblico (non autenticato) `/badge/:orgSlug/:taskSlug.svg` → SVG `passing` / `failing` / `unknown`, basato sull'ultimo run terminale.
-- [ ] **BADGE-02**: `Cache-Control: public, max-age=30` sulla risposta.
-- [ ] **BADGE-03**: Task non esistente o org privata: badge "unknown" (200 con SVG grigio), no 404.
-- [ ] **BADGE-04**: Toggle per-task "Expose badge" (default: off) — solo task con toggle ON sono raggiungibili via endpoint pubblico.
+- [x] **BADGE-01**: Endpoint pubblico (non autenticato) `/badge/:orgSlug/:taskSlug.svg` → SVG `passing` / `failing` / `unknown`, basato sull'ultimo run terminale.
+- [x] **BADGE-02**: `Cache-Control: public, max-age=30` sulla risposta.
+- [x] **BADGE-03**: Task non esistente o org privata: badge "unknown" (200 con SVG grigio), no 404.
+- [x] **BADGE-04**: Toggle per-task "Expose badge" (default: off) — solo task con toggle ON sono raggiungibili via endpoint pubblico.
 
 ---
 
@@ -409,10 +409,10 @@ Quali fasi coprono quali requirement.
 | UI-09 | 13-web-dashboard | Pending |
 | UI-10 | 13-web-dashboard | Pending |
 | UI-11 | 13-web-dashboard | Pending |
-| BADGE-01 | 13-web-dashboard | Pending |
-| BADGE-02 | 13-web-dashboard | Pending |
-| BADGE-03 | 13-web-dashboard | Pending |
-| BADGE-04 | 13-web-dashboard | Pending |
+| BADGE-01 | 13-web-dashboard | Complete |
+| BADGE-02 | 13-web-dashboard | Complete |
+| BADGE-03 | 13-web-dashboard | Complete |
+| BADGE-04 | 13-web-dashboard | Complete |
 | PKG-04 | 14-docker-publishing | Pending |
 | PKG-05 | 14-docker-publishing | Pending |
 | PKG-06 | 14-docker-publishing | Pending |

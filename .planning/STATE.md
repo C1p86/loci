@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
 status: Ready to execute
-stopped_at: Completed Phase 12 — all 5 plans, plugins + webhooks + DLQ + Perforce emitter
-last_updated: "2026-04-19T17:03:01.143Z"
-last_activity: 2026-04-19 -- Phase 13 planning complete
+stopped_at: Completed 13-web-dashboard-spa 13-01-PLAN.md
+last_updated: "2026-04-19T17:18:09.476Z"
+last_activity: 2026-04-19
 progress:
-  total_phases: 14
+  total_phases: 13
   completed_phases: 12
   total_plans: 59
-  completed_plans: 55
-  percent: 93
+  completed_plans: 56
+  percent: 95
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Phase 12 — Plugin System & Webhooks
+**Current focus:** Phase 13 — Web Dashboard SPA
 
 ## Current Position
 
-Phase: 13 (Web Dashboard SPA) — NEXT
-Plan: 1 of TBD
+Phase: 13 (Web Dashboard SPA) — EXECUTING
+Plan: 2 of 6
 Next: Phase 13 — Web Dashboard SPA
-Last activity: 2026-04-19 -- Phase 13 planning complete
+Last activity: 2026-04-19
 
 Progress (Phase 12): [██████████] 100% (5/5 plans)
 Progress (v2.0 milestone): [███████░░░] 86% (7/9 phases complete: 06, 07, 08, 09, 10, 11, 12)
@@ -119,6 +119,7 @@ Progress (v2.0 milestone): [███████░░░] 86% (7/9 phases comp
 | Phase 12-plugin-system-webhooks P03 | 35 | 3 tasks | 8 files |
 | Phase 12-plugin-system-webhooks P04 | 922 | 2 tasks | 17 files |
 | Phase 12-plugin-system-webhooks P05 | — | 5 tasks | 9 files |
+| Phase 13-web-dashboard-spa P01 | 525601 | 4 tasks | 18 files |
 
 ## Accumulated Context
 
@@ -304,6 +305,8 @@ Recent decisions affecting current work:
 - [Phase 12]: Generated Perforce scripts (sh/bat/ps1) are Node-free — use curl / Invoke-WebRequest; token inline + chmod 700 admin responsibility documented
 - [Phase 12]: tasks.trigger_configs is JSONB array of GitHubTriggerConfig | PerforceTriggerConfig union; validated on save via validateTriggerConfigs; no naming convention (D-17/D-18)
 - [Phase 12]: Webhook-triggered task_runs have trigger_source='webhook', triggered_by_user_id=NULL (D-30); dispatch-resolver params = orgSecrets + mapToTask output
+- [Phase 13-web-dashboard-spa]: req.org extended with name+slug in auth plugin via JOIN (not /me route fetch) to avoid per-request round-trip
+- [Phase 13-web-dashboard-spa]: Badge SVG uses standard font-size=11 coordinates instead of scaled font-size=110 transform approach
 
 ### Pending Todos
 
@@ -338,7 +341,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-04-18T00:00:00.000Z
-Stopped at: Completed Phase 12 — all 5 plans, plugins + webhooks + DLQ + Perforce emitter
+Last session: 2026-04-19T17:18:09.431Z
+Stopped at: Completed 13-web-dashboard-spa 13-01-PLAN.md
 Phase 12 closed: 5 plans complete, 8 requirement IDs traced (PLUG-01..08), 5/5 SC covered, integration tests green (Linux-only E2E gated per Phase 10/11 pattern), v1 302-test + hyperfine + ws-fence regressions all pass
 Resume: Phase 13 — Web Dashboard SPA (needs Phase 7+8+9+10+11 complete — SATISFIED; Phase 12 consumed by UI for plugin settings + DLQ views)
