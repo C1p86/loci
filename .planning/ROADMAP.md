@@ -248,7 +248,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. The build-status badge endpoint returns a valid SVG for a task with toggle ON; returns an "unknown" SVG (not 404) for tasks with toggle OFF or non-existent org/task slugs
 **Plans**: 6 plans
 - [x] 13-01-PLAN.md — Server extensions: /api/auth/me + /badge SVG + schema migration 0006 [BLOCKING] (backfills orgs.slug, tasks.slug, tasks.expose_badge)
-- [ ] 13-02-PLAN.md — Vite 8 + React 19 + Tailwind 4 + shadcn/ui scaffold + public auth pages + stores + RoleGate + WsIndicator + Sidebar + TopNav
+- [x] 13-02-PLAN.md — Vite 8 + React 19 + Tailwind 4 + shadcn/ui scaffold + public auth pages + stores + RoleGate + WsIndicator + Sidebar + TopNav
 - [ ] 13-03-PLAN.md — Agents list + empty-state with reg-token + Tasks list + Monaco YAML editor (lazy) + inline validation + trigger form + run detail shell
 - [ ] 13-04-PLAN.md — LogViewer with autoscroll pause/resume + WS subscription + reconnect with sinceSeq + timestamp toggle + download + History with filters
 - [ ] 13-05-PLAN.md — Settings Org (members/invites/usage/leave) + Plugin Settings (webhook tokens) + DLQ list + retry
@@ -288,5 +288,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 10. Dispatch Pipeline & Quota Enforcement | 6/5 | Complete   | 2026-04-19 |
 | 11. Log Streaming & Persistence | 4/4 | Complete | 2026-04-19 |
 | 12. Plugin System & Webhooks | 4/5 | In Progress|  |
-| 13. Web Dashboard SPA | 1/6 | In Progress|  |
+| 13. Web Dashboard SPA | 2/6 | In Progress|  |
 | 14. Docker & Publishing | 0/? | Not started | - |
