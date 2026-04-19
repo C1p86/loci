@@ -1,15 +1,22 @@
-import type { RunState } from './types.js';
+import type { RunHandle } from './runner.js';
+import type { TaskSnapshot } from './types.js';
 
 /**
  * In-process agent state holder.
- * running_runs is empty in Phase 8; Phase 10 populates it when task dispatch is implemented.
+ * runningRuns is a Map in Phase 10 (was RunState[] stub in Phase 8).
  * draining is set to true when server sends {type:'state', state:'draining'}.
+ * maxConcurrent comes from --max-concurrent flag (default 1).
  */
 export interface AgentState {
-  runningRuns: RunState[]; // empty in Phase 8; Phase 10 populates
+  runningRuns: Map<string, { handle: RunHandle; startedAt: string; taskSnapshot: TaskSnapshot }>;
   draining: boolean;
+  maxConcurrent: number;
 }
 
-export function createAgentState(): AgentState {
-  return { runningRuns: [], draining: false };
+export function createAgentState(maxConcurrent = 1): AgentState {
+  return {
+    runningRuns: new Map(),
+    draining: false,
+    maxConcurrent,
+  };
 }
