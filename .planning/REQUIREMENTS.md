@@ -119,8 +119,8 @@
 - [x] **UI-03**: Vista "Tasks": lista + editor YAML con syntax highlighting, validation inline, save con diff.
 - [x] **UI-04**: Vista "Run": stato corrente, log live con autoscroll pausabile, link download raw log, timestamp toggle.
 - [x] **UI-05**: Vista "History" run: tabella paginata con filtri (status, task, date range).
-- [ ] **UI-06**: Settings Org: members + ruoli + inviti (email).
-- [ ] **UI-07**: Settings Plugin: config per-org per GitHub (webhook URL + HMAC secret) e Perforce (endpoint + script generato scaricabile).
+- [x] **UI-06**: Settings Org: members + ruoli + inviti (email).
+- [x] **UI-07**: Settings Plugin: config per-org per GitHub (webhook URL + HMAC secret) e Perforce (endpoint + script generato scaricabile).
 - [x] **UI-08**: Indicatore connessione WS (connected / reconnecting / disconnected) sempre visibile.
 - [x] **UI-09**: Empty states first-run: istruzioni per registrare il primo agente (comando `xci --agent ...` con token copiabile).
 - [x] **UI-10**: Role Viewer: UI read-only state-driven (bottoni disabled con tooltip, non nascosti).
@@ -403,8 +403,8 @@ Quali fasi coprono quali requirement.
 | UI-03 | 13-web-dashboard | Complete |
 | UI-04 | 13-web-dashboard | Complete |
 | UI-05 | 13-web-dashboard | Complete |
-| UI-06 | 13-web-dashboard | Pending |
-| UI-07 | 13-web-dashboard | Pending |
+| UI-06 | 13-web-dashboard | Complete |
+| UI-07 | 13-web-dashboard | Complete |
 | UI-08 | 13-web-dashboard | Complete |
 | UI-09 | 13-web-dashboard | Complete |
 | UI-10 | 13-web-dashboard | Complete |
