@@ -211,23 +211,28 @@ it('dispatch: array yaml_definition → parsed as argv → exit_code=0', async (
 // -------------------------------------------------------------------------
 // Test 3: unsupported sequence/parallel task
 // -------------------------------------------------------------------------
-it('dispatch: sequence yaml → AGENT_UNSUPPORTED_TASK error frame, run not spawned', async () => {
+it('dispatch: sequence yaml → result frame with exit_code=-1 (unsupported)', async () => {
   const { server: srv } = await spawnAgent({ authenticate: true });
 
   // A YAML object with a 'run' array key — signals sequence to the handler
   const sequenceYaml = 'run:\n  - echo step1\n  - echo step2';
   srv.send(makeDispatchFrame('run-3', sequenceYaml));
 
-  const errors = await srv.waitFrames(1, (f) => f.type === 'error');
-  expect(errors.length).toBeGreaterThanOrEqual(1);
-  const err = errors[0] as { code: string };
-  expect(err.code).toBe('AGENT_UNSUPPORTED_TASK');
+  const results = await srv.waitFrames(
+    1,
+    (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-3',
+  );
+  expect(results.length).toBeGreaterThanOrEqual(1);
+  const r = results[0] as { exit_code: number; duration_ms: number; cancelled?: boolean };
+  expect(r.exit_code).toBe(-1);
+  expect(r.duration_ms).toBe(0);
+  expect(r.cancelled).toBeUndefined();
 }, 10_000);
 
 // -------------------------------------------------------------------------
-// Test 4: concurrency cap — AGENT_AT_CAPACITY
+// Test 4: concurrency cap — reject dispatch with result frame
 // -------------------------------------------------------------------------
-it('dispatch: at max concurrency → AGENT_AT_CAPACITY error frame', async () => {
+it('dispatch: at max concurrency → result frame with exit_code=-1 (reject)', async () => {
   const { server: srv } = await spawnAgent({ authenticate: true, maxConcurrent: 1 });
 
   // First dispatch: long running
@@ -239,14 +244,18 @@ it('dispatch: at max concurrency → AGENT_AT_CAPACITY error frame', async () =>
   // Second dispatch while first still running
   srv.send(makeDispatchFrame('run-cap-2', 'echo second'));
 
-  const errors = await srv.waitFrames(1, (f) => f.type === 'error');
-  expect(errors.some((e) => (e as { code: string }).code === 'AGENT_AT_CAPACITY')).toBe(true);
+  const rejects = await srv.waitFrames(
+    1,
+    (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-cap-2',
+  );
+  expect(rejects.length).toBeGreaterThanOrEqual(1);
+  expect((rejects[0] as { exit_code: number }).exit_code).toBe(-1);
 }, 15_000);
 
 // -------------------------------------------------------------------------
-// Test 5: drain mode → AGENT_DRAINING error frame
+// Test 5: drain mode → reject dispatch with result frame
 // -------------------------------------------------------------------------
-it('dispatch: draining state → AGENT_DRAINING error frame', async () => {
+it('dispatch: draining state → result frame with exit_code=-1 (reject)', async () => {
   const { server: srv } = await spawnAgent({ authenticate: true });
 
   // Push agent into drain mode
@@ -255,8 +264,12 @@ it('dispatch: draining state → AGENT_DRAINING error frame', async () => {
 
   srv.send(makeDispatchFrame('run-drain', 'echo should-not-run'));
 
-  const errors = await srv.waitFrames(1, (f) => f.type === 'error');
-  expect(errors.some((e) => (e as { code: string }).code === 'AGENT_DRAINING')).toBe(true);
+  const rejects = await srv.waitFrames(
+    1,
+    (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-drain',
+  );
+  expect(rejects.length).toBeGreaterThanOrEqual(1);
+  expect((rejects[0] as { exit_code: number }).exit_code).toBe(-1);
 }, 10_000);
 
 // -------------------------------------------------------------------------

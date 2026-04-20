@@ -225,22 +225,28 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
 
     // D-16: drain check
     if (state.draining) {
+      process.stderr.write(
+        `[agent] rejecting dispatch ${frame.run_id}: agent is draining\n`,
+      );
       client.send({
-        type: 'error',
-        code: 'AGENT_DRAINING',
-        message: 'agent is draining — no new dispatches accepted',
-        close: false,
+        type: 'result',
+        run_id: frame.run_id,
+        exit_code: -1,
+        duration_ms: 0,
       });
       return;
     }
 
     // D-15: concurrency cap
     if (state.runningRuns.size >= state.maxConcurrent) {
+      process.stderr.write(
+        `[agent] rejecting dispatch ${frame.run_id}: at max concurrency (${state.maxConcurrent})\n`,
+      );
       client.send({
-        type: 'error',
-        code: 'AGENT_AT_CAPACITY',
-        message: `agent at max concurrency (${state.maxConcurrent})`,
-        close: false,
+        type: 'result',
+        run_id: frame.run_id,
+        exit_code: -1,
+        duration_ms: 0,
       });
       return;
     }
@@ -248,11 +254,14 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
     // Parse yaml_definition → argv
     const parseResult = parseYamlToArgv(frame.task_snapshot.yaml_definition);
     if ('unsupported' in parseResult) {
+      process.stderr.write(
+        `[agent] rejecting dispatch ${frame.run_id}: ${parseResult.unsupported}\n`,
+      );
       client.send({
-        type: 'error',
-        code: 'AGENT_UNSUPPORTED_TASK',
-        message: parseResult.unsupported,
-        close: false,
+        type: 'result',
+        run_id: frame.run_id,
+        exit_code: -1,
+        duration_ms: 0,
       });
       return;
     }
