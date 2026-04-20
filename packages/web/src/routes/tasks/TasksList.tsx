@@ -23,7 +23,9 @@ export function TasksList() {
         <h1 className="text-2xl font-semibold">Tasks</h1>
         {/* biome-ignore lint/a11y/useValidAriaRole: RoleGate.role is a business role prop, not ARIA */}
         <RoleGate role="member" tooltip="Viewers cannot create tasks">
-          <Button size="sm">New Task</Button>
+          <Link to="/tasks/new">
+            <Button size="sm">New Task</Button>
+          </Link>
         </RoleGate>
       </div>
       <Table>

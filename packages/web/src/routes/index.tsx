@@ -14,6 +14,7 @@ import { RootLayout, rootLoader } from './RootLayout.js';
 import { RunDetail } from './runs/RunDetail.js';
 import { OrgSettings } from './settings/OrgSettings.js';
 import { PluginSettings } from './settings/PluginSettings.js';
+import { TaskCreate } from './tasks/TaskCreate.js';
 import { TaskEditor } from './tasks/TaskEditor.js';
 import { TasksList } from './tasks/TasksList.js';
 import { TaskTrigger } from './tasks/TaskTrigger.js';
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/agents" replace /> },
       { path: 'agents', element: <AgentsList /> },
       { path: 'tasks', element: <TasksList /> },
+      { path: 'tasks/new', element: <TaskCreate /> },
       { path: 'tasks/:id/edit', element: <TaskEditor /> },
       { path: 'tasks/:id/trigger', element: <TaskTrigger /> },
       { path: 'runs/:id', element: <RunDetail /> },

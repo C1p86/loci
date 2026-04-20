@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPatch } from '../lib/api.js';
+import { apiGet, apiPatch, apiPost } from '../lib/api.js';
 import type { Task, TaskDetail } from '../lib/types.js';
 import { useAuthStore } from '../stores/authStore.js';
 
@@ -30,5 +30,19 @@ export function useUpdateTask(taskId: string) {
       qc.invalidateQueries({ queryKey: ['tasks', 'list', orgId] });
       qc.invalidateQueries({ queryKey: ['tasks', 'detail', orgId, taskId] });
     },
+  });
+}
+
+export function useCreateTask() {
+  const qc = useQueryClient();
+  const orgId = useAuthStore((s) => s.org?.id);
+  return useMutation({
+    mutationFn: (body: {
+      name: string;
+      description?: string;
+      yamlDefinition: string;
+      labelRequirements?: string[];
+    }) => apiPost<{ id: string }>(`/api/orgs/${orgId}/tasks`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', 'list', orgId] }),
   });
 }
