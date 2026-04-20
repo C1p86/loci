@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
+import { buildEmailLink } from '../../email/link.js';
 import { inviteTemplate } from '../../email/templates/invite.js';
 import { inviteRevokedTemplate } from '../../email/templates/invite-revoked.js';
 import { roleChangedTemplate } from '../../email/templates/role-changed.js';
@@ -66,8 +67,10 @@ export const invitesRoute: FastifyPluginAsync = async (fastify) => {
         role: req.body.role,
       });
 
-      const base = fastify.config.APP_BASE_URL ?? `https://${req.headers.host ?? 'localhost'}`;
-      const link = `${base}/invites/${encodeURIComponent(created.token)}/accept`;
+      const link = buildEmailLink(
+        { appBaseUrl: fastify.config.APP_BASE_URL, headerHost: req.headers.host },
+        `/invites/${encodeURIComponent(created.token)}`,
+      );
       const tpl = inviteTemplate({
         link,
         orgName: org.name,

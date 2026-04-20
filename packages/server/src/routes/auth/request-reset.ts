@@ -41,9 +41,7 @@ export const requestResetRoute: FastifyPluginAsync = async (fastify) => {
         const pr = await repos.admin.createPasswordReset({ userId: user.id });
         const link = buildEmailLink(
           { appBaseUrl: fastify.config.APP_BASE_URL, headerHost: req.headers.host },
-          '/reset',
-          'token',
-          pr.token,
+          `/reset-password/${encodeURIComponent(pr.token)}`,
         );
         const tpl = passwordResetTemplate({ link, email: user.email });
         try {
