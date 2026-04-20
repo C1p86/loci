@@ -105,9 +105,8 @@ export interface WebhookTokenRow {
 }
 
 export interface CreateTokenResponse {
-  ok: true;
-  tokenId: string;
-  plaintextToken: string;
+  id: string;
+  plaintext: string;
   endpointUrl: string;
 }
 

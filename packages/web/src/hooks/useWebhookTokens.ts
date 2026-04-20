@@ -8,7 +8,7 @@ export function useWebhookTokens() {
   return useQuery({
     queryKey: ['webhookTokens', orgId],
     queryFn: () =>
-      apiGet<{ ok: true; tokens: WebhookTokenRow[] }>(`/api/orgs/${orgId}/webhook-tokens`).then(
+      apiGet<{ tokens: WebhookTokenRow[] }>(`/api/orgs/${orgId}/webhook-tokens`).then(
         (r) => r.tokens,
       ),
     enabled: !!orgId,
