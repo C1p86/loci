@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
 import { AgentModeArgsError } from '../errors.js';
-import { tokenize } from '../commands/tokenize.js';
+import { parseYaml } from '../dsl/index.js';
 import { AgentClient } from './client.js';
 import {
   credentialPath,
@@ -128,43 +128,39 @@ function loadLocalSecrets(cwd: string): Record<string, string> {
 
 /**
  * Parse yaml_definition string into argv.
- * Returns null if the YAML represents a sequence/parallel (unsupported).
+ * Consumes the shared DSL parser so the agent sees exactly what the server validated on save.
+ * Agent supports SINGLE-ALIAS tasks with kind=single only.
  */
 function parseYamlToArgv(
   yamlDef: string,
 ): { argv: readonly string[] } | { unsupported: string } {
-  let parsed: unknown;
-  try {
-    parsed = parse(yamlDef);
-  } catch {
-    // Treat as raw string command
-    parsed = yamlDef;
+  const result = parseYaml(yamlDef);
+  if (result.errors.length > 0) {
+    const first = result.errors[0];
+    return { unsupported: `invalid task YAML: ${first ? first.message : 'unknown parse error'}` };
   }
-
-  if (typeof parsed === 'string') {
-    // "echo hello" → tokenize
-    const argv = tokenize(parsed, '<dispatched>');
-    if (argv.length === 0) return { unsupported: 'empty command string' };
-    return { argv };
+  if (result.commands.size === 0) {
+    return { unsupported: 'task YAML has no alias defined' };
   }
-
-  if (Array.isArray(parsed)) {
-    // ["node", "-e", "..."] — all elements must be strings
-    if (parsed.every((x) => typeof x === 'string')) {
-      return { argv: parsed as string[] };
-    }
-    return { unsupported: 'array contains non-string elements' };
-  }
-
-  if (typeof parsed === 'object' && parsed !== null) {
-    // Object shape: sequence/parallel — not supported in Phase 10
+  if (result.commands.size > 1) {
     return {
-      unsupported:
-        'sequence/parallel task dispatch not supported in Phase 10; use a single-command yaml_definition',
+      unsupported: `task YAML has ${result.commands.size} aliases — agent runs single-alias tasks only`,
     };
   }
-
-  return { unsupported: `unexpected yaml_definition type: ${typeof parsed}` };
+  const entry = result.commands.entries().next().value;
+  if (!entry) {
+    return { unsupported: 'task YAML has no alias defined' };
+  }
+  const [aliasName, def] = entry;
+  if (def.kind !== 'single') {
+    return {
+      unsupported: `alias '${aliasName}' is kind=${def.kind} — agent supports kind=single only`,
+    };
+  }
+  if (def.cmd.length === 0) {
+    return { unsupported: `alias '${aliasName}' has empty cmd` };
+  }
+  return { argv: def.cmd };
 }
 
 export async function runAgent(argv: readonly string[]): Promise<number> {

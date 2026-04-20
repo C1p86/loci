@@ -170,12 +170,12 @@ async function spawnAgent(opts: {
 }
 
 // -------------------------------------------------------------------------
-// Test 1: dispatch happy path — string command
+// Test 1: dispatch happy path — single-alias (string cmd)
 // -------------------------------------------------------------------------
-it('dispatch: string yaml_definition → state:running + log_chunk(stdout) + result exit_code=0', async () => {
+it('dispatch: single-alias yaml_definition (string cmd) → state:running + log_chunk(stdout) + result exit_code=0', async () => {
   const { server: srv } = await spawnAgent({ authenticate: true });
 
-  srv.send(makeDispatchFrame('run-1', 'echo hello'));
+  srv.send(makeDispatchFrame('run-1', 'hello:\n  cmd: echo hello'));
 
   const resultFrames = await srv.waitFrames(1, (f) => f.type === 'result');
   expect(resultFrames.length).toBeGreaterThanOrEqual(1);
@@ -195,13 +195,15 @@ it('dispatch: string yaml_definition → state:running + log_chunk(stdout) + res
 }, 15_000);
 
 // -------------------------------------------------------------------------
-// Test 2: argv array yaml_definition
+// Test 2: argv array yaml_definition (single-alias, array cmd)
 // -------------------------------------------------------------------------
-it('dispatch: array yaml_definition → parsed as argv → exit_code=0', async () => {
+it('dispatch: single-alias yaml_definition (array cmd) → parsed as argv → exit_code=0', async () => {
   const { server: srv } = await spawnAgent({ authenticate: true });
 
-  // YAML array serialized as a string (since yaml_definition is a string field)
-  srv.send(makeDispatchFrame('run-2', '["node", "-e", "console.log(1)"]'));
+  // Single-alias with array cmd form
+  srv.send(
+    makeDispatchFrame('run-2', 'run:\n  cmd:\n    - node\n    - -e\n    - console.log(1)'),
+  );
 
   const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-2');
   expect(results.length).toBeGreaterThanOrEqual(1);
@@ -209,14 +211,14 @@ it('dispatch: array yaml_definition → parsed as argv → exit_code=0', async (
 }, 15_000);
 
 // -------------------------------------------------------------------------
-// Test 3: unsupported sequence/parallel task
+// Test 3: unsupported multi-alias task
 // -------------------------------------------------------------------------
-it('dispatch: sequence yaml → result frame with exit_code=-1 (unsupported)', async () => {
+it('dispatch: multi-alias yaml → result frame with exit_code=-1 (unsupported)', async () => {
   const { server: srv } = await spawnAgent({ authenticate: true });
 
-  // A YAML object with a 'run' array key — signals sequence to the handler
-  const sequenceYaml = 'run:\n  - echo step1\n  - echo step2';
-  srv.send(makeDispatchFrame('run-3', sequenceYaml));
+  // Multi-alias YAML — two top-level aliases, unsupported (single-alias only)
+  const multiAliasYaml = 'a:\n  cmd: echo a\nb:\n  cmd: echo b';
+  srv.send(makeDispatchFrame('run-3', multiAliasYaml));
 
   const results = await srv.waitFrames(
     1,
@@ -236,13 +238,18 @@ it('dispatch: at max concurrency → result frame with exit_code=-1 (reject)', a
   const { server: srv } = await spawnAgent({ authenticate: true, maxConcurrent: 1 });
 
   // First dispatch: long running
-  srv.send(makeDispatchFrame('run-cap-1', 'node -e "setTimeout(()=>{},10000)"'));
+  srv.send(
+    makeDispatchFrame(
+      'run-cap-1',
+      'run:\n  cmd:\n    - node\n    - -e\n    - setTimeout(()=>{},10000)',
+    ),
+  );
 
   // Wait for state:running ack before sending second
   await srv.waitFrames(1, (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-cap-1');
 
   // Second dispatch while first still running
-  srv.send(makeDispatchFrame('run-cap-2', 'echo second'));
+  srv.send(makeDispatchFrame('run-cap-2', 'run:\n  cmd: echo second'));
 
   const rejects = await srv.waitFrames(
     1,
@@ -262,7 +269,7 @@ it('dispatch: draining state → result frame with exit_code=-1 (reject)', async
   srv.send({ type: 'state', state: 'draining' });
   await new Promise((r) => setTimeout(r, 200));
 
-  srv.send(makeDispatchFrame('run-drain', 'echo should-not-run'));
+  srv.send(makeDispatchFrame('run-drain', 'run:\n  cmd: echo should-not-run'));
 
   const rejects = await srv.waitFrames(
     1,
@@ -279,7 +286,12 @@ it('cancel: kills running task → result frame with cancelled=true', async () =
   const { server: srv } = await spawnAgent({ authenticate: true });
 
   // Dispatch a long task
-  srv.send(makeDispatchFrame('run-cancel', 'node -e "setTimeout(()=>{},30000)"'));
+  srv.send(
+    makeDispatchFrame(
+      'run-cancel',
+      'run:\n  cmd:\n    - node\n    - -e\n    - setTimeout(()=>{},30000)',
+    ),
+  );
 
   // Wait for state:running ack
   await srv.waitFrames(1, (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-cancel');
@@ -324,7 +336,8 @@ it('SEC-06: agent-local secrets win over dispatched params on collision', async 
 
   try {
     // Dispatch with params that would be overridden by local secrets
-    const echoScript = `node -e "process.stdout.write(process.env.LOCAL_KEY || 'missing')"`;
+    const echoScript =
+      'run:\n  cmd:\n    - node\n    - -e\n    - "process.stdout.write(process.env.LOCAL_KEY || \'missing\')"';
     srv.send(
       makeDispatchFrame('run-sec06', echoScript, {
         LOCAL_KEY: 'remote_value',
@@ -357,7 +370,8 @@ it('SEC-06: missing .xci/secrets.yml does not error — dispatched params pass t
   // No secrets file in tmpDir
   const { server: srv } = await spawnAgent({ authenticate: true });
 
-  const echoScript = `node -e "process.stdout.write(process.env.X || 'missing')"`;
+  const echoScript =
+    'run:\n  cmd:\n    - node\n    - -e\n    - "process.stdout.write(process.env.X || \'missing\')"';
   srv.send(makeDispatchFrame('run-nosecrets', echoScript, { X: 'y' }));
 
   await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-nosecrets');
@@ -376,7 +390,12 @@ it('goodbye: sent on SIGTERM includes running_runs for active dispatches', async
   const { server: srv } = await spawnAgent({ authenticate: true });
 
   // Dispatch a long task
-  srv.send(makeDispatchFrame('run-goodbye', 'node -e "setTimeout(()=>{},30000)"'));
+  srv.send(
+    makeDispatchFrame(
+      'run-goodbye',
+      'run:\n  cmd:\n    - node\n    - -e\n    - setTimeout(()=>{},30000)',
+    ),
+  );
   await srv.waitFrames(1, (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-goodbye');
 
   // Send SIGTERM to the agent process (via process.kill from runAgent's perspective)
@@ -400,7 +419,12 @@ it('reconnect: includes running_runs for active runs', async () => {
   const { server: srv } = await spawnAgent({ authenticate: true });
 
   // Dispatch a long task
-  srv.send(makeDispatchFrame('run-reconnect', 'node -e "setTimeout(()=>{},30000)"'));
+  srv.send(
+    makeDispatchFrame(
+      'run-reconnect',
+      'run:\n  cmd:\n    - node\n    - -e\n    - setTimeout(()=>{},30000)',
+    ),
+  );
   await srv.waitFrames(1, (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-reconnect');
 
   // Force reconnect by having server close the connection
@@ -436,9 +460,11 @@ it('--max-concurrent: parsed correctly; 3 dispatches accepted with maxConcurrent
   const { server: srv } = await spawnAgent({ authenticate: true, maxConcurrent: 3 });
 
   // Send 3 long tasks
-  srv.send(makeDispatchFrame('run-mc-1', 'node -e "setTimeout(()=>{},15000)"'));
-  srv.send(makeDispatchFrame('run-mc-2', 'node -e "setTimeout(()=>{},15000)"'));
-  srv.send(makeDispatchFrame('run-mc-3', 'node -e "setTimeout(()=>{},15000)"'));
+  const longYaml =
+    'run:\n  cmd:\n    - node\n    - -e\n    - setTimeout(()=>{},15000)';
+  srv.send(makeDispatchFrame('run-mc-1', longYaml));
+  srv.send(makeDispatchFrame('run-mc-2', longYaml));
+  srv.send(makeDispatchFrame('run-mc-3', longYaml));
 
   // Wait for 3 state:running acks
   const acks = await srv.waitFrames(3, (f) => f.type === 'state', 10_000);
