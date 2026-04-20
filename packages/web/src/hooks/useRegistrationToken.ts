@@ -17,6 +17,6 @@ export function useCreateRegistrationToken() {
   const orgId = useAuthStore((s) => s.org?.id);
   return useMutation({
     mutationFn: () =>
-      apiPost<RegistrationTokenResponse>(`/api/orgs/${orgId}/agent-tokens`),
+      apiPost<RegistrationTokenResponse>(`/api/orgs/${orgId}/agent-tokens`, {}),
   });
 }
