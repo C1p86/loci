@@ -10,7 +10,7 @@ import { extractPlaceholders } from '../../lib/yaml-placeholders.js';
 
 /**
  * UI-04 partial: Trigger form with auto-detected placeholder fields.
- * D-24: placeholders extracted from task.yaml_definition via extractPlaceholders.
+ * D-24: placeholders extracted from task.yamlDefinition via extractPlaceholders.
  * D-25: server missingParams warning shown as non-blocking banner.
  * RoleGate: Viewer sees Trigger button disabled (UI-10).
  */
@@ -24,7 +24,7 @@ export function TaskTrigger() {
 
   if (!task) return <div>Loading...</div>;
 
-  const placeholders = extractPlaceholders(task.yaml_definition);
+  const placeholders = extractPlaceholders(task.yamlDefinition);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

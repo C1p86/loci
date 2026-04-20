@@ -57,7 +57,7 @@ export interface Task {
 }
 
 export interface TaskDetail extends Task {
-  yaml_definition: string;
+  yamlDefinition: string;
   trigger_configs: unknown[];
 }
 

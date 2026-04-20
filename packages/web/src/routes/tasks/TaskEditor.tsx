@@ -40,13 +40,13 @@ export function TaskEditor() {
   const [diffOpen, setDiffOpen] = useState(false);
 
   useEffect(() => {
-    if (task) setValue(task.yaml_definition);
+    if (task) setValue(task.yamlDefinition);
   }, [task]);
 
   async function save() {
     setMarkers([]);
     try {
-      await update.mutateAsync({ yaml_definition: value });
+      await update.mutateAsync({ yamlDefinition: value });
     } catch (err) {
       if (err instanceof ApiError && err.status === 400 && err.code === 'TASK_VALIDATION_FAILED') {
         const errs = (err.details as { errors?: ValidationError[] })?.errors ?? [];
@@ -66,7 +66,7 @@ export function TaskEditor() {
 
   if (isLoading || !task) return <div>Loading...</div>;
 
-  const dirty = value !== task.yaml_definition;
+  const dirty = value !== task.yamlDefinition;
 
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)]">
@@ -126,7 +126,7 @@ export function TaskEditor() {
           <DialogHeader>
             <DialogTitle>Review changes</DialogTitle>
           </DialogHeader>
-          <MonacoYamlDiffEditor original={task.yaml_definition} modified={value} />
+          <MonacoYamlDiffEditor original={task.yamlDefinition} modified={value} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setDiffOpen(false)}>
               Cancel

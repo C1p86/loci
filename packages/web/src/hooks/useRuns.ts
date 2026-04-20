@@ -4,7 +4,7 @@ import type { RunState, RunSummary } from '../lib/types.js';
 import { useAuthStore } from '../stores/authStore.js';
 
 interface RunDetail extends RunSummary {
-  task: { id: string; name: string; yaml_definition: string };
+  task: { id: string; name: string; yamlDefinition: string };
 }
 
 const TERMINAL_STATES: RunState[] = ['succeeded', 'failed', 'cancelled', 'timed_out', 'orphaned'];
