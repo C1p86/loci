@@ -219,7 +219,7 @@ const dispatcherPluginImpl: FastifyPluginAsync = async (fastify) => {
 export const dispatcherPlugin = fp(dispatcherPluginImpl, {
   fastify: '5',
   name: 'dispatcher',
-  dependencies: ['db', 'websocket'],
+  dependencies: ['db-plugin', '@fastify/websocket'],
 });
 
 // ---- Fastify type augmentation -------------------------------------------
