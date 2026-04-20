@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 Phase: 14 (Docker & Publishing) — COMPLETE
 Plan: 4 of 4
 Next: v2.1 planning (post-v2.0 triage of Deferred/Future requirements — FUT-01..10)
-Last activity: 2026-04-20 - Completed quick task 260420-j4r: Auto-cleanup ghost cancel frames with synthetic result reply
+Last activity: 2026-04-20 - Completed quick task 260420-k6m: Fix agent dispatch-reject crash + log all WS frames
 
 Progress (Phase 14): [██████████] 100% (4/4 plans)
 Progress (v2.0 milestone): [██████████] 100% (14/14 phases complete: 01-05 (v1.0), 06, 07, 08, 09, 10, 11, 12, 13, 14)
@@ -387,6 +387,7 @@ None
 | 260420-hcc | Fix web dashboard — Tailwind tokens, agent PATCH endpoints, persistent token button | 2026-04-20 | 7e04b8b | [260420-hcc-fix-web-dashboard-tailwind-tokens-agent-](./quick/260420-hcc-fix-web-dashboard-tailwind-tokens-agent-/) |
 | 260420-hzy | Wire New Task flow + fix yamlDefinition camelCase mismatch | 2026-04-20 | ba692ce | [260420-hzy-wire-new-task-flow-fix-yamldefinition-ca](./quick/260420-hzy-wire-new-task-flow-fix-yamldefinition-ca/) |
 | 260420-j4r | Auto-cleanup ghost cancel frames with synthetic result reply | 2026-04-20 | 63f4ab1 | [260420-j4r-auto-cleanup-ghost-cancel-frames-with-sy](./quick/260420-j4r-auto-cleanup-ghost-cancel-frames-with-sy/) |
+| 260420-k6m | Fix agent dispatch-reject crash + log all WS frames | 2026-04-20 | e14a45a | [260420-k6m-fix-agent-dispatch-reject-crash-log-all-](./quick/260420-k6m-fix-agent-dispatch-reject-crash-log-all-/) |
 
 ## Session Continuity
 
