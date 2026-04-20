@@ -7,8 +7,7 @@ export function useTasks() {
   const orgId = useAuthStore((s) => s.org?.id);
   return useQuery({
     queryKey: ['tasks', 'list', orgId],
-    queryFn: () =>
-      apiGet<{ ok: true; tasks: Task[] }>(`/api/orgs/${orgId}/tasks`).then((r) => r.tasks),
+    queryFn: () => apiGet<Task[]>(`/api/orgs/${orgId}/tasks`),
     enabled: !!orgId,
   });
 }
@@ -17,10 +16,7 @@ export function useTask(taskId: string | undefined) {
   const orgId = useAuthStore((s) => s.org?.id);
   return useQuery({
     queryKey: ['tasks', 'detail', orgId, taskId],
-    queryFn: () =>
-      apiGet<{ ok: true; task: TaskDetail }>(`/api/orgs/${orgId}/tasks/${taskId}`).then(
-        (r) => r.task,
-      ),
+    queryFn: () => apiGet<TaskDetail>(`/api/orgs/${orgId}/tasks/${taskId}`),
     enabled: !!orgId && !!taskId,
   });
 }
