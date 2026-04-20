@@ -324,6 +324,16 @@ export function makeAdminRepo(db: PostgresJsDatabase) {
     },
 
     /**
+     * Remove a member from an org. Owner membership cannot be removed (enforced via role check
+     * in the route layer before calling this). Deletes the org_members row for (orgId, userId).
+     */
+    async removeMember(params: { orgId: string; userId: string }): Promise<void> {
+      await db
+        .delete(orgMembers)
+        .where(and(eq(orgMembers.orgId, params.orgId), eq(orgMembers.userId, params.userId)));
+    },
+
+    /**
      * Mark an invite as accepted cross-org (invitee is not yet a member when accepting).
      * Uses conditional WHERE so only an unaccepted, unrevoked, unexpired invite is touched.
      */

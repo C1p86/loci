@@ -22,7 +22,12 @@ export function makeUsersRepo(db: PostgresJsDatabase, orgId: string) {
     },
     async listMembers() {
       return db
-        .select({ user: users, role: orgMembers.role })
+        .select({
+          user: users,
+          role: orgMembers.role,
+          membershipId: orgMembers.id,
+          membershipCreatedAt: orgMembers.createdAt,
+        })
         .from(users)
         .innerJoin(orgMembers, eq(orgMembers.userId, users.id))
         .where(eq(orgMembers.orgId, orgId));

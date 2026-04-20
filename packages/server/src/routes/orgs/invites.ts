@@ -153,6 +153,48 @@ export const invitesRoute: FastifyPluginAsync = async (fastify) => {
 };
 
 export const membersRoute: FastifyPluginAsync = async (fastify) => {
+  // GET /api/orgs/:orgId/members — list all org members (any role)
+  fastify.get<{ Params: { orgId: string } }>(
+    '/:orgId/members',
+    {
+      preHandler: [fastify.requireAuth],
+    },
+    async (req, _reply) => {
+      const urlOrgId = (req.params as { orgId: string }).orgId;
+      if (!req.org) throw new SessionRequiredError();
+      if (req.org.id !== urlOrgId) throw new OrgMembershipRequiredError(urlOrgId);
+
+      const repos = makeRepos(fastify.db, fastify.mek);
+      const rows = await repos.forOrg(urlOrgId).users.listMembers();
+      return rows.map((r) => ({
+        id: r.membershipId,
+        userId: r.user.id,
+        email: r.user.email,
+        role: r.role,
+        createdAt: r.membershipCreatedAt.toISOString(),
+      }));
+    },
+  );
+
+  // DELETE /api/orgs/:orgId/members/:memberId — owner removes a member
+  fastify.delete<{ Params: { orgId: string; memberId: string } }>(
+    '/:orgId/members/:memberId',
+    {
+      onRequest: [fastify.csrfProtection],
+      preHandler: [fastify.requireAuth],
+    },
+    async (req, reply) => {
+      requireOwnerAndOrgMatch(req);
+      const orgId = req.org?.id;
+      if (!orgId) throw new SessionRequiredError();
+
+      const repos = makeRepos(fastify.db, fastify.mek);
+      await repos.admin.removeMember({ orgId, userId: req.params.memberId });
+
+      return reply.status(204).send();
+    },
+  );
+
   // PATCH /api/orgs/:orgId/members/:userId — change member role
   fastify.patch<{ Params: { orgId: string; userId: string }; Body: ChangeRoleBody }>(
     '/:orgId/members/:userId',
