@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { readFile, writeFile } from 'node:fs/promises';
 import { defineConfig } from 'tsup';
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: string };
@@ -39,6 +40,22 @@ export default defineConfig([
       if (context.format === 'esm') {
         options.external = [...(options.external ?? []), './agent/index.js'];
       }
+    },
+    // Post-build rewrite: tsup emits a flat layout (`dist/cli.mjs` + `dist/agent.mjs`),
+    // but the source preserves the TypeScript-style specifier `./agent/index.js` in
+    // `await import('./agent/index.js')` (kept literal by the `esbuildOptions` external
+    // above so agent code is NOT inlined into cli.mjs — Phase 8 Pitfall 6). At runtime
+    // Node resolves that path relative to `dist/cli.mjs` and finds nothing, throwing
+    // ERR_MODULE_NOT_FOUND. We rewrite the exact quoted literal to the sibling bundle
+    // specifier so `xci --agent` works in published installs. `replaceAll` with a plain
+    // string argument treats dots as literal characters — zero regex escape risk.
+    async onSuccess() {
+      const source = await readFile('./dist/cli.mjs', 'utf8');
+      const transformed = source
+        .replaceAll("'./agent/index.js'", "'./agent.mjs'")
+        .replaceAll('"./agent/index.js"', '"./agent.mjs"');
+      await writeFile('./dist/cli.mjs', transformed, 'utf8');
+      process.stderr.write('[tsup] rewrote ./agent/index.js → ./agent.mjs in dist/cli.mjs\n');
     },
     clean: true,
     dts: false,
