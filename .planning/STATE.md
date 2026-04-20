@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 Phase: 14 (Docker & Publishing) — COMPLETE
 Plan: 4 of 4
 Next: v2.1 planning (post-v2.0 triage of Deferred/Future requirements — FUT-01..10)
-Last activity: 2026-04-20 - Completed quick task 260420-ktf: Agent supports single-alias DSL tasks via shared parseYaml
+Last activity: 2026-04-20 - Completed quick task 260420-l9i: LogViewer fetches log history via WS for terminal runs
 
 Progress (Phase 14): [██████████] 100% (4/4 plans)
 Progress (v2.0 milestone): [██████████] 100% (14/14 phases complete: 01-05 (v1.0), 06, 07, 08, 09, 10, 11, 12, 13, 14)
@@ -389,6 +389,7 @@ None
 | 260420-j4r | Auto-cleanup ghost cancel frames with synthetic result reply | 2026-04-20 | 63f4ab1 | [260420-j4r-auto-cleanup-ghost-cancel-frames-with-sy](./quick/260420-j4r-auto-cleanup-ghost-cancel-frames-with-sy/) |
 | 260420-k6m | Fix agent dispatch-reject crash + log all WS frames | 2026-04-20 | e14a45a | [260420-k6m-fix-agent-dispatch-reject-crash-log-all-](./quick/260420-k6m-fix-agent-dispatch-reject-crash-log-all-/) |
 | 260420-ktf | Agent supports single-alias DSL tasks via shared parseYaml | 2026-04-20 | 7db492d | [260420-ktf-agent-supports-single-alias-dsl-tasks-vi](./quick/260420-ktf-agent-supports-single-alias-dsl-tasks-vi/) |
+| 260420-l9i | LogViewer fetches log history via WS for terminal runs | 2026-04-20 | 99ef099 | [260420-l9i-logviewer-fetches-log-history-via-ws-for](./quick/260420-l9i-logviewer-fetches-log-history-via-ws-for/) |
 
 ## Session Continuity
 
