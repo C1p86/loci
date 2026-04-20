@@ -231,7 +231,7 @@ export const registrationTokens = pgTable(
     index('registration_tokens_org_idx').on(t.orgId),
     index('registration_tokens_active_idx')
       .on(t.orgId)
-      .where(sql`consumed_at IS NULL AND expires_at > now()`),
+      .where(sql`consumed_at IS NULL`),
   ],
 );
 

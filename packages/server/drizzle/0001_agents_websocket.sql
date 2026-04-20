@@ -38,4 +38,4 @@ CREATE UNIQUE INDEX "agent_credentials_one_active_per_agent" ON "agent_credentia
 CREATE INDEX "agent_credentials_org_agent_idx" ON "agent_credentials" USING btree ("org_id","agent_id");--> statement-breakpoint
 CREATE INDEX "agents_org_state_idx" ON "agents" USING btree ("org_id","state");--> statement-breakpoint
 CREATE INDEX "registration_tokens_org_idx" ON "registration_tokens" USING btree ("org_id");--> statement-breakpoint
-CREATE INDEX "registration_tokens_active_idx" ON "registration_tokens" USING btree ("org_id") WHERE consumed_at IS NULL AND expires_at > now();
+CREATE INDEX "registration_tokens_active_idx" ON "registration_tokens" USING btree ("org_id") WHERE consumed_at IS NULL;
