@@ -2,6 +2,7 @@ import { CopyableCommand } from '../../components/CopyableCommand.js';
 import { RoleGate } from '../../components/RoleGate.js';
 import { Button } from '../../components/ui/button.js';
 import { useCreateRegistrationToken } from '../../hooks/useRegistrationToken.js';
+import { buildAgentWsUrl } from '../../lib/agentUrl.js';
 
 /**
  * UI-09 / SC-2: First-run empty state shown when no agents are registered.
@@ -9,10 +10,13 @@ import { useCreateRegistrationToken } from '../../hooks/useRegistrationToken.js'
  */
 export function AgentsEmptyState() {
   const mut = useCreateRegistrationToken();
-  // Use VITE_API_URL if set (dev proxy override), else window.location.origin
-  const serverUrl = (import.meta.env.VITE_API_URL as string | undefined) ?? window.location.origin;
+  // Use VITE_API_URL if set (dev proxy override), else window.location.origin,
+  // then normalize to the canonical WS URL the xci agent connects to.
+  const origin =
+    (import.meta.env.VITE_API_URL as string | undefined) ?? window.location.origin;
+  const agentWsUrl = buildAgentWsUrl(origin);
 
-  const command = mut.data ? `xci --agent ${serverUrl} --token ${mut.data.token}` : null;
+  const command = mut.data ? `xci --agent ${agentWsUrl} --token ${mut.data.token}` : null;
 
   return (
     <div className="max-w-2xl mx-auto mt-16 p-6 border rounded-lg bg-card">

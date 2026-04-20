@@ -81,7 +81,9 @@ describe('AgentsEmptyState', () => {
     render(<AgentsEmptyState />);
     await waitFor(() => {
       expect(
-        screen.getByText(/xci --agent https:\/\/app\.example\.com --token SECRET-TOKEN-123/),
+        screen.getByText(
+          /xci --agent wss:\/\/app\.example\.com\/ws\/agent --token SECRET-TOKEN-123/,
+        ),
       ).toBeInTheDocument();
     });
   });
