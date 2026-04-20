@@ -18,6 +18,8 @@ export interface AgentClientOptions {
  */
 export class AgentClient {
   private rws: ReconnectingWebSocket;
+  private hasOpenedOnce = false;
+  private hasLoggedRetry = false;
 
   constructor(opts: AgentClientOptions) {
     this.rws = new ReconnectingWebSocket(opts.url, [], {
@@ -31,7 +33,29 @@ export class AgentClient {
       startClosed: false,
     });
 
-    this.rws.addEventListener('open', () => opts.onOpen());
+    this.rws.addEventListener('open', () => {
+      if (this.hasOpenedOnce) {
+        process.stderr.write('[agent] websocket open (reconnected)\n');
+      } else {
+        process.stderr.write('[agent] websocket open\n');
+        this.hasOpenedOnce = true;
+      }
+      // Reset so a future disconnect-reconnect cycle can re-emit the retry
+      // notice if the new attempt also fails.
+      this.hasLoggedRetry = false;
+      opts.onOpen();
+    });
+
+    this.rws.addEventListener('error', (event: Event) => {
+      // ReconnectingWebSocket's ErrorEvent may carry `.message` (bubbled from
+      // ws) or it may not. Use a structural cast + String fallback.
+      const msg = (event as { message?: string } | null)?.message ?? String(event);
+      process.stderr.write(`[agent] connect error: ${msg}\n`);
+      if (!this.hasOpenedOnce && !this.hasLoggedRetry) {
+        process.stderr.write('[agent] retrying (exponential backoff, max 30s)\n');
+        this.hasLoggedRetry = true;
+      }
+    });
 
     this.rws.addEventListener('message', (event: MessageEvent) => {
       try {
