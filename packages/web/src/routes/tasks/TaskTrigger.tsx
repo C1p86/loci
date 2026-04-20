@@ -59,9 +59,9 @@ export function TaskTrigger() {
           </div>
         ))}
 
-        {trigger.data?.missingParams && trigger.data.missingParams.length > 0 && (
+        {trigger.data?.missing_params && trigger.data.missing_params.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 p-3 rounded text-sm">
-            Server reports missing params: <code>{trigger.data.missingParams.join(', ')}</code>. If
+            Server reports missing params: <code>{trigger.data.missing_params.join(', ')}</code>. If
             the agent has local secrets for these, the run will still succeed.
           </div>
         )}
