@@ -9,6 +9,9 @@ export async function rootLoader({ request }: LoaderFunctionArgs) {
   try {
     const me = await apiGet<AuthMe>('/api/auth/me');
     useAuthStore.getState().setFromMe(me);
+    // Prime CSRF cookie + token for subsequent mutations (@fastify/csrf-protection
+    // requires a secret cookie seeded by generateCsrf before any POST/PATCH/DELETE).
+    await apiGet<{ csrfToken: string }>('/api/auth/csrf').catch(() => undefined);
     return me;
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) {
