@@ -1,4 +1,5 @@
 import ReconnectingWebSocket from 'reconnecting-websocket';
+import type { ErrorEvent } from 'reconnecting-websocket';
 import WS from 'ws';
 import type { AgentFrame } from './types.js';
 
@@ -46,10 +47,10 @@ export class AgentClient {
       opts.onOpen();
     });
 
-    this.rws.addEventListener('error', (event: Event) => {
-      // ReconnectingWebSocket's ErrorEvent may carry `.message` (bubbled from
-      // ws) or it may not. Use a structural cast + String fallback.
-      const msg = (event as { message?: string } | null)?.message ?? String(event);
+    this.rws.addEventListener('error', (event: ErrorEvent) => {
+      // ReconnectingWebSocket's ErrorEvent carries `.message` bubbled from ws;
+      // fall back to String(event) if it ever arrives without one.
+      const msg = event?.message ?? String(event);
       process.stderr.write(`[agent] connect error: ${msg}\n`);
       if (!this.hasOpenedOnce && !this.hasLoggedRetry) {
         process.stderr.write('[agent] retrying (exponential backoff, max 30s)\n');
