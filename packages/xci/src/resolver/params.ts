@@ -8,9 +8,6 @@
 import { MissingParamsError } from '../errors.js';
 import type { CommandDef, CommandMap, ParamDef } from '../types.js';
 
-/** Regex matching ${key} placeholders (same as interpolate.ts). Skips $${escaped}. */
-const PLACEHOLDER_RE = /\$\$\{[^}]+\}|\$\{([^}]+)\}/g;
-
 /** Matches a variable assignment step: KEY=VALUE. */
 const VAR_ASSIGN_RE = /^[A-Za-z_][A-Za-z0-9_.]*=/;
 
@@ -23,24 +20,65 @@ interface CollectedParam {
   requiredBy: string[];  // alias names that reference this param
 }
 
+/** Find the matching close brace for an open brace at position `open` (where text[open] === '{').
+ *  Returns -1 if unbalanced. Brace-balanced so nested ${...${...}...} resolves correctly. */
+function findMatchingClose(text: string, open: number): number {
+  let depth = 1;
+  for (let j = open + 1; j < text.length; j++) {
+    const ch = text[j];
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) return j;
+    }
+  }
+  return -1;
+}
+
+/** Find the first '|' at the top level of brace nesting inside `text`. Returns -1 if none. */
+function findTopLevelPipe(text: string): number {
+  let depth = 0;
+  for (let j = 0; j < text.length; j++) {
+    const ch = text[j];
+    if (ch === '{') depth++;
+    else if (ch === '}') depth--;
+    else if (ch === '|' && depth === 0) return j;
+  }
+  return -1;
+}
+
 /** Extract all placeholder names from a string. Strips modifiers (|map:, |join:).
- *  Handles nested placeholders: ${A.${B}|map:X} extracts B (inner) but not the unresolvable outer. */
+ *  Handles nested placeholders via brace-balanced scanning so ${A.${B}|mod} correctly
+ *  extracts only the inner 'B' (outer A.${B} is unresolvable until B is substituted). */
 function extractPlaceholders(text: string): string[] {
   const names: string[] = [];
-  // Use a fresh regex per call to avoid shared lastIndex issues with recursion
-  const re = new RegExp(PLACEHOLDER_RE.source, 'g');
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
-    if (m[1] !== undefined) {
-      const pipeIdx = m[1].indexOf('|');
-      const key = pipeIdx >= 0 ? m[1].substring(0, pipeIdx) : m[1];
-      // If key contains nested ${, extract inner placeholders instead
+  let i = 0;
+  while (i < text.length) {
+    // $${...} escape: skip the whole balanced group, no placeholder extracted
+    if (text[i] === '$' && text[i + 1] === '$' && text[i + 2] === '{') {
+      const close = findMatchingClose(text, i + 2);
+      if (close === -1) break;
+      i = close + 1;
+      continue;
+    }
+    // ${...} placeholder — use brace-balanced scan so nested ${...} survives
+    if (text[i] === '$' && text[i + 1] === '{') {
+      const close = findMatchingClose(text, i + 1);
+      if (close === -1) break; // unclosed — stop scanning; malformed input
+      const inner = text.substring(i + 2, close);
+      // Strip trailing top-level modifier: "key|mod:arg" → "key"
+      const pipeIdx = findTopLevelPipe(inner);
+      const key = pipeIdx >= 0 ? inner.substring(0, pipeIdx) : inner;
       if (key.includes('${')) {
+        // Nested: only inner placeholders extractable (outer needs inner substituted first)
         names.push(...extractPlaceholders(key));
       } else {
         names.push(key);
       }
+      i = close + 1;
+      continue;
     }
+    i++;
   }
   return names;
 }
