@@ -18,6 +18,7 @@ import { detectLabels } from './labels.js';
 import { spawnTask } from './runner.js';
 import { createAgentState } from './state.js';
 import type { AgentFrame, RunState, TaskSnapshot } from './types.js';
+import { normalizeAgentUrl } from './url.js';
 
 interface ParsedFlags {
   agent: string; // server WS URL
@@ -177,6 +178,11 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
     throw new AgentModeArgsError('--agent <url> is required');
   }
 
+  // Normalize to canonical ws(s)://host[:port]/ws/agent form.
+  // Throws AgentModeArgsError for unparseable input; propagates through
+  // the existing cli.ts catch-all that renders AgentModeArgsError.
+  const normalizedUrl = normalizeAgentUrl(flags.agent);
+
   // TOFU: --token AND credential file present → error (D-09)
   const existingCred = await loadCredential(flags.configDir);
   if (existingCred && flags.token) {
@@ -321,7 +327,7 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
         // Persist credential (ATOK-02)
         const cred: StoredCredential = {
           version: 1,
-          server_url: flags.agent,
+          server_url: normalizedUrl,
           agent_id: frame.agent_id,
           credential: frame.credential,
           registered_at: new Date().toISOString(),
@@ -409,8 +415,9 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
     // Normal close (1000) triggered by handleShutdown is handled there
   }
 
+  process.stderr.write(`[agent] connecting to ${normalizedUrl}\n`);
   client = new AgentClient({
-    url: flags.agent,
+    url: normalizedUrl,
     onOpen: handleOpen,
     onMessage: handleMessage,
     onClose: handleClose,
