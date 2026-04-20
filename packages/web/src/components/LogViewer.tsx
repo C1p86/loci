@@ -7,23 +7,19 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button } from './ui/button.js';
 
-const TERMINAL_STATES: RunState[] = ['succeeded', 'failed', 'cancelled', 'timed_out', 'orphaned'];
-
 interface LogViewerProps {
   runId: string;
   initialState: RunState;
 }
 
-export function LogViewer({ runId, initialState }: LogViewerProps) {
+export function LogViewer({ runId, initialState: _initialState }: LogViewerProps) {
   const orgId = useAuthStore((s) => s.org?.id);
   const timestampVisible = useUiStore((s) => s.logTimestampVisible);
   const setTimestampVisible = useUiStore((s) => s.setLogTimestampVisible);
   const autoscrollPaused = useUiStore((s) => s.logAutoscrollPaused);
   const setAutoscrollPaused = useUiStore((s) => s.setLogAutoscrollPaused);
 
-  const enabled = !TERMINAL_STATES.includes(initialState);
-
-  const { chunks, endState, exitCode } = useLogWebSocket({ orgId, runId, enabled });
+  const { chunks, endState, exitCode } = useLogWebSocket({ orgId, runId, enabled: true });
 
   const qc = useQueryClient();
 
