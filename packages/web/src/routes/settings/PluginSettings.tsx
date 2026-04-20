@@ -168,14 +168,14 @@ function TokenSection({
               <p className="text-sm">
                 Token created. <strong>Copy both values now — the token is shown only once.</strong>
               </p>
-              <CopyableCommand command={create.data.plaintextToken} label="Plaintext token:" />
+              <CopyableCommand command={create.data.plaintext} label="Plaintext token:" />
               <CopyableCommand
                 command={create.data.endpointUrl}
                 label="Endpoint URL (configure this in the webhook sender):"
               />
               {plugin === 'perforce' && (
                 <CopyableCommand
-                  command={`xci agent-emit-perforce-trigger ${create.data.endpointUrl} ${create.data.plaintextToken}`}
+                  command={`xci agent-emit-perforce-trigger ${create.data.endpointUrl} ${create.data.plaintext}`}
                   label="Run on the Perforce server to emit the trigger script (Node-free):"
                 />
               )}
