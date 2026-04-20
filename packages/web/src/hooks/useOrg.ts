@@ -7,8 +7,7 @@ export function useMembers() {
   const orgId = useAuthStore((s) => s.org?.id);
   return useQuery({
     queryKey: ['members', orgId],
-    queryFn: () =>
-      apiGet<{ ok: true; members: Member[] }>(`/api/orgs/${orgId}/members`).then((r) => r.members),
+    queryFn: () => apiGet<Member[]>(`/api/orgs/${orgId}/members`),
     enabled: !!orgId,
   });
 }
