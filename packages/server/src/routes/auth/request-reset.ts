@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { buildEmailLink } from '../../email/link.js';
 import { passwordResetTemplate } from '../../email/templates/password-reset.js';
 import { makeRepos } from '../../repos/index.js';
 
@@ -38,7 +39,12 @@ export const requestResetRoute: FastifyPluginAsync = async (fastify) => {
       // Always 204 — no enumeration (D-10 + T-07-06-04)
       if (user && user.emailVerifiedAt !== null) {
         const pr = await repos.admin.createPasswordReset({ userId: user.id });
-        const link = `https://${req.headers.host ?? 'localhost'}/reset?token=${encodeURIComponent(pr.token)}`;
+        const link = buildEmailLink(
+          { appBaseUrl: fastify.config.APP_BASE_URL, headerHost: req.headers.host },
+          '/reset',
+          'token',
+          pr.token,
+        );
         const tpl = passwordResetTemplate({ link, email: user.email });
         try {
           await fastify.emailTransport.send({ to: user.email, ...tpl });

@@ -66,7 +66,8 @@ export const invitesRoute: FastifyPluginAsync = async (fastify) => {
         role: req.body.role,
       });
 
-      const link = `https://${req.headers.host ?? 'localhost'}/invites/${encodeURIComponent(created.token)}/accept`;
+      const base = fastify.config.APP_BASE_URL ?? `https://${req.headers.host ?? 'localhost'}`;
+      const link = `${base}/invites/${encodeURIComponent(created.token)}/accept`;
       const tpl = inviteTemplate({
         link,
         orgName: org.name,
