@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost } from '../lib/api.js';
+import { apiGet, apiPatch, apiPost } from '../lib/api.js';
 import type { Agent } from '../lib/types.js';
 import { useAuthStore } from '../stores/authStore.js';
 
@@ -17,7 +17,7 @@ export function useAgentRename() {
   const orgId = useAuthStore((s) => s.org?.id);
   return useMutation({
     mutationFn: (args: { agentId: string; hostname: string }) =>
-      apiPost(`/api/orgs/${orgId}/agents/${args.agentId}/rename`, { hostname: args.hostname }),
+      apiPatch(`/api/orgs/${orgId}/agents/${args.agentId}`, { hostname: args.hostname }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['agents', 'list', orgId] }),
   });
 }
@@ -27,7 +27,7 @@ export function useAgentDrain() {
   const orgId = useAuthStore((s) => s.org?.id);
   return useMutation({
     mutationFn: (args: { agentId: string }) =>
-      apiPost(`/api/orgs/${orgId}/agents/${args.agentId}/drain`),
+      apiPatch(`/api/orgs/${orgId}/agents/${args.agentId}`, { state: 'draining' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['agents', 'list', orgId] }),
   });
 }
