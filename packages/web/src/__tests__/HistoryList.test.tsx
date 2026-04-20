@@ -53,7 +53,7 @@ describe('HistoryList', () => {
     vi.mocked(useRunHistory).mockImplementation(
       () =>
         ({
-          data: { ok: true as const, runs: mockRuns, nextCursor: mockNextCursor },
+          data: { runs: mockRuns, nextCursor: mockNextCursor },
           isLoading: mockIsLoading,
           error: mockError,
         }) as ReturnType<typeof useRunHistory>,
@@ -138,7 +138,7 @@ describe('HistoryList', () => {
     vi.mocked(useRunHistory).mockImplementation(
       () =>
         ({
-          data: { ok: true as const, runs: mockRuns, nextCursor: undefined },
+          data: { runs: mockRuns, nextCursor: undefined },
           isLoading: false,
           error: null,
         }) as ReturnType<typeof useRunHistory>,
@@ -155,7 +155,6 @@ describe('HistoryList', () => {
       () =>
         ({
           data: {
-            ok: true as const,
             runs: [
               {
                 id: 'run-abc123',

@@ -49,7 +49,7 @@ export function HistoryList() {
   function next() {
     if (data?.nextCursor) {
       setCursorStack((s) => [...s, filters.cursor ?? '']);
-      setFilters((f) => ({ ...f, cursor: data.nextCursor }));
+      setFilters((f) => ({ ...f, cursor: data.nextCursor ?? undefined }));
     }
   }
 
