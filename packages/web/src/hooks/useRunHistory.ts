@@ -13,9 +13,8 @@ export interface HistoryFilters {
 }
 
 interface HistoryResponse {
-  ok: true;
   runs: RunSummary[];
-  nextCursor?: string;
+  nextCursor?: string | null;
 }
 
 export function useRunHistory(filters: HistoryFilters) {
