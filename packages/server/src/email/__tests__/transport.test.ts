@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import nodemailer from 'nodemailer';
+import { describe, expect, it, vi } from 'vitest';
 import { EmailTransportError } from '../../errors.js';
 import { createTransport } from '../transport.js';
 
@@ -54,5 +55,38 @@ describe('createTransport (D-29) — smtp kind', () => {
       SMTP_PASS: 'p',
     });
     expect(typeof t.send).toBe('function');
+  });
+  it('does not configure auth when SMTP_USER is an empty string (mailhog / unauth relay)', () => {
+    const { logger } = fakeLogger();
+    const spy = vi.spyOn(nodemailer, 'createTransport');
+    try {
+      createTransport('smtp', {
+        logger,
+        SMTP_HOST: 'mailhog',
+        SMTP_FROM: 'dev@localhost',
+        SMTP_USER: '',
+        SMTP_PASS: '',
+      });
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy.mock.calls[0]?.[0]).not.toHaveProperty('auth');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+  it('configures auth when SMTP_USER is a non-empty string', () => {
+    const { logger } = fakeLogger();
+    const spy = vi.spyOn(nodemailer, 'createTransport');
+    try {
+      createTransport('smtp', {
+        logger,
+        SMTP_HOST: 'smtp.example.com',
+        SMTP_FROM: 'x@example.com',
+        SMTP_USER: 'u',
+        SMTP_PASS: 'p',
+      });
+      expect(spy.mock.calls[0]?.[0]).toHaveProperty('auth', { user: 'u', pass: 'p' });
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
