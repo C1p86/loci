@@ -282,6 +282,12 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
       env: mergedEnv,
       redactionValues,
       onChunk: (stream, data, seq) => {
+        // Echo to agent's local terminal (data is already redacted in runner.ts:161)
+        if (stream === 'stdout') {
+          process.stdout.write(data);
+        } else {
+          process.stderr.write(data);
+        }
         client?.send({
           type: 'log_chunk',
           run_id: frame.run_id,
