@@ -55,6 +55,7 @@ services:
       SMTP_PORT: "1025"
       EMAIL_TRANSPORT: smtp
       SMTP_FROM: xci-dev@localhost
+      APP_BASE_URL: http://localhost:3000
       # NODE_ENV=production is baked into the image; override to development for pino-pretty logs
       NODE_ENV: production
     ports:

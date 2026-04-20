@@ -52,6 +52,9 @@ export const envSchema = {
     // Phase 14 D-05: optional path to @xci/web dist bundle; enables @fastify/static when set.
     // When unset (default), static serving is disabled — server acts as pure API.
     WEB_STATIC_ROOT: { type: 'string' },
+    // Quick 260420-v15: optional canonical base URL for transactional email links. No trailing slash.
+    // When unset, falls back to req.headers.host (preserves existing reverse-proxy deployments).
+    APP_BASE_URL: { type: 'string', pattern: '^https?://' },
   },
   additionalProperties: false,
 } as const;
@@ -79,6 +82,8 @@ declare module 'fastify' {
       LOG_RETENTION_INTERVAL_MS: number;
       // Phase 14 D-05: optional static root for @fastify/static (set in Docker image)
       WEB_STATIC_ROOT?: string;
+      // Quick 260420-v15: optional canonical base URL for transactional email links
+      APP_BASE_URL?: string;
     };
   }
 }
