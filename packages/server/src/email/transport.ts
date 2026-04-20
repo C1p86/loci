@@ -52,7 +52,7 @@ export function createTransport(
     host: cfg.SMTP_HOST,
     port: cfg.SMTP_PORT ?? 587,
     secure: false, // STARTTLS auto-upgrade via Nodemailer
-    ...(cfg.SMTP_USER !== undefined && {
+    ...(cfg.SMTP_USER && {
       auth: { user: cfg.SMTP_USER, pass: cfg.SMTP_PASS ?? '' },
     }),
   });
