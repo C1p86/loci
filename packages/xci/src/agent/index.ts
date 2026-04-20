@@ -312,8 +312,20 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
   }): Promise<void> {
     const entry = state.runningRuns.get(frame.run_id);
     if (!entry) {
-      // Unknown run_id — stale cancel from server reconciliation, silently ignore
-      process.stderr.write(`[agent] cancel for unknown run_id ${frame.run_id} — ignored\n`);
+      // Stale cancel from a prior session — the run's result frame never reached
+      // the server (agent crashed or disconnected mid-run), so the server still
+      // has the row in dispatched/running state and its timer just fired. Reply
+      // with a synthetic cancelled result: server's handleResultFrame will CAS
+      // (['running','dispatched'] → cancelled); if the server already moved the
+      // row to a terminal state, the CAS misses and it logs debug. Either way
+      // the ghost is cleaned up — no stderr warning needed.
+      client?.send({
+        type: 'result',
+        run_id: frame.run_id,
+        exit_code: -1,
+        duration_ms: 0,
+        cancelled: true,
+      });
       return;
     }
     // Cancel triggers the runner's SIGTERM/SIGKILL sequence; runner's onExit fires
