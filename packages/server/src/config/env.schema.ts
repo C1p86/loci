@@ -28,7 +28,7 @@ export const envSchema = {
     SMTP_PORT: { type: 'integer', default: 587 },
     SMTP_USER: { type: 'string' },
     SMTP_PASS: { type: 'string' },
-    SMTP_FROM: { type: 'string', pattern: '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$' },
+    SMTP_FROM: { type: 'string', pattern: '^[^@\\s]+@[^@\\s]+$' },
     // Phase 9 D-13: 32-byte MEK base64-encoded (44 chars: 43 alphabet + '=').
     // Runtime length check (Buffer.length === 32) happens in app.ts (Pitfall 8).
     XCI_MASTER_KEY: {
@@ -40,7 +40,7 @@ export const envSchema = {
     // Phase 9 D-24: email of the single platform admin who may call POST /admin/rotate-mek.
     PLATFORM_ADMIN_EMAIL: {
       type: 'string',
-      pattern: '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$',
+      pattern: '^[^@\\s]+@[^@\\s]+$',
       minLength: 3,
       maxLength: 254,
     },
