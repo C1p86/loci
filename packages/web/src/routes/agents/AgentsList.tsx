@@ -14,6 +14,7 @@ import { useAgentRename, useAgents } from '../../hooks/useAgents.js';
 import type { Agent } from '../../lib/types.js';
 import { AgentRowActions } from './AgentRowActions.js';
 import { AgentsEmptyState } from './AgentsEmptyState.js';
+import { GenerateTokenButton } from './GenerateTokenButton.js';
 
 function StateBadge({ state, lastSeenAt }: { state: string; lastSeenAt: string | null }) {
   const color =
@@ -89,7 +90,10 @@ export function AgentsList() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-4">Agents</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-semibold">Agents</h1>
+        <GenerateTokenButton />
+      </div>
       <Table>
         <TableHeader>
           <TableRow>

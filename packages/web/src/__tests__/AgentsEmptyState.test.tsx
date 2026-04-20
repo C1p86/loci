@@ -113,4 +113,14 @@ describe('AgentsEmptyState', () => {
     render(<AgentsEmptyState />);
     expect(screen.queryByRole('button', { name: /generate registration token/i })).toBeNull();
   });
+
+  it('shows "Generate another" button after a token is generated', async () => {
+    mockMutationState = {
+      ...mockMutationState,
+      data: { ok: true, token: 'TOK-RESET-1', expiresAt: '2026-04-19T00:00:00Z' },
+    };
+    const { AgentsEmptyState } = await import('../routes/agents/AgentsEmptyState.js');
+    render(<AgentsEmptyState />);
+    expect(screen.getByRole('button', { name: /generate another/i })).toBeInTheDocument();
+  });
 });
