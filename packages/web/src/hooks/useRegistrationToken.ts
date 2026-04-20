@@ -3,7 +3,7 @@ import { apiPost } from '../lib/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 
 export interface RegistrationTokenResponse {
-  ok: true;
+  tokenId: string;
   token: string;
   expiresAt: string;
 }
@@ -17,6 +17,6 @@ export function useCreateRegistrationToken() {
   const orgId = useAuthStore((s) => s.org?.id);
   return useMutation({
     mutationFn: () =>
-      apiPost<RegistrationTokenResponse>(`/api/orgs/${orgId}/agents/registration-tokens`),
+      apiPost<RegistrationTokenResponse>(`/api/orgs/${orgId}/agent-tokens`),
   });
 }
