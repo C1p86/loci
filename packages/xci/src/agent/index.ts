@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { parse } from 'yaml';
 import { AgentModeArgsError } from '../errors.js';
 import { parseYaml } from '../dsl/index.js';
+import { printErrorLines } from '../log-errors.js';
 import { AgentClient } from './client.js';
 import {
   credentialPath,
@@ -275,6 +276,13 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
     // Send state:running ack
     client.send({ type: 'state', state: 'running', run_id: frame.run_id });
 
+    // Per-dispatch output buffer for post-mortem /error/i surfacing on non-zero exit.
+    // MUST be declared inside handleDispatch (function-scoped) — concurrent dispatches
+    // under --max-concurrent > 1 would share/corrupt a module-level buffer. The 2MB
+    // head-trim cap bounds memory for long-running producers (T-260420-lxj-03).
+    let outputBuffer = '';
+    const MAX_OUTPUT_BUFFER = 2 * 1024 * 1024; // 2MB
+
     // Spawn task
     const handle = spawnTask(frame.run_id, {
       argv: taskArgv,
@@ -282,6 +290,12 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
       env: mergedEnv,
       redactionValues,
       onChunk: (stream, data, seq) => {
+        // Buffer first (already-redacted data per runner.ts:161 — no re-redaction needed).
+        // Head-trim keeps the most recent output when a chatty producer exceeds the cap.
+        outputBuffer += data;
+        if (outputBuffer.length > MAX_OUTPUT_BUFFER) {
+          outputBuffer = outputBuffer.slice(-MAX_OUTPUT_BUFFER);
+        }
         // Echo to agent's local terminal (data is already redacted in runner.ts:161)
         if (stream === 'stdout') {
           process.stdout.write(data);
@@ -298,6 +312,12 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
         });
       },
       onExit: (exit_code, duration_ms, cancelled) => {
+        // Surface /error/i lines BEFORE cleanup + result frame so the agent operator
+        // sees the failure cause on the agent host immediately on non-zero exit.
+        if (exit_code !== 0) {
+          printErrorLines(outputBuffer, frame.run_id);
+        }
+        outputBuffer = ''; // release memory
         state.runningRuns.delete(frame.run_id);
         client?.send({
           type: 'result',

@@ -9,6 +9,7 @@ import { resolver, buildEnvVars, redactSecrets } from './resolver/index.js';
 import { validateParams, getParamNames } from './resolver/params.js';
 import { executor, printDryRun, printVerboseCommand, printVerboseTrace, buildSecretValues } from './executor/index.js';
 import { CliError, exitCodeFor, XciError, UnknownAliasError, UnknownFlagError } from './errors.js';
+import { printErrorLines } from './log-errors.js';
 import { XCI_VERSION } from './version.js';
 import type { CommandDef, CommandMap, ExecutionPlan, ResolvedConfig } from './types.js';
 import { dimPrefix } from './executor/output.js';
@@ -517,6 +518,16 @@ function registerAliases(
         : await executor.run(finalPlan, { cwd: projectRoot, env, logFile, showOutput, tailLines, fromStep });
       if (result.exitCode !== 0) {
         process.exitCode = result.exitCode;
+        // Surface error-matching lines (/error/i) BEFORE any askShowLog prompt so the
+        // operator sees what went wrong without first accepting the prompt. Always on
+        // when the command failed; no flag gates this. Silent fallback if the log file
+        // is missing/unreadable — askShowLog still offers the full log as a backup.
+        try {
+          const content = readFileSync(logFile, 'utf8');
+          printErrorLines(content, logFile);
+        } catch {
+          // intentional: missing/unreadable log file — do not disturb the flow.
+        }
         // On error, offer to show the log (if output was hidden)
         if (!showOutput) {
           const show = await askShowLog(logFile);
