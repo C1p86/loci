@@ -7,8 +7,7 @@ export function useAgents() {
   const orgId = useAuthStore((s) => s.org?.id);
   return useQuery({
     queryKey: ['agents', 'list', orgId],
-    queryFn: () =>
-      apiGet<{ ok: true; agents: Agent[] }>(`/api/orgs/${orgId}/agents`).then((r) => r.agents),
+    queryFn: () => apiGet<Agent[]>(`/api/orgs/${orgId}/agents`),
     enabled: !!orgId,
   });
 }
