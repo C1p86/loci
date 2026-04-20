@@ -42,9 +42,7 @@ export const signupRoute: FastifyPluginAsync = async (fastify) => {
       const v = await repos.admin.createEmailVerification({ userId: result.user.id });
       const verifyLink = buildEmailLink(
         { appBaseUrl: fastify.config.APP_BASE_URL, headerHost: req.headers.host },
-        '/verify-email',
-        'token',
-        v.token,
+        `/verify-email/${encodeURIComponent(v.token)}`,
       );
       const tpl = verifyEmailTemplate({ link: verifyLink, email: result.user.email });
       try {

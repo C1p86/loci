@@ -3,12 +3,7 @@ export interface BuildEmailLinkCtx {
   headerHost: string | undefined;
 }
 
-export function buildEmailLink(
-  ctx: BuildEmailLinkCtx,
-  path: string,
-  queryKey: string,
-  queryValue: string,
-): string {
+export function buildEmailLink(ctx: BuildEmailLinkCtx, path: string): string {
   const base = ctx.appBaseUrl ?? `https://${ctx.headerHost ?? 'localhost'}`;
-  return `${base}${path}?${queryKey}=${encodeURIComponent(queryValue)}`;
+  return `${base}${path}`;
 }
