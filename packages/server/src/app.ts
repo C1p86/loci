@@ -203,7 +203,7 @@ export async function buildApp(opts: BuildOpts = {}): Promise<FastifyInstance> {
       root: app.config.WEB_STATIC_ROOT,
       prefix: '/',
       wildcard: false,
-      decorateReply: false,
+      decorateReply: true,
     });
     // SPA fallback: any GET request that did not match a route and does not start with
     // /api, /ws, /hooks, /badge should serve index.html so client-side routing works.
