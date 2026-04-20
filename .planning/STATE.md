@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 Phase: 14 (Docker & Publishing) — COMPLETE
 Plan: 4 of 4
 Next: v2.1 planning (post-v2.0 triage of Deferred/Future requirements — FUT-01..10)
-Last activity: 2026-04-20 - Completed quick task 260420-mqy: Detect nested placeholders in param validator
+Last activity: 2026-04-20 - Completed quick task 260420-t6q: Fix SMTP transport empty creds
 
 Progress (Phase 14): [██████████] 100% (4/4 plans)
 Progress (v2.0 milestone): [██████████] 100% (14/14 phases complete: 01-05 (v1.0), 06, 07, 08, 09, 10, 11, 12, 13, 14)
@@ -393,6 +393,7 @@ None
 | 260420-llo | Agent echoes task stdout/stderr to local terminal | 2026-04-20 | 93be7cf | [260420-llo-agent-echoes-task-stdout-stderr-to-local](./quick/260420-llo-agent-echoes-task-stdout-stderr-to-local/) |
 | 260420-lxj | Print error lines before show-log prompt on failure | 2026-04-20 | 5b86795 | [260420-lxj-print-error-lines-before-show-log-prompt](./quick/260420-lxj-print-error-lines-before-show-log-prompt/) |
 | 260420-mqy | Detect nested placeholders in param validator | 2026-04-20 | ec737a5 | [260420-mqy-detect-nested-placeholders-in-param-vali](./quick/260420-mqy-detect-nested-placeholders-in-param-vali/) |
+| 260420-t6q | Fix SMTP transport empty creds | 2026-04-20 | b5dc145 | [260420-t6q-fix-smtp-transport-empty-creds](./quick/260420-t6q-fix-smtp-transport-empty-creds/) |
 
 ## Session Continuity
 
