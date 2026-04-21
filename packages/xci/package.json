@@ -28,6 +28,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "dev": "tsup --watch",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "test": "vitest run",
@@ -35,7 +36,8 @@
     "typecheck": "tsc --noEmit",
     "smoke": "node dist/cli.mjs --version",
     "size-limit": "size-limit",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm build",
+    "install-local": "pnpm build && npm install -g ."
   },
   "dependencies": {
     "commander": "14.0.3",
