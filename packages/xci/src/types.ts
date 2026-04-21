@@ -82,7 +82,7 @@ export type CommandDef =
   | {
       readonly kind: 'for_each';
       readonly var: string;                    // loop variable name
-      readonly in: readonly string[];          // values to iterate over
+      readonly in: readonly string[] | string; // values to iterate over — array of strings OR a single "${VAR}" placeholder (CSV-split at resolve time)
       readonly mode: 'steps' | 'parallel';     // sequential or parallel execution
       readonly cmd?: readonly string[];        // inline command (uses ${var})
       readonly run?: string;                   // alias reference

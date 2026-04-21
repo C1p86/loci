@@ -245,6 +245,22 @@ build-single:
   cmd: ["npm", "run", "build:${platform}"]
 ```
 
+You can also pass the list dynamically via a CLI param or config value. The string must contain at least one `${...}` placeholder; at resolve time it is CSV-split on `,`, entries are trimmed, and empties are dropped.
+
+```yaml
+# Dynamic list via CLI param or config — CSV string split at resolve time
+deploy-fleet:
+  for_each:
+    var: region
+    in: "${regions}"
+    mode: steps
+    cmd: ["aws", "deploy", "--region", "${region}"]
+```
+
+```bash
+xci deploy-fleet regions=eu-west-1,us-east-1,ap-northeast-1
+```
+
 ### Split Commands Across Files
 
 Put YAML files in `.xci/commands/` to organize aliases by area. Subdirectories are scanned recursively.

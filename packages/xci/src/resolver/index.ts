@@ -15,6 +15,11 @@ export { interpolateArgv } from './interpolate.js';
 /** Matches a variable assignment step: KEY=VALUE (no spaces around =). */
 const VAR_ASSIGN_RE = /^[A-Za-z_][A-Za-z0-9_.]*=/;
 
+/** CSV-split helper for string-form for_each.in: split on ',', trim, drop empties. */
+function csvSplit(s: string): string[] {
+  return s.split(',').map((v) => v.trim()).filter((v) => v.length > 0);
+}
+
 /**
  * Resolve an alias into SequentialSteps using lenient interpolation.
  * Unknown ${placeholders} are kept as-is for runtime resolution (e.g. captured vars).
@@ -85,8 +90,22 @@ function resolveToStepsLenient(
       });
 
     case 'for_each': {
+      const values: readonly string[] = Array.isArray(def.in)
+        ? def.in
+        : (() => {
+            const inStr = def.in as string;
+            const resolved = interpolateArgvLenient([inStr], config.values)[0] ?? '';
+            const split = csvSplit(resolved);
+            if (split.length === 0) {
+              throw new CommandSchemaError(
+                aliasName,
+                `for_each.in resolved from "${inStr}" is empty after CSV split`,
+              );
+            }
+            return split;
+          })();
       const allSteps: SequentialStep[] = [];
-      for (const value of def.in) {
+      for (const value of values) {
         const loopValues = { ...config.values, [def.var]: value };
         if (def.run && commands.has(def.run)) {
           const loopConfig: ResolvedConfig = { ...config, values: loopValues };
@@ -200,9 +219,24 @@ function resolveAlias(
     case 'for_each': {
       // Expand for_each into sequential or parallel plan.
       // For each value in def.in, substitute ${def.var} and resolve the command.
+      const values: readonly string[] = Array.isArray(def.in)
+        ? def.in
+        : (() => {
+            const inStr = def.in as string;
+            const resolved = interpolateArgv([inStr], aliasName, config.values)[0] ?? '';
+            const split = csvSplit(resolved);
+            if (split.length === 0) {
+              throw new CommandSchemaError(
+                aliasName,
+                `for_each.in resolved from "${inStr}" is empty after CSV split`,
+              );
+            }
+            return split;
+          })();
+
       if (def.mode === 'parallel') {
         const group: { alias: string; argv: readonly string[] }[] = [];
-        for (const value of def.in) {
+        for (const value of values) {
           const loopConfig: ResolvedConfig = {
             ...config,
             values: { ...config.values, [def.var]: value },
@@ -223,7 +257,7 @@ function resolveAlias(
 
       // Sequential mode (steps)
       const allSteps: SequentialStep[] = [];
-      for (const value of def.in) {
+      for (const value of values) {
         const loopValues = { ...config.values, [def.var]: value };
         if (def.run && commands.has(def.run)) {
           const loopConfig: ResolvedConfig = { ...config, values: loopValues };

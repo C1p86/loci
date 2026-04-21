@@ -188,7 +188,11 @@ function collectReferencedPlaceholders(def: CommandDef): Set<string> {
     case 'for_each':
       if (def.cmd) scanArray(def.cmd);
       if (def.run) scanString(def.run);
-      for (const v of def.in) scanString(v);
+      if (typeof def.in === 'string') {
+        scanString(def.in);
+      } else {
+        for (const v of def.in) scanString(v);
+      }
       break;
     case 'ini':
       scanString(def.file);

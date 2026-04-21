@@ -183,6 +183,7 @@ function collectAll(
 
     case 'for_each':
       if (def.cmd) trackUsage(extractFromArgv(def.cmd));
+      if (typeof def.in === 'string') trackUsage(extractFromArgv([def.in]));
       if (def.run && commands.has(def.run)) {
         collectAll(def.run, commands, declared, usedBy, depth + 1, false);
       }
