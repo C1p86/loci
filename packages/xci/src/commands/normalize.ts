@@ -205,13 +205,21 @@ function normalizeObject(
     if (typeof fe.var !== 'string') {
       throw new CommandSchemaError(aliasName, 'for_each.var must be a string (loop variable name)');
     }
-    if (!Array.isArray(fe.in)) {
-      throw new CommandSchemaError(aliasName, 'for_each.in must be an array of values');
-    }
-    for (const v of fe.in) {
-      if (typeof v !== 'string') {
-        throw new CommandSchemaError(aliasName, 'for_each.in must contain only strings');
+    let inField: readonly string[] | string;
+    if (Array.isArray(fe.in)) {
+      for (const v of fe.in) {
+        if (typeof v !== 'string') {
+          throw new CommandSchemaError(aliasName, 'for_each.in must contain only strings');
+        }
       }
+      inField = fe.in as readonly string[];
+    } else if (typeof fe.in === 'string') {
+      if (!/\$\{[^}]+\}/.test(fe.in)) {
+        throw new CommandSchemaError(aliasName, 'for_each.in as string must reference a variable via ${...}');
+      }
+      inField = fe.in;
+    } else {
+      throw new CommandSchemaError(aliasName, 'for_each.in must be an array of strings OR a "${var}" placeholder string');
     }
     const mode = fe.mode ?? 'steps';
     if (mode !== 'steps' && mode !== 'parallel') {
@@ -246,7 +254,7 @@ function normalizeObject(
     return {
       kind: 'for_each',
       var: fe.var,
-      in: fe.in as string[],
+      in: inField,
       mode: mode as 'steps' | 'parallel',
       ...(cmd !== undefined ? { cmd } : {}),
       ...(run !== undefined ? { run } : {}),
