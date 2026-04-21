@@ -24,6 +24,10 @@ export const ANSI_PALETTE: readonly string[] = [
 
 export const RESET = '\x1b[0m';
 export const DIM = '\x1b[2m';
+export const YELLOW = '\x1b[33m';
+export const RED = '\x1b[31m';
+export const CYAN = '\x1b[36m';
+export const BOLD = '\x1b[1m';
 
 /* ------------------------------------------------------------------ */
 /* Color detection (D-04)                                               */
@@ -38,6 +42,20 @@ export function shouldUseColor(): boolean {
   if (process.env['NO_COLOR'] !== undefined) return false;
   if (process.env['FORCE_COLOR'] !== undefined) return true;
   return process.stdout.isTTY === true;
+}
+
+/**
+ * Wrap a message in YELLOW ANSI (for warnings). No-op when color is disabled.
+ */
+export function formatWarning(msg: string): string {
+  return shouldUseColor() ? `${YELLOW}${msg}${RESET}` : msg;
+}
+
+/**
+ * Wrap a message in RED ANSI (for errors). No-op when color is disabled.
+ */
+export function formatError(msg: string): string {
+  return shouldUseColor() ? `${RED}${msg}${RESET}` : msg;
 }
 
 /* ------------------------------------------------------------------ */
@@ -97,7 +115,11 @@ export function dimPrefix(label: string): string {
 export function printStepHeader(stepName: string, stepNum?: number, totalSteps?: number): void {
   const counter = stepNum !== undefined && totalSteps !== undefined
     ? ` [${stepNum}/${totalSteps}]` : '';
-  process.stderr.write(`\u25b6 ${stepName}${counter}\n`);
+  if (shouldUseColor()) {
+    process.stderr.write(`${BOLD}${CYAN}\u25b6 ${stepName}${counter}${RESET}\n`);
+  } else {
+    process.stderr.write(`\u25b6 ${stepName}${counter}\n`);
+  }
 }
 
 /**
@@ -126,6 +148,148 @@ function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   const s = (ms / 1000).toFixed(1);
   return `${s}s`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Run header (printed before real execution, skipped on dry-run / ui)  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Scan a raw CommandDef for ${placeholder} tokens. Returns the set of placeholder
+ * names (the text between `${` and `}`). Uses the raw command definition rather
+ * than the resolved ExecutionPlan so we only surface variables that the alias
+ * author literally referenced.
+ */
+function collectReferencedPlaceholders(def: CommandDef): Set<string> {
+  const out = new Set<string>();
+  const re = /\$\{([^}]+)\}/g;
+  const scanString = (s: string): void => {
+    let m: RegExpExecArray | null = re.exec(s);
+    while (m !== null) {
+      const name = m[1];
+      if (name !== undefined) out.add(name);
+      m = re.exec(s);
+    }
+    re.lastIndex = 0;
+  };
+  const scanArray = (arr: readonly string[]): void => {
+    for (const s of arr) scanString(s);
+  };
+  switch (def.kind) {
+    case 'single':
+      scanArray(def.cmd);
+      break;
+    case 'sequential':
+      scanArray(def.steps);
+      break;
+    case 'parallel':
+      scanArray(def.group);
+      break;
+    case 'for_each':
+      if (def.cmd) scanArray(def.cmd);
+      if (def.run) scanString(def.run);
+      for (const v of def.in) scanString(v);
+      break;
+    case 'ini':
+      scanString(def.file);
+      if (def.set) {
+        for (const section of Object.values(def.set)) {
+          for (const v of Object.values(section)) scanString(v);
+        }
+      }
+      break;
+  }
+  return out;
+}
+
+/**
+ * Print a summary of the alias about to run: title, referenced variables (secrets
+ * masked), and resolved steps. Intended for non-dry-run, non-TUI execution so the
+ * operator sees what will happen before anything spawns. All secret values are
+ * redacted — the variables block masks by secretKeys, and the steps block uses
+ * redactArgv over the resolved argv.
+ */
+export function printRunHeader(
+  alias: string,
+  def: CommandDef,
+  plan: ExecutionPlan,
+  effectiveValues: Readonly<Record<string, string>>,
+  secretKeys: ReadonlySet<string>,
+): void {
+  const useColor = shouldUseColor();
+  const bold = useColor ? BOLD : '';
+  const cyan = useColor ? CYAN : '';
+  const reset = useColor ? RESET : '';
+
+  // Title
+  process.stderr.write(`${bold}${cyan}\u25b6 running: ${alias}${reset}\n`);
+
+  // Variables block — only show vars the alias actually references via ${...}
+  const referenced = collectReferencedPlaceholders(def);
+  const keys = Object.keys(effectiveValues).filter((k) => {
+    const upper = k.toUpperCase().replace(/[.\-]/g, '_');
+    return referenced.has(k) || referenced.has(upper);
+  });
+  // Dedupe dot-notation vs UPPER_UNDERSCORE duplicates (match printDryRun's filter).
+  const sortedKeys = keys.slice().sort();
+  const displayedKeys = sortedKeys.filter((key) =>
+    key.includes('.') ||
+    !sortedKeys.some((k) => k.includes('.') && k.toUpperCase().replace(/[.\-]/g, '_') === key)
+  );
+
+  if (displayedKeys.length > 0) {
+    process.stderr.write('variables:\n');
+    for (const key of displayedKeys) {
+      const isSecret = secretKeys.has(key);
+      const value = isSecret ? '**********' : effectiveValues[key];
+      process.stderr.write(`  ${key} = ${value}\n`);
+    }
+  }
+
+  // Steps block — use redactArgv so any argv token matching a secret value is ***.
+  const secretValues = new Set<string>();
+  for (const k of secretKeys) {
+    const v = effectiveValues[k];
+    if (v !== undefined && v !== '') secretValues.add(v);
+  }
+
+  process.stderr.write('steps:\n');
+  switch (plan.kind) {
+    case 'single': {
+      const redacted = redactArgv(plan.argv, secretValues);
+      process.stderr.write(`  ${redacted.join(' ')}\n`);
+      break;
+    }
+    case 'sequential': {
+      for (let i = 0; i < plan.steps.length; i++) {
+        const step = plan.steps[i];
+        if (!step) continue;
+        if (step.kind === 'ini') {
+          process.stderr.write(`  ${i + 1}. ini:${step.mode} ${step.file}\n`);
+        } else if (step.kind === 'set') {
+          const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(', ');
+          process.stderr.write(`  ${i + 1}. set ${assignments}\n`);
+        } else {
+          const redacted = redactArgv(step.argv, secretValues);
+          const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
+          const label = step.label ? `${step.label}: ` : '';
+          process.stderr.write(`  ${i + 1}. ${label}${redacted.join(' ')}${captureTag}\n`);
+        }
+      }
+      break;
+    }
+    case 'parallel': {
+      for (const entry of plan.group) {
+        const redacted = redactArgv(entry.argv, secretValues);
+        process.stderr.write(`  [${entry.alias}] ${redacted.join(' ')}\n`);
+      }
+      break;
+    }
+    case 'ini': {
+      process.stderr.write(`  ini ${plan.mode}: ${plan.file}\n`);
+      break;
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ */

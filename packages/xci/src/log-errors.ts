@@ -23,7 +23,13 @@ export function printErrorLines(output: string, source?: string): void {
   if (matches.length === 0) return;
 
   const suffix = source ? ` in ${source}` : '';
-  process.stderr.write(`--- ${matches.length} error line(s)${suffix} ---\n`);
+  // Inline color decision — this file is intentionally dependency-free / cold-start safe.
+  const useColor =
+    process.env['NO_COLOR'] === undefined &&
+    (process.env['FORCE_COLOR'] !== undefined || (process.stdout as { isTTY?: boolean }).isTTY === true);
+  const red = useColor ? '\x1b[31m' : '';
+  const reset = useColor ? '\x1b[0m' : '';
+  process.stderr.write(`${red}--- ${matches.length} error line(s)${suffix} ---${reset}\n`);
 
   for (const line of matches.slice(0, MAX_LINES)) {
     process.stderr.write(`${line}\n`);

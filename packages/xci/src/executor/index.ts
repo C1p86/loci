@@ -10,7 +10,7 @@ import { runParallel } from './parallel.js';
 import { runSequential } from './sequential.js';
 import { runSingle, runSingleCapture } from './single.js';
 
-export { buildSecretValues, printCaptureResult, printDryRun, printStepPreview, printVerboseCommand, printVerboseTrace } from './output.js';
+export { buildSecretValues, printCaptureResult, printDryRun, printRunHeader, printStepPreview, printVerboseCommand, printVerboseTrace } from './output.js';
 
 export const executor: Executor = {
   async run(plan: ExecutionPlan, options: ExecutorOptions): Promise<ExecutionResult> {

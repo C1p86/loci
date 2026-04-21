@@ -8,6 +8,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { parse, YAMLParseError as YamlLibError } from 'yaml';
 import { ConfigReadError, MachineConfigInvalidError, YamlParseError } from '../errors.js';
+import { formatWarning } from '../executor/output.js';
 import type { ConfigLayer, ConfigLoader, ResolvedConfig } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -396,7 +397,7 @@ export const configLoader: ConfigLoader = {
     if (secretsResult !== null) {
       if (isSecretTrackedByGit(cwd)) {
         process.stderr.write(
-          '[xci] WARNING: .xci/secrets.yml is tracked by git. Run: git rm --cached .xci/secrets.yml\n',
+          formatWarning('[xci] WARNING: .xci/secrets.yml is tracked by git. Run: git rm --cached .xci/secrets.yml') + '\n',
         );
       }
     }
