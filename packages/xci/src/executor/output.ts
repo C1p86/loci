@@ -25,6 +25,7 @@ export const ANSI_PALETTE: readonly string[] = [
 export const RESET = '\x1b[0m';
 export const DIM = '\x1b[2m';
 export const YELLOW = '\x1b[33m';
+export const BRIGHT_YELLOW = '\x1b[93m';
 export const RED = '\x1b[31m';
 export const CYAN = '\x1b[36m';
 export const BOLD = '\x1b[1m';
@@ -610,7 +611,7 @@ export function printStepPreview(
     // quick-260421-nmx: emit dark-yellow cwd line before raw/run so operators
     // can see where the step will spawn (especially for_each iterations).
     if (options?.cwd !== undefined) {
-      const yellow = useColor ? YELLOW : '';
+      const yellow = useColor ? BRIGHT_YELLOW : '';
       const yReset = useColor ? RESET : '';
       process.stderr.write(`${yellow}  cwd: ${options.cwd}${yReset}\n`);
     }
