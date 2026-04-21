@@ -112,26 +112,31 @@ export async function runSequential(
   for (const step of steps) {
     stepNum++;
 
-    // Determine step label for --from matching
-    const stepLabel = step.kind === 'ini' ? `ini:${step.mode}`
+    // quick-260421-kbl: compute the true leaf label (used for --from matching
+    // by leaf name — backward compat) and the breadcrumb-aware display label
+    // that is rendered in step headers / results.
+    const leafLabel = step.kind === 'ini' ? `ini:${step.mode}`
       : step.kind === 'set' ? 'set'
       : (step.label ?? step.argv[0] ?? '(unknown)');
+    const displayLabel = step.breadcrumb && step.breadcrumb.length > 0
+      ? step.breadcrumb.join(' > ')
+      : leafLabel;
 
-    // Check if this is the --from target
-    if (skipping && stepLabel === fromStep) {
+    // Check if this is the --from target (match against leaf OR full path)
+    if (skipping && (leafLabel === fromStep || displayLabel === fromStep)) {
       skipping = false;
     }
 
     // Print skipped steps
     if (skipping) {
-      printStepHeader(stepLabel, stepNum, totalSteps);
-      printStepResult(stepLabel, 0, 0, 'SKIPPED');
+      printStepHeader(displayLabel, stepNum, totalSteps);
+      printStepResult(displayLabel, 0, 0, 'SKIPPED');
       continue;
     }
 
     // Handle variable assignment steps
     if (step.kind === 'set') {
-      printStepHeader('set', stepNum, totalSteps);
+      printStepHeader(displayLabel, stepNum, totalSteps);
       const mergedValues = { ...env, ...capturedVars };
       for (const [key, rawValue] of Object.entries(step.vars)) {
         // Interpolate the value with available variables
@@ -145,14 +150,13 @@ export async function runSequential(
         capturedVars[envKey] = resolved;
         process.stderr.write(`  ${key}=${resolved}\n`);
       }
-      printStepResult('set', 0, 0);
+      printStepResult(displayLabel, 0, 0);
       continue;
     }
 
     // Handle ini steps inline
     if (step.kind === 'ini') {
-      const iniLabel = `ini:${step.mode}`;
-      printStepHeader(iniLabel, stepNum, totalSteps);
+      printStepHeader(displayLabel, stepNum, totalSteps);
       const startTime = Date.now();
       // quick-260421-g99: resolve file relative to step.cwd ?? default cwd.
       const stepCwd = step.cwd ?? cwd;
@@ -168,10 +172,10 @@ export async function runSequential(
             }
           }
         }
-        printStepResult(iniLabel, 0, Date.now() - startTime);
+        printStepResult(displayLabel, 0, Date.now() - startTime);
       } catch (err) {
         process.stderr.write(`  error: ${(err as Error).message}\n`);
-        printStepResult(iniLabel, 1, Date.now() - startTime);
+        printStepResult(displayLabel, 1, Date.now() - startTime);
         return { exitCode: 1 };
       }
       continue;
@@ -183,7 +187,7 @@ export async function runSequential(
       ? interpolateArgv(step.rawArgv, '(step)', mergedValues)
       : step.argv;
 
-    const stepCmd = step.label ?? finalArgv[0] ?? '(unknown)';
+    const stepCmd = displayLabel;
     printStepHeader(stepCmd, stepNum, totalSteps);
     printStepPreview(step.rawArgv, finalArgv, undefined, { verbose: env['XCI_VERBOSE'] === '1', logFile });
 
