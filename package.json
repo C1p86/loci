@@ -16,7 +16,7 @@
     "changeset": "changeset",
     "version": "changeset version",
     "release": "pnpm -r publish --access=public",
-    "install-local": "pnpm --filter xci build && npm install -g ./packages/xci"
+    "install-local": "pnpm install && pnpm --filter xci run build && npm install -g ./packages/xci"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",
