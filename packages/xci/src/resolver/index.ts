@@ -21,6 +21,33 @@ function csvSplit(s: string): string[] {
 }
 
 /**
+ * Bake a single loop-variable placeholder into each step's rawArgv using lenient
+ * interpolation. Known `${loopVar}` becomes `loopValue`; all other placeholders
+ * (captured vars, env vars, outer loop vars) are preserved untouched so the
+ * runtime executor can resolve them against env + capturedVars.
+ *
+ * Steps without rawArgv (`set`, `ini`, or command steps with rawArgv=undefined)
+ * are returned unchanged. Returns a new array; never mutates input.
+ *
+ * Fixes quick-260421-lhg: previously the loop var survived into rawArgv and
+ * executor/sequential.ts would throw UndefinedPlaceholderError at runtime.
+ */
+function bakeLoopVarIntoRawArgv(
+  steps: readonly SequentialStep[],
+  loopVar: string,
+  loopValue: string,
+): SequentialStep[] {
+  return steps.map((s) => {
+    // Narrow to the command variant: only that variant has rawArgv.
+    // `kind: 'set'` and `kind: 'ini'` discriminants exclude it.
+    if ((s.kind === undefined || s.kind === 'cmd') && s.rawArgv !== undefined) {
+      return { ...s, rawArgv: interpolateArgvLenient(s.rawArgv, { [loopVar]: loopValue }) };
+    }
+    return s;
+  });
+}
+
+/**
  * Compute the effective cwd for a def: own cwd (lenient-interpolated) or parent's cwd.
  * Owns > parent. Result is still a plan-level value — may be relative or ${placeholder}
  * until resolveAbsoluteCwds in cli.ts makes it absolute.
@@ -141,12 +168,14 @@ function resolveToStepsLenient(
         if (def.run && commands.has(def.run)) {
           const loopConfig: ResolvedConfig = { ...config, values: loopValues };
           const subSteps = resolveToStepsLenient(def.run, commands, loopConfig, depth + 1, [...chain, def.run], effectiveCwd);
-          for (const s of subSteps) allSteps.push(s);
+          const baked = bakeLoopVarIntoRawArgv(subSteps, def.var, value);
+          for (const s of baked) allSteps.push(s);
         } else if (def.cmd) {
           const argv = interpolateArgvLenient(def.cmd, loopValues);
+          const bakedRawArgv = interpolateArgvLenient(def.cmd, { [def.var]: value });
           allSteps.push({
             argv,
-            rawArgv: def.cmd.map(t => t.replaceAll(`\${${def.var}}`, value)),
+            rawArgv: bakedRawArgv,
             ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
             breadcrumb: [...chain],
           });
@@ -335,12 +364,14 @@ function resolveAlias(
         if (def.run && commands.has(def.run)) {
           const loopConfig: ResolvedConfig = { ...config, values: loopValues };
           const subSteps = resolveToStepsLenient(def.run, commands, loopConfig, depth + 1, [...chain, def.run], effectiveCwd);
-          for (const s of subSteps) allSteps.push(s);
+          const baked = bakeLoopVarIntoRawArgv(subSteps, def.var, value);
+          for (const s of baked) allSteps.push(s);
         } else if (def.cmd) {
           const argv = interpolateArgvLenient(def.cmd, loopValues);
+          const bakedRawArgv = interpolateArgvLenient(def.cmd, { [def.var]: value });
           allSteps.push({
             argv,
-            rawArgv: def.cmd.map(t => t.replaceAll(`\${${def.var}}`, value)),
+            rawArgv: bakedRawArgv,
             ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
             breadcrumb: [...chain],
           });
