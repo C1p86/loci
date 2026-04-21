@@ -205,6 +205,21 @@ prepare:
     - build
 ```
 
+#### Nested step headers
+
+When a sequential alias references other aliases that are themselves
+sequential (or `for_each`), xci shows the full containing path in every
+step header during execution. For example, running an alias `release`
+whose steps expand to `release > build > compile` displays:
+
+```
+▶ release > build > compile [1/5]
+```
+
+So you always know which outer alias the current step belongs to. The
+`--from` flag accepts either the leaf name (`compile`) or the full path
+(`release > build > compile`) for resuming mid-sequence.
+
 ### Parallel Group
 
 Runs commands concurrently. Default `failMode: fast` kills remaining on first failure.

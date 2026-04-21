@@ -858,3 +858,42 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     });
   });
 });
+
+/* ================================================================
+ * quick-260421-kbl: breadcrumb step headers in nested sequentials
+ * ================================================================ */
+
+describe.skipIf(!existsSync(CLI))('breadcrumb step headers (quick-260421-kbl)', () => {
+  it('shows full breadcrumb path in nested sequential step headers', () => {
+    const yml = [
+      'A1a: { cmd: ["echo", "a1a"] }',
+      'A1b: { cmd: ["echo", "a1b"] }',
+      'A2:  { cmd: ["echo", "a2"]  }',
+      'A1:',
+      '  steps:',
+      '    - A1a',
+      '    - A1b',
+      'A:',
+      '  steps:',
+      '    - A1',
+      '    - A2',
+      '',
+    ].join('\n');
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': yml,
+        '.xci/config.yml': '',
+      }),
+    );
+    const { stderr, code } = runCliInDir(dir, ['A']);
+    expect(code).toBe(0);
+    expect(stderr).toContain('A > A1 > A1a');
+    expect(stderr).toContain('A > A1 > A1b');
+    expect(stderr).toContain('A > A2');
+    // Pure-leaf header must NOT appear for nested cases (chain length > 1).
+    // Exact-match "▶ A1a " (leading triangle + space-after-name) would indicate
+    // the breadcrumb was not applied.
+    expect(stderr).not.toMatch(/\u25b6 A1a \[/);
+    expect(stderr).not.toMatch(/\u25b6 A1b \[/);
+  });
+});
