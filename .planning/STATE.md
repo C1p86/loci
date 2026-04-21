@@ -400,6 +400,7 @@ None
 | 260421-ewq | Allow for_each.in to accept ${VAR} placeholder (CSV-split at resolve time) | 2026-04-21 | 1362c77 | [260421-ewq-allow-for-each-in-to-accept-a-var-placeh](./quick/260421-ewq-allow-for-each-in-to-accept-a-var-placeh/) |
 | 260421-g99 | Add optional cwd field to xci aliases with parent-child inheritance | 2026-04-21 | 2a57f05 | [260421-g99-add-optional-cwd-field-to-xci-aliases-wo](./quick/260421-g99-add-optional-cwd-field-to-xci-aliases-wo/) |
 | 260421-hnr | Fix TypeError in cli.ts when for_each.in is a string (regression from 260421-ewq) | 2026-04-21 | 86ff3a3 | [260421-hnr-fix-typeerror-in-cli-ts-when-for-each-in](./quick/260421-hnr-fix-typeerror-in-cli-ts-when-for-each-in/) |
+| 260421-kbl | Show full breadcrumb (A > A1 > A1a) in step headers during nested execution | 2026-04-21 | 18d8ea8 | [260421-kbl-show-full-breadcrumb-a-a1-a1a-in-step-he](./quick/260421-kbl-show-full-breadcrumb-a-a1-a1a-in-step-he/) |
 | 260422-dfh | Fix for_each loop variable not available during step re-interpolation in sequential executor | 2026-04-22 | d771b51 | [260422-dfh-fix-for-each-loop-variable-not-available](./quick/260422-dfh-fix-for-each-loop-variable-not-available/) |
 
 ## Session Continuity
