@@ -534,6 +534,128 @@ describe('resolver — for_each with string in (CSV-split)', () => {
 });
 
 /* ============================================================
+ * resolver — for_each bakes loop variable into rawArgv
+ * (regression test for quick-260421-lhg: runtime re-interpolation
+ * was throwing UndefinedPlaceholderError for the loop var because
+ * rawArgv retained the raw ${loopVar} placeholder)
+ * ============================================================ */
+
+describe('resolver — for_each bakes loop variable into rawArgv (runtime re-interpolation fix)', () => {
+  it('inline cmd: bakes loop var into rawArgv, preserves captured-var placeholder', () => {
+    const def: CommandDef = {
+      kind: 'for_each',
+      var: 'region',
+      in: ['eu-west-1', 'us-east-1'],
+      mode: 'steps',
+      cmd: ['deploy', '--region', '${region}', '--fleet', '${FleetId}'],
+    };
+    const plan = resolver.resolve('deploy-all', makeCommands({ 'deploy-all': def }), makeConfig({}));
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(2);
+    const s0 = plan.steps[0];
+    const s1 = plan.steps[1];
+    if (!s0 || !s1) throw new Error('unreachable');
+    // Both argv and rawArgv have loop var substituted; ${FleetId} survives untouched
+    expect('argv' in s0 ? s0.argv : null).toEqual(['deploy', '--region', 'eu-west-1', '--fleet', '${FleetId}']);
+    expect('rawArgv' in s0 ? s0.rawArgv : null).toEqual(['deploy', '--region', 'eu-west-1', '--fleet', '${FleetId}']);
+    expect('argv' in s1 ? s1.argv : null).toEqual(['deploy', '--region', 'us-east-1', '--fleet', '${FleetId}']);
+    expect('rawArgv' in s1 ? s1.rawArgv : null).toEqual(['deploy', '--region', 'us-east-1', '--fleet', '${FleetId}']);
+  });
+
+  it('run: sub-alias: bakes outer loop var into sub-step rawArgv, preserves captured-var placeholder', () => {
+    const commands = makeCommands({
+      'deploy-one': {
+        kind: 'single',
+        cmd: ['deploy', '--region', '${region}', '--fleet', '${FleetId}'],
+      },
+      'deploy-all': {
+        kind: 'for_each',
+        var: 'region',
+        in: ['eu-west-1', 'us-east-1'],
+        mode: 'steps',
+        run: 'deploy-one',
+      },
+    });
+    const plan = resolver.resolve('deploy-all', commands, makeConfig({}));
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(2);
+    const s0 = plan.steps[0];
+    const s1 = plan.steps[1];
+    if (!s0 || !s1) throw new Error('unreachable');
+    expect('rawArgv' in s0 ? s0.rawArgv : null).toEqual(['deploy', '--region', 'eu-west-1', '--fleet', '${FleetId}']);
+    expect('rawArgv' in s1 ? s1.rawArgv : null).toEqual(['deploy', '--region', 'us-east-1', '--fleet', '${FleetId}']);
+  });
+
+  it('non-for_each sequential step keeps ${CapturedVar} in rawArgv intact (no regression)', () => {
+    const commands = makeCommands({
+      prep: {
+        kind: 'sequential',
+        steps: ['deploy --fleet ${FleetId}'],
+      },
+    });
+    const plan = resolver.resolve('prep', commands, makeConfig({}));
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    const s0 = plan.steps[0];
+    if (!s0 || !('rawArgv' in s0)) throw new Error('unreachable');
+    // rawArgv comes from tokenize('deploy --fleet ${FleetId}', ...)
+    // — three tokens, last one unchanged ${FleetId}
+    expect(s0.rawArgv).toEqual(['deploy', '--fleet', '${FleetId}']);
+    expect('argv' in s0 ? s0.argv : null).toEqual(['deploy', '--fleet', '${FleetId}']);
+  });
+
+  it('end-to-end: baked rawArgv + captured vars at runtime produces final argv without throwing', () => {
+    const def: CommandDef = {
+      kind: 'for_each',
+      var: 'region',
+      in: ['eu-west-1'],
+      mode: 'steps',
+      cmd: ['deploy', '--region', '${region}', '--fleet', '${FleetId}'],
+    };
+    const plan = resolver.resolve('deploy-all', makeCommands({ 'deploy-all': def }), makeConfig({}));
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    const s0 = plan.steps[0];
+    if (!s0 || !('rawArgv' in s0) || s0.rawArgv === undefined) throw new Error('unreachable');
+    // Simulate executor/sequential.ts:186-187
+    const finalArgv = interpolateArgv(s0.rawArgv, '(step)', { FleetId: 'fleet-abc' });
+    expect(finalArgv).toEqual(['deploy', '--region', 'eu-west-1', '--fleet', 'fleet-abc']);
+  });
+
+  it('nested for_each: outer then inner loop vars baked, captured var preserved', () => {
+    const commands = makeCommands({
+      inner: {
+        kind: 'for_each',
+        var: 'env',
+        in: ['dev', 'prod'],
+        mode: 'steps',
+        cmd: ['deploy', '--region', '${region}', '--env', '${env}', '--fleet', '${FleetId}'],
+      },
+      outer: {
+        kind: 'for_each',
+        var: 'region',
+        in: ['eu', 'us'],
+        mode: 'steps',
+        run: 'inner',
+      },
+    });
+    const plan = resolver.resolve('outer', commands, makeConfig({}));
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(4);
+    const expected = [
+      ['deploy', '--region', 'eu', '--env', 'dev', '--fleet', '${FleetId}'],
+      ['deploy', '--region', 'eu', '--env', 'prod', '--fleet', '${FleetId}'],
+      ['deploy', '--region', 'us', '--env', 'dev', '--fleet', '${FleetId}'],
+      ['deploy', '--region', 'us', '--env', 'prod', '--fleet', '${FleetId}'],
+    ];
+    for (let i = 0; i < 4; i++) {
+      const s = plan.steps[i];
+      if (!s || !('rawArgv' in s)) throw new Error('unreachable');
+      expect(s.rawArgv).toEqual(expected[i]);
+    }
+  });
+});
+
+/* ============================================================
  * resolver.resolve - cwd field + parent→child inheritance (quick-260421-g99)
  * ============================================================ */
 
