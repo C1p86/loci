@@ -1,5 +1,8 @@
 // src/executor/__tests__/output.test.ts
 
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join as pathJoin } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ANSI_PALETTE,
@@ -13,6 +16,7 @@ import {
   printParallelSummary,
   printRunHeader,
   printStepHeader,
+  printStepPreview,
   shouldUseColor,
 } from '../output.js';
 import type { CommandDef, ExecutionPlan } from '../../types.js';
@@ -492,5 +496,93 @@ describe('printRunHeader', () => {
     expect(firstChunk).toContain('\x1b[36m'); // CYAN
     expect(firstChunk).toContain('running: greet');
     expect(firstChunk).toContain('\x1b[0m'); // RESET
+  });
+});
+
+describe('printStepPreview — cwd preview', () => {
+  let captured: string[];
+  let writeSpy: ReturnType<typeof vi.spyOn>;
+  let tmpDir: string | undefined;
+
+  beforeEach(() => {
+    captured = [];
+    writeSpy = vi.spyOn(process.stderr, 'write').mockImplementation(((chunk: unknown) => {
+      captured.push(typeof chunk === 'string' ? chunk : String(chunk));
+      return true;
+    }) as typeof process.stderr.write);
+    tmpDir = undefined;
+  });
+
+  afterEach(() => {
+    writeSpy.mockRestore();
+    vi.unstubAllEnvs();
+    if (tmpDir) {
+      rmSync(tmpDir, { recursive: true, force: true });
+      tmpDir = undefined;
+    }
+  });
+
+  it('emits yellow cwd line on stderr before run: line when FORCE_COLOR=1 and cwd is set', () => {
+    vi.stubEnv('NO_COLOR', undefined as unknown as string);
+    vi.stubEnv('FORCE_COLOR', '1');
+
+    printStepPreview(undefined, ['echo', 'hi'], undefined, { cwd: '/abs/dir' });
+
+    const joined = captured.join('');
+    expect(joined).toContain('\x1b[33m  cwd: /abs/dir\x1b[0m');
+    expect(joined.indexOf('cwd:')).toBeLessThan(joined.indexOf('run:'));
+  });
+
+  it('does NOT print cwd line when cwd option is omitted', () => {
+    vi.stubEnv('NO_COLOR', undefined as unknown as string);
+    vi.stubEnv('FORCE_COLOR', '1');
+
+    printStepPreview(undefined, ['echo', 'hi'], undefined, {});
+
+    const joined = captured.join('');
+    expect(joined).not.toContain('cwd:');
+  });
+
+  it('emits plain cwd line (no ANSI) when NO_COLOR=1 and cwd is set', () => {
+    vi.stubEnv('FORCE_COLOR', undefined as unknown as string);
+    vi.stubEnv('NO_COLOR', '1');
+
+    printStepPreview(undefined, ['echo', 'hi'], undefined, { cwd: '/abs/dir' });
+
+    const joined = captured.join('');
+    expect(joined).toContain('  cwd: /abs/dir\n');
+    expect(joined).not.toContain('\x1b');
+  });
+
+  it('appends cwd line to logFile in plain text BEFORE run: line', () => {
+    vi.stubEnv('NO_COLOR', undefined as unknown as string);
+    vi.stubEnv('FORCE_COLOR', '1');
+
+    tmpDir = mkdtempSync(pathJoin(tmpdir(), 'xci-nmx-'));
+    const tmpFile = pathJoin(tmpDir, 'log.txt');
+
+    printStepPreview(undefined, ['echo', 'hi'], undefined, { cwd: '/abs/dir', logFile: tmpFile });
+
+    const fileContents = readFileSync(tmpFile, 'utf8');
+    expect(fileContents).toContain('  cwd: /abs/dir\n');
+    expect(fileContents).toContain('  run: echo hi\n');
+    expect(fileContents.indexOf('cwd:')).toBeLessThan(fileContents.indexOf('run:'));
+    expect(fileContents).not.toContain('\x1b');
+  });
+
+  it('orders cwd → raw → run on stderr when rawArgv differs from resolvedArgv', () => {
+    vi.stubEnv('NO_COLOR', undefined as unknown as string);
+    vi.stubEnv('FORCE_COLOR', '1');
+
+    printStepPreview(['npm', 'run', '${TASK}'], ['npm', 'run', 'build'], undefined, {
+      cwd: '/abs/dir',
+    });
+
+    const joined = captured.join('');
+    expect(joined.indexOf('cwd:')).toBeGreaterThanOrEqual(0);
+    expect(joined.indexOf('raw:')).toBeGreaterThanOrEqual(0);
+    expect(joined.indexOf('run:')).toBeGreaterThanOrEqual(0);
+    expect(joined.indexOf('cwd:')).toBeLessThan(joined.indexOf('raw:'));
+    expect(joined.indexOf('raw:')).toBeLessThan(joined.indexOf('run:'));
   });
 });

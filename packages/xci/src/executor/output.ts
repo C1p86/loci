@@ -595,7 +595,7 @@ export function printStepPreview(
   rawArgv: readonly string[] | undefined,
   resolvedArgv: readonly string[],
   secretValues?: ReadonlySet<string>,
-  options?: { verbose?: boolean; logFile?: string },
+  options?: { verbose?: boolean; logFile?: string; cwd?: string },
 ): void {
   const rawStr = rawArgv ? rawArgv.join(' ') : undefined;
   const resArgv = secretValues ? redactArgv(resolvedArgv, secretValues) : resolvedArgv;
