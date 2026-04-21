@@ -76,3 +76,99 @@ describe('extractPlaceholders (via validateParams) — nested & brace-balanced',
     expect(() => validateParams('task', commands, {})).not.toThrow();
   });
 });
+
+/* ============================================================
+ * cwd placeholder tracking (quick-260421-g99)
+ * ============================================================ */
+
+describe('validateParams — ${placeholder} inside cwd surfaces as missing param', () => {
+  it('single kind: missing DEPLOY_DIR in cwd throws MissingParamsError', () => {
+    const commands: CommandMap = new Map<string, CommandDef>([
+      ['build', { kind: 'single', cmd: ['echo', 'hi'], cwd: '${DEPLOY_DIR}' }],
+    ]);
+    let captured: unknown;
+    try {
+      validateParams('build', commands, {});
+    } catch (err) {
+      captured = err;
+    }
+    expect(captured).toBeInstanceOf(MissingParamsError);
+    expect((captured as Error).message).toMatch(/DEPLOY_DIR/);
+  });
+
+  it('single kind: DEPLOY_DIR provided → no error', () => {
+    const commands: CommandMap = new Map<string, CommandDef>([
+      ['build', { kind: 'single', cmd: ['echo', 'hi'], cwd: '${DEPLOY_DIR}' }],
+    ]);
+    expect(() => validateParams('build', commands, { DEPLOY_DIR: 'packages/web' })).not.toThrow();
+  });
+
+  it('sequential kind: ${DEPLOY_DIR} in cwd surfaces as missing', () => {
+    const commands: CommandMap = new Map<string, CommandDef>([
+      ['ci', { kind: 'sequential', steps: ['echo hi'], cwd: '${DEPLOY_DIR}' }],
+    ]);
+    let captured: unknown;
+    try {
+      validateParams('ci', commands, {});
+    } catch (err) {
+      captured = err;
+    }
+    expect(captured).toBeInstanceOf(MissingParamsError);
+    expect((captured as Error).message).toMatch(/DEPLOY_DIR/);
+  });
+
+  it('parallel kind: ${DEPLOY_DIR} in cwd surfaces as missing', () => {
+    const commands: CommandMap = new Map<string, CommandDef>([
+      ['par', { kind: 'parallel', group: ['a'], cwd: '${DEPLOY_DIR}' }],
+      ['a', { kind: 'single', cmd: ['echo', 'a'] }],
+    ]);
+    let captured: unknown;
+    try {
+      validateParams('par', commands, {});
+    } catch (err) {
+      captured = err;
+    }
+    expect(captured).toBeInstanceOf(MissingParamsError);
+    expect((captured as Error).message).toMatch(/DEPLOY_DIR/);
+  });
+
+  it('for_each kind: ${DEPLOY_DIR} in cwd surfaces as missing', () => {
+    const commands: CommandMap = new Map<string, CommandDef>([
+      ['fe', {
+        kind: 'for_each',
+        var: 'x',
+        in: ['a'],
+        mode: 'steps',
+        cmd: ['echo', '${x}'],
+        cwd: '${DEPLOY_DIR}',
+      }],
+    ]);
+    let captured: unknown;
+    try {
+      validateParams('fe', commands, {});
+    } catch (err) {
+      captured = err;
+    }
+    expect(captured).toBeInstanceOf(MissingParamsError);
+    expect((captured as Error).message).toMatch(/DEPLOY_DIR/);
+  });
+
+  it('ini kind: ${DEPLOY_DIR} in cwd surfaces as missing', () => {
+    const commands: CommandMap = new Map<string, CommandDef>([
+      ['cfg', {
+        kind: 'ini',
+        file: 'x.ini',
+        set: { Sec: { k: 'v' } },
+        cwd: '${DEPLOY_DIR}',
+      }],
+    ]);
+    let captured: unknown;
+    try {
+      validateParams('cfg', commands, {});
+    } catch (err) {
+      captured = err;
+    }
+    expect(captured).toBeInstanceOf(MissingParamsError);
+    expect((captured as Error).message).toMatch(/DEPLOY_DIR/);
+  });
+});

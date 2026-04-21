@@ -119,6 +119,20 @@ function normalizeParams(
 }
 
 /**
+ * Parse the optional `cwd` field present on every alias kind.
+ * Returns the raw string (interpolation happens at resolve time) or undefined when absent.
+ * Throws CommandSchemaError if the value is present but not a string.
+ */
+function parseCwd(aliasName: string, obj: Record<string, unknown>): string | undefined {
+  if (!Object.hasOwn(obj, 'cwd')) return undefined;
+  const raw = obj.cwd;
+  if (typeof raw !== 'string') {
+    throw new CommandSchemaError(aliasName, 'cwd must be a string');
+  }
+  return raw;
+}
+
+/**
  * Normalize an object-form alias definition.
  */
 function normalizeObject(
@@ -183,6 +197,7 @@ function normalizeObject(
 
     const description = typeof obj.description === 'string' ? obj.description : undefined;
     const params = normalizeParams(aliasName, obj.params);
+    const cwd = parseCwd(aliasName, obj);
 
     return {
       kind: 'ini',
@@ -192,6 +207,7 @@ function normalizeObject(
       ...(del !== undefined ? { delete: del } : {}),
       ...(description !== undefined ? { description } : {}),
       ...(params !== undefined ? { params } : {}),
+      ...(cwd !== undefined ? { cwd } : {}),
     };
   }
 
@@ -250,6 +266,7 @@ function normalizeObject(
     }
 
     const params = normalizeParams(aliasName, obj.params);
+    const cwd = parseCwd(aliasName, obj);
 
     return {
       kind: 'for_each',
@@ -261,6 +278,7 @@ function normalizeObject(
       ...(description !== undefined ? { description } : {}),
       ...(failMode !== undefined ? { failMode } : {}),
       ...(params !== undefined ? { params } : {}),
+      ...(cwd !== undefined ? { cwd } : {}),
     };
   }
 
@@ -269,7 +287,14 @@ function normalizeObject(
     const steps = validateStringArray(aliasName, obj.steps, 'steps');
     const description = typeof obj.description === 'string' ? obj.description : undefined;
     const params = normalizeParams(aliasName, obj.params);
-    return { kind: 'sequential', steps, ...(description !== undefined ? { description } : {}), ...(params !== undefined ? { params } : {}) };
+    const cwd = parseCwd(aliasName, obj);
+    return {
+      kind: 'sequential',
+      steps,
+      ...(description !== undefined ? { description } : {}),
+      ...(params !== undefined ? { params } : {}),
+      ...(cwd !== undefined ? { cwd } : {}),
+    };
   }
 
   // Check for parallel (concurrent group)
@@ -291,6 +316,7 @@ function normalizeObject(
     }
 
     const params = normalizeParams(aliasName, obj.params);
+    const cwd = parseCwd(aliasName, obj);
 
     return {
       kind: 'parallel',
@@ -298,6 +324,7 @@ function normalizeObject(
       ...(description !== undefined ? { description } : {}),
       ...(failMode !== undefined ? { failMode } : {}),
       ...(params !== undefined ? { params } : {}),
+      ...(cwd !== undefined ? { cwd } : {}),
     };
   }
 
@@ -384,6 +411,7 @@ function normalizeObject(
   }
 
   const params = normalizeParams(aliasName, obj.params);
+  const cwd = parseCwd(aliasName, obj);
 
   return {
     kind: 'single',
@@ -392,6 +420,7 @@ function normalizeObject(
     ...(platforms !== undefined ? { platforms } : {}),
     ...(capture !== undefined ? { capture } : {}),
     ...(params !== undefined ? { params } : {}),
+    ...(cwd !== undefined ? { cwd } : {}),
   };
 }
 

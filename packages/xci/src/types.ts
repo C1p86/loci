@@ -65,12 +65,14 @@ export type CommandDef =
       readonly platforms?: PlatformOverrides;
       readonly capture?: CaptureConfig; // capture stdout into a named variable with optional validation
       readonly params?: Readonly<Record<string, ParamDef>>;
+      readonly cwd?: string; // working directory — relative to projectRoot, absolute path, or ${placeholder}. Inherited by child aliases when they don't declare their own.
     }
   | {
       readonly kind: 'sequential';
       readonly steps: readonly CommandRef[];
       readonly description?: string;
       readonly params?: Readonly<Record<string, ParamDef>>;
+      readonly cwd?: string; // working directory — relative to projectRoot, absolute path, or ${placeholder}. Inherited by child aliases when they don't declare their own.
     }
   | {
       readonly kind: 'parallel';
@@ -78,6 +80,7 @@ export type CommandDef =
       readonly description?: string;
       readonly failMode?: 'fast' | 'complete'; // D-15: validated at load time
       readonly params?: Readonly<Record<string, ParamDef>>;
+      readonly cwd?: string; // working directory — relative to projectRoot, absolute path, or ${placeholder}. Inherited by child aliases when they don't declare their own.
     }
   | {
       readonly kind: 'for_each';
@@ -89,6 +92,7 @@ export type CommandDef =
       readonly description?: string;
       readonly failMode?: 'fast' | 'complete'; // for parallel mode
       readonly params?: Readonly<Record<string, ParamDef>>;
+      readonly cwd?: string; // working directory — relative to projectRoot, absolute path, or ${placeholder}. Inherited by child aliases when they don't declare their own.
     }
   | {
       readonly kind: 'ini';
@@ -98,6 +102,7 @@ export type CommandDef =
       readonly delete?: Readonly<Record<string, readonly string[]>>;             // section → keys to delete
       readonly description?: string;
       readonly params?: Readonly<Record<string, ParamDef>>;
+      readonly cwd?: string; // working directory — relative to projectRoot, absolute path, or ${placeholder}. Inherited by child aliases when they don't declare their own.
     };
 
 export type CommandMap = ReadonlyMap<string, CommandDef>;
@@ -117,6 +122,7 @@ export type SequentialStep =
       readonly argv: readonly string[];          // interpolated argv (best-effort at plan time)
       readonly rawArgv?: readonly string[];      // pre-interpolation tokens (for deferred interpolation with captured vars)
       readonly capture?: CaptureConfig;
+      readonly cwd?: string;                     // effective working directory (absolute after resolveAbsoluteCwds)
     }
   | {
       readonly kind: 'ini';
@@ -124,6 +130,7 @@ export type SequentialStep =
       readonly mode: 'overwrite' | 'merge';
       readonly set?: Readonly<Record<string, Readonly<Record<string, string>>>>;
       readonly delete?: Readonly<Record<string, readonly string[]>>;
+      readonly cwd?: string;                     // effective working directory (absolute after resolveAbsoluteCwds)
     }
   | {
       readonly kind: 'set';
@@ -131,13 +138,14 @@ export type SequentialStep =
     };
 
 export type ExecutionPlan =
-  | { readonly kind: 'single'; readonly argv: readonly string[]; readonly capture?: CaptureConfig }
+  | { readonly kind: 'single'; readonly argv: readonly string[]; readonly capture?: CaptureConfig; readonly cwd?: string }
   | { readonly kind: 'sequential'; readonly steps: readonly SequentialStep[] }
   | {
       readonly kind: 'parallel';
       readonly group: readonly {
         readonly alias: string;
         readonly argv: readonly string[];
+        readonly cwd?: string;
       }[];
       readonly failMode: 'fast' | 'complete'; // resolved with default 'fast'
     }
@@ -147,6 +155,7 @@ export type ExecutionPlan =
       readonly mode: 'overwrite' | 'merge';
       readonly set?: Readonly<Record<string, Readonly<Record<string, string>>>>;
       readonly delete?: Readonly<Record<string, readonly string[]>>;
+      readonly cwd?: string;
     };
 
 export interface Resolver {

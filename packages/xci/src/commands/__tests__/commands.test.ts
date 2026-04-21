@@ -472,3 +472,104 @@ describe('for_each.in — string form', () => {
     await expect(commandsLoader.load(tmpDir)).rejects.toThrow(/array of strings OR/);
   });
 });
+
+/* ============================================================
+ * cwd field (quick-260421-g99)
+ * ============================================================ */
+
+describe('commandsLoader.load — cwd field', () => {
+  it('accepts cwd on a single-kind alias', async () => {
+    writeCommands('build:\n  cmd: "npm run build"\n  cwd: "packages/auth"\n');
+    const result = await commandsLoader.load(tmpDir);
+    expect(result.get('build')).toMatchObject({
+      kind: 'single',
+      cmd: ['npm', 'run', 'build'],
+      cwd: 'packages/auth',
+    });
+  });
+
+  it('preserves ${placeholder} cwd as-is at load time (no interpolation)', async () => {
+    writeCommands(
+      'deploy:\n' +
+      '  steps:\n' +
+      '    - echo hello\n' +
+      '  cwd: "${DEPLOY_DIR}"\n',
+    );
+    const result = await commandsLoader.load(tmpDir);
+    expect(result.get('deploy')).toMatchObject({
+      kind: 'sequential',
+      cwd: '${DEPLOY_DIR}',
+    });
+  });
+
+  it('leaves def.cwd undefined when the key is absent', async () => {
+    writeCommands('build: "npm run build"\n');
+    const result = await commandsLoader.load(tmpDir);
+    const def = result.get('build');
+    expect(def).toMatchObject({ kind: 'single' });
+    expect(def).not.toHaveProperty('cwd');
+  });
+
+  it.each([
+    ['single', 'build:\n  cmd: "npm run build"\n  cwd: 123\n'],
+    ['sequential', 'ci:\n  steps:\n    - lint\n  cwd: 123\n'],
+    ['parallel', 'check:\n  parallel:\n    - lint\n  cwd: 123\n'],
+    ['for_each', 'fe:\n  for_each:\n    var: region\n    in: ["a"]\n    cmd: ["echo", "${region}"]\n  cwd: 123\n'],
+    ['ini', 'cfg:\n  ini:\n    file: /tmp/x.ini\n    set:\n      Sec:\n        k: v\n  cwd: 123\n'],
+  ])('rejects numeric cwd on %s alias with "cwd must be a string"', async (_kind, yaml) => {
+    writeCommands(yaml);
+    await expect(commandsLoader.load(tmpDir)).rejects.toThrow(CommandSchemaError);
+    await expect(commandsLoader.load(tmpDir)).rejects.toThrow(/cwd must be a string/);
+  });
+
+  it.each([
+    ['single', 'build:\n  cmd: "npm run build"\n  cwd: null\n'],
+    ['sequential', 'ci:\n  steps:\n    - lint\n  cwd: null\n'],
+    ['parallel', 'check:\n  parallel:\n    - lint\n  cwd: null\n'],
+    ['for_each', 'fe:\n  for_each:\n    var: region\n    in: ["a"]\n    cmd: ["echo", "${region}"]\n  cwd: null\n'],
+    ['ini', 'cfg:\n  ini:\n    file: /tmp/x.ini\n    set:\n      Sec:\n        k: v\n  cwd: null\n'],
+  ])('rejects null cwd on %s alias with "cwd must be a string"', async (_kind, yaml) => {
+    writeCommands(yaml);
+    await expect(commandsLoader.load(tmpDir)).rejects.toThrow(CommandSchemaError);
+    await expect(commandsLoader.load(tmpDir)).rejects.toThrow(/cwd must be a string/);
+  });
+
+  it('rejects object cwd with "cwd must be a string"', async () => {
+    writeCommands('build:\n  cmd: "npm run build"\n  cwd:\n    path: packages/auth\n');
+    await expect(commandsLoader.load(tmpDir)).rejects.toThrow(CommandSchemaError);
+    await expect(commandsLoader.load(tmpDir)).rejects.toThrow(/cwd must be a string/);
+  });
+
+  it('accepts cwd on a parallel alias', async () => {
+    writeCommands('check:\n  parallel:\n    - lint\n    - typecheck\n  cwd: shared-dir\n');
+    const result = await commandsLoader.load(tmpDir);
+    expect(result.get('check')).toMatchObject({ kind: 'parallel', cwd: 'shared-dir' });
+  });
+
+  it('accepts cwd on a for_each alias', async () => {
+    writeCommands(
+      'deploy:\n' +
+      '  for_each:\n' +
+      '    var: region\n' +
+      '    in: ["a", "b"]\n' +
+      '    cmd: ["echo", "${region}"]\n' +
+      '  cwd: /abs/deploy\n',
+    );
+    const result = await commandsLoader.load(tmpDir);
+    expect(result.get('deploy')).toMatchObject({ kind: 'for_each', cwd: '/abs/deploy' });
+  });
+
+  it('accepts cwd on an ini alias', async () => {
+    writeCommands(
+      'cfg:\n' +
+      '  ini:\n' +
+      '    file: my.ini\n' +
+      '    set:\n' +
+      '      Section:\n' +
+      '        Key: val\n' +
+      '  cwd: conf\n',
+    );
+    const result = await commandsLoader.load(tmpDir);
+    expect(result.get('cfg')).toMatchObject({ kind: 'ini', cwd: 'conf' });
+  });
+});
