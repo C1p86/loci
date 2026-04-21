@@ -189,7 +189,13 @@ export async function runSequential(
 
     const stepCmd = displayLabel;
     printStepHeader(stepCmd, stepNum, totalSteps);
-    printStepPreview(step.rawArgv, finalArgv, undefined, { verbose: env['XCI_VERBOSE'] === '1', logFile });
+    printStepPreview(step.rawArgv, finalArgv, undefined, {
+      verbose: env['XCI_VERBOSE'] === '1',
+      logFile,
+      // quick-260421-nmx: surface effective cwd in yellow before the run: line
+      // when set; spread-if pattern required by exactOptionalPropertyTypes.
+      ...(step.cwd !== undefined ? { cwd: step.cwd } : {}),
+    });
 
     // Merge captured variables into env for this step
     const stepEnv = { ...env, ...capturedVars };

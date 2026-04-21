@@ -607,6 +607,14 @@ export function printStepPreview(
     const dim = useColor ? DIM : '';
     const reset = useColor ? RESET : '';
 
+    // quick-260421-nmx: emit dark-yellow cwd line before raw/run so operators
+    // can see where the step will spawn (especially for_each iterations).
+    if (options?.cwd !== undefined) {
+      const yellow = useColor ? YELLOW : '';
+      const yReset = useColor ? RESET : '';
+      process.stderr.write(`${yellow}  cwd: ${options.cwd}${yReset}\n`);
+    }
+
     if (rawStr && rawStr !== resStr) {
       process.stderr.write(`${dim}  raw: ${rawStr}${reset}\n`);
       process.stderr.write(`${dim}  run: ${resStr}${reset}\n`);
@@ -617,6 +625,11 @@ export function printStepPreview(
 
   // Always write to log file if provided
   if (options?.logFile) {
+    // quick-260421-nmx: prepend cwd line (plain text, no ANSI) so the log
+    // file records cwd → raw → run ordering matching the stderr preview.
+    if (options?.cwd !== undefined) {
+      appendFileSync(options.logFile, `  cwd: ${options.cwd}\n`);
+    }
     if (rawStr && rawStr !== resStr) {
       appendFileSync(options.logFile, `  raw: ${rawStr}\n  run: ${resStr}\n`);
     } else {
