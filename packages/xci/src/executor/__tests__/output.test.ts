@@ -4,14 +4,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ANSI_PALETTE,
   dimPrefix,
+  formatError,
   formatPrefix,
+  formatWarning,
   hashColor,
   makeLineTransform,
   printDryRun,
   printParallelSummary,
+  printRunHeader,
   printStepHeader,
   shouldUseColor,
 } from '../output.js';
+import type { CommandDef, ExecutionPlan } from '../../types.js';
 
 describe('hashColor', () => {
   it('returns the same color for the same alias name across calls', () => {
@@ -268,5 +272,225 @@ describe('printParallelSummary', () => {
     expect(output).toContain('worker');
     expect(output).toContain('\u2713'); // check for api
     expect(output).toContain('\u2717'); // cross for worker
+  });
+});
+
+describe('formatWarning', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('wraps message in YELLOW when color is enabled', () => {
+    vi.stubEnv('NO_COLOR', undefined as unknown as string);
+    vi.stubEnv('FORCE_COLOR', '1');
+    const result = formatWarning('something went wrong');
+    expect(result.startsWith('\x1b[33m')).toBe(true);
+    expect(result.endsWith('\x1b[0m')).toBe(true);
+    expect(result).toContain('something went wrong');
+  });
+
+  it('returns the input unchanged when color is disabled', () => {
+    vi.stubEnv('NO_COLOR', '1');
+    expect(formatWarning('something went wrong')).toBe('something went wrong');
+  });
+});
+
+describe('formatError', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('wraps message in RED when color is enabled', () => {
+    vi.stubEnv('NO_COLOR', undefined as unknown as string);
+    vi.stubEnv('FORCE_COLOR', '1');
+    const result = formatError('boom');
+    expect(result.startsWith('\x1b[31m')).toBe(true);
+    expect(result.endsWith('\x1b[0m')).toBe(true);
+    expect(result).toContain('boom');
+  });
+
+  it('returns the input unchanged when color is disabled', () => {
+    vi.stubEnv('NO_COLOR', '1');
+    expect(formatError('boom')).toBe('boom');
+  });
+});
+
+describe('printStepHeader color', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('wraps the header in BOLD + CYAN when FORCE_COLOR is set', () => {
+    vi.stubEnv('NO_COLOR', undefined as unknown as string);
+    vi.stubEnv('FORCE_COLOR', '1');
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      printStepHeader('build');
+      expect(stderrSpy).toHaveBeenCalledTimes(1);
+      const written = String(stderrSpy.mock.calls[0]?.[0] ?? '');
+      expect(written).toContain('\x1b[1m'); // BOLD
+      expect(written).toContain('\x1b[36m'); // CYAN
+      expect(written).toContain('build');
+      expect(written).toContain('\x1b[0m'); // RESET
+    } finally {
+      stderrSpy.mockRestore();
+    }
+  });
+});
+
+describe('printRunHeader', () => {
+  let stderrOutput: string[];
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    stderrOutput = [];
+    stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+      stderrOutput.push(String(chunk));
+      return true;
+    });
+    vi.stubEnv('NO_COLOR', '1');
+    vi.stubEnv('FORCE_COLOR', undefined as unknown as string);
+  });
+
+  afterEach(() => {
+    stderrSpy.mockRestore();
+    vi.unstubAllEnvs();
+  });
+
+  it('prints title, referenced variables (secrets masked), and single-step plan', () => {
+    const def: CommandDef = {
+      kind: 'single',
+      cmd: ['curl', '-H', '${api.token}', '${api.url}'],
+    };
+    const plan: ExecutionPlan = {
+      kind: 'single',
+      argv: ['curl', '-H', 's3cr3tValue42', 'https://api.example.com'],
+    };
+    const effectiveValues = {
+      'api.token': 's3cr3tValue42',
+      'api.url': 'https://api.example.com',
+      'unused.var': 'ignore-me',
+    };
+    const secretKeys = new Set(['api.token']);
+
+    printRunHeader('deploy', def, plan, effectiveValues, secretKeys);
+
+    const output = stderrOutput.join('');
+    expect(output).toContain('running: deploy');
+    expect(output).toContain('variables:');
+    expect(output).toContain('api.token');
+    expect(output).toContain('**********');
+    expect(output).toContain('api.url');
+    expect(output).toContain('https://api.example.com');
+    // unreferenced vars must NOT appear
+    expect(output).not.toContain('unused.var');
+    expect(output).not.toContain('ignore-me');
+    // secret value must NEVER appear
+    expect(output).not.toContain('s3cr3tValue42');
+    // steps block — secret token in argv is redacted to ***
+    expect(output).toContain('steps:');
+    expect(output).toContain('curl');
+    expect(output).toContain('***');
+  });
+
+  it('redacts a standalone secret token in the steps block', () => {
+    const def: CommandDef = {
+      kind: 'single',
+      cmd: ['deploy', '--token', '${api.token}'],
+    };
+    const plan: ExecutionPlan = {
+      kind: 'single',
+      argv: ['deploy', '--token', 's3cr3t'],
+    };
+    const effectiveValues = { 'api.token': 's3cr3t' };
+    const secretKeys = new Set(['api.token']);
+
+    printRunHeader('deploy', def, plan, effectiveValues, secretKeys);
+
+    const output = stderrOutput.join('');
+    expect(output).toContain('deploy --token ***');
+    expect(output).not.toContain('s3cr3t');
+  });
+
+  it('numbers sequential steps and annotates capture', () => {
+    const def: CommandDef = {
+      kind: 'sequential',
+      steps: ['build', 'test', 'deploy'],
+    };
+    const plan: ExecutionPlan = {
+      kind: 'sequential',
+      steps: [
+        { argv: ['npm', 'run', 'build'] },
+        { argv: ['npm', 'test'] },
+        { argv: ['./deploy.sh'], capture: { var: 'result' } },
+      ],
+    };
+
+    printRunHeader('ci', def, plan, {}, new Set());
+
+    const output = stderrOutput.join('');
+    expect(output).toContain('running: ci');
+    expect(output).toContain('steps:');
+    expect(output).toMatch(/1\.\s+npm run build/);
+    expect(output).toMatch(/2\.\s+npm test/);
+    expect(output).toMatch(/3\.\s+\.\/deploy\.sh \[capture → result\]/);
+    // step refs in def.steps are alias names, no ${}: no variables block
+    expect(output).not.toContain('variables:');
+  });
+
+  it('prints parallel plan entries with [alias] prefixes', () => {
+    const def: CommandDef = {
+      kind: 'parallel',
+      group: ['api', 'worker'],
+    };
+    const plan: ExecutionPlan = {
+      kind: 'parallel',
+      failMode: 'fast',
+      group: [
+        { alias: 'api', argv: ['node', 'api.js'] },
+        { alias: 'worker', argv: ['node', 'worker.js'] },
+      ],
+    };
+
+    printRunHeader('services', def, plan, {}, new Set());
+
+    const output = stderrOutput.join('');
+    expect(output).toContain('running: services');
+    expect(output).toContain('[api] node api.js');
+    expect(output).toContain('[worker] node worker.js');
+  });
+
+  it('omits the variables block when the alias references no placeholders', () => {
+    const def: CommandDef = { kind: 'single', cmd: ['ls', '-la'] };
+    const plan: ExecutionPlan = { kind: 'single', argv: ['ls', '-la'] };
+    const effectiveValues = { foo: 'bar', baz: 'qux' };
+
+    printRunHeader('list', def, plan, effectiveValues, new Set());
+
+    const output = stderrOutput.join('');
+    expect(output).toContain('running: list');
+    expect(output).not.toContain('variables:');
+    // values present in the effective map but never referenced must be omitted
+    expect(output).not.toContain('foo');
+    expect(output).not.toContain('bar');
+  });
+
+  it('wraps the title in BOLD + CYAN when FORCE_COLOR is set', () => {
+    vi.stubEnv('NO_COLOR', undefined as unknown as string);
+    vi.stubEnv('FORCE_COLOR', '1');
+    // reset capture buffer since beforeEach stubbed NO_COLOR=1 and populated nothing yet
+    stderrOutput.length = 0;
+
+    const def: CommandDef = { kind: 'single', cmd: ['echo', 'hi'] };
+    const plan: ExecutionPlan = { kind: 'single', argv: ['echo', 'hi'] };
+
+    printRunHeader('greet', def, plan, {}, new Set());
+
+    // First stderr chunk is the title
+    const firstChunk = stderrOutput[0] ?? '';
+    expect(firstChunk).toContain('\x1b[1m'); // BOLD
+    expect(firstChunk).toContain('\x1b[36m'); // CYAN
+    expect(firstChunk).toContain('running: greet');
+    expect(firstChunk).toContain('\x1b[0m'); // RESET
   });
 });
