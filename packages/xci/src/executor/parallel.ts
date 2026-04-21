@@ -21,7 +21,7 @@ type SettledResult = { exitCode: number; canceled: boolean };
  * Prints a summary of results to stderr after completion (D-09).
  */
 export async function runParallel(
-  group: readonly { readonly alias: string; readonly argv: readonly string[] }[],
+  group: readonly { readonly alias: string; readonly argv: readonly string[]; readonly cwd?: string }[],
   failMode: 'fast' | 'complete',
   cwd: string,
   env: Record<string, string>,
@@ -42,7 +42,7 @@ export async function runParallel(
   const logStream = logFile ? createWriteStream(logFile, { flags: 'a' }) : undefined;
 
   // For failMode 'fast', wrap each promise so that on failure it immediately aborts the rest.
-  const rawPromises = group.map(({ alias, argv }) => {
+  const rawPromises = group.map(({ alias, argv, cwd: entryCwd }) => {
     const [cmd, ...args] = argv;
     if (!cmd) {
       return Promise.reject(new SpawnError('(empty command)', new Error('argv is empty')));
@@ -56,8 +56,10 @@ export async function runParallel(
       stderrDest.push(makeLineTransform(alias), 'inherit');
     }
 
+    // quick-260421-g99: per-entry cwd overrides the group default.
+    const effectiveCwd = entryCwd ?? cwd;
     return execa(cmd, args, {
-      cwd,
+      cwd: effectiveCwd,
       env: mergedEnv,
       stdout: stdoutDest.length > 0 ? stdoutDest : 'pipe',
       stderr: stderrDest.length > 0 ? stderrDest : 'pipe',

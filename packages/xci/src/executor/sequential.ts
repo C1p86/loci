@@ -4,6 +4,7 @@
 
 import { execSync } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
+import { isAbsolute, resolve as resolvePath } from 'node:path';
 import { execa } from 'execa';
 import { SpawnError } from '../errors.js';
 
@@ -153,10 +154,13 @@ export async function runSequential(
       const iniLabel = `ini:${step.mode}`;
       printStepHeader(iniLabel, stepNum, totalSteps);
       const startTime = Date.now();
+      // quick-260421-g99: resolve file relative to step.cwd ?? default cwd.
+      const stepCwd = step.cwd ?? cwd;
+      const filePath = isAbsolute(step.file) ? step.file : resolvePath(stepCwd, step.file);
       try {
-        if (step.set) writeIni(step.file, step.set, step.mode);
-        if (step.delete) deleteIniKeys(step.file, step.delete as Record<string, string[]>);
-        process.stderr.write(`  ${step.file}\n`);
+        if (step.set) writeIni(filePath, step.set, step.mode);
+        if (step.delete) deleteIniKeys(filePath, step.delete as Record<string, string[]>);
+        process.stderr.write(`  ${filePath}\n`);
         if (step.set) {
           for (const [section, keys] of Object.entries(step.set)) {
             for (const [k, v] of Object.entries(keys)) {
@@ -185,12 +189,14 @@ export async function runSequential(
 
     // Merge captured variables into env for this step
     const stepEnv = { ...env, ...capturedVars };
+    // quick-260421-g99: per-step cwd override (absolute when set by resolveAbsoluteCwds).
+    const stepSpawnCwd = step.cwd ?? cwd;
     const startTime = Date.now();
 
     if (step.capture) {
       const cap = step.capture;
       // Capture mode: pipe stdout, store in variable
-      const result = await runAndCapture(finalArgv, cwd, stepEnv, logFile);
+      const result = await runAndCapture(finalArgv, stepSpawnCwd, stepEnv, logFile);
       const elapsed = Date.now() - startTime;
 
       if (result.exitCode !== 0) {
@@ -220,7 +226,7 @@ export async function runSequential(
 
       printStepResult(stepCmd, 0, elapsed);
     } else {
-      const result = await runSingle(finalArgv, cwd, stepEnv, logFile, showOutput, tailLines);
+      const result = await runSingle(finalArgv, stepSpawnCwd, stepEnv, logFile, showOutput, tailLines);
       const elapsed = Date.now() - startTime;
       printStepResult(stepCmd, result.exitCode, elapsed);
 
