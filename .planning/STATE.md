@@ -402,6 +402,7 @@ None
 | 260421-hnr | Fix TypeError in cli.ts when for_each.in is a string (regression from 260421-ewq) | 2026-04-21 | 86ff3a3 | [260421-hnr-fix-typeerror-in-cli-ts-when-for-each-in](./quick/260421-hnr-fix-typeerror-in-cli-ts-when-for-each-in/) |
 | 260421-kbl | Show full breadcrumb (A > A1 > A1a) in step headers during nested execution | 2026-04-21 | 18d8ea8 | [260421-kbl-show-full-breadcrumb-a-a1-a1a-in-step-he](./quick/260421-kbl-show-full-breadcrumb-a-a1-a1a-in-step-he/) |
 | 260421-lhg | fix for_each loop variable lost during runtime re-interpolation of rawArgv | 2026-04-21 | 4c3e576 | [260421-lhg-fix-for-each-loop-variable-lost-during-r](./quick/260421-lhg-fix-for-each-loop-variable-lost-during-r/) |
+| 260421-nmx | print step cwd in dark yellow before each spawn | 2026-04-21 | e6ff3bd | [260421-nmx-print-step-cwd-in-dark-yellow-before-eac](./quick/260421-nmx-print-step-cwd-in-dark-yellow-before-eac/) |
 | 260422-dfh | Fix for_each loop variable not available during step re-interpolation in sequential executor | 2026-04-22 | d771b51 | [260422-dfh-fix-for-each-loop-variable-not-available](./quick/260422-dfh-fix-for-each-loop-variable-not-available/) |
 
 ## Session Continuity
