@@ -123,6 +123,7 @@ export type SequentialStep =
       readonly rawArgv?: readonly string[];      // pre-interpolation tokens (for deferred interpolation with captured vars)
       readonly capture?: CaptureConfig;
       readonly cwd?: string;                     // effective working directory (absolute after resolveAbsoluteCwds)
+      readonly breadcrumb?: readonly string[];  // path of containing alias names, e.g. ["release","build","compile"] (quick-260421-kbl)
     }
   | {
       readonly kind: 'ini';
@@ -131,10 +132,12 @@ export type SequentialStep =
       readonly set?: Readonly<Record<string, Readonly<Record<string, string>>>>;
       readonly delete?: Readonly<Record<string, readonly string[]>>;
       readonly cwd?: string;                     // effective working directory (absolute after resolveAbsoluteCwds)
+      readonly breadcrumb?: readonly string[];  // path of containing alias names (quick-260421-kbl)
     }
   | {
       readonly kind: 'set';
       readonly vars: Readonly<Record<string, string>>;   // variable assignments (raw, may contain ${placeholders})
+      readonly breadcrumb?: readonly string[];  // path of containing alias names (quick-260421-kbl)
     };
 
 export type ExecutionPlan =
@@ -146,6 +149,7 @@ export type ExecutionPlan =
         readonly alias: string;
         readonly argv: readonly string[];
         readonly cwd?: string;
+        readonly breadcrumb?: readonly string[];  // path of containing alias names (quick-260421-kbl)
       }[];
       readonly failMode: 'fast' | 'complete'; // resolved with default 'fast'
     }

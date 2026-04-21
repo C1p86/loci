@@ -380,8 +380,8 @@ describe('resolver.resolve - parallel', () => {
       kind: 'parallel',
       failMode: 'fast',
       group: [
-        { alias: 'npm run watch:ts', argv: ['npm', 'run', 'watch:ts'] },
-        { alias: 'npm run watch:css', argv: ['npm', 'run', 'watch:css'] },
+        { alias: 'npm run watch:ts', argv: ['npm', 'run', 'watch:ts'], breadcrumb: ['watch'] },
+        { alias: 'npm run watch:css', argv: ['npm', 'run', 'watch:css'], breadcrumb: ['watch'] },
       ],
     });
   });
@@ -398,8 +398,8 @@ describe('resolver.resolve - parallel', () => {
       kind: 'parallel',
       failMode: 'fast',
       group: [
-        { alias: 'watch:ts', argv: ['npm', 'run', 'watch:ts'] },
-        { alias: 'watch:css', argv: ['npm', 'run', 'watch:css'] },
+        { alias: 'watch:ts', argv: ['npm', 'run', 'watch:ts'], breadcrumb: ['watch', 'watch:ts'] },
+        { alias: 'watch:css', argv: ['npm', 'run', 'watch:css'], breadcrumb: ['watch', 'watch:css'] },
       ],
     });
   });
@@ -808,5 +808,150 @@ describe('for_each rawArgv bakes loop variable', () => {
 
     expect(s0.rawArgv).toEqual(['deploy', 'api', '--region', 'us']);
     expect(s1.rawArgv).toEqual(['deploy', 'web', '--region', 'us']);
+  });
+});
+
+/* ============================================================
+ * resolver.resolve - breadcrumb (quick-260421-kbl)
+ * ============================================================ */
+
+describe('resolver.resolve - breadcrumb (quick-260421-kbl)', () => {
+  it('Test 1: nested sequential — each step carries the full containing path', () => {
+    const commands = makeCommands({
+      A1a: { kind: 'single', cmd: ['echo', 'a1a'] },
+      A1b: { kind: 'single', cmd: ['echo', 'a1b'] },
+      A2: { kind: 'single', cmd: ['echo', 'a2'] },
+      A1: { kind: 'sequential', steps: ['A1a', 'A1b'] },
+      A: { kind: 'sequential', steps: ['A1', 'A2'] },
+    });
+    const plan = resolver.resolve('A', commands, makeConfig());
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(3);
+    const s0 = plan.steps[0];
+    const s1 = plan.steps[1];
+    const s2 = plan.steps[2];
+    if (!s0 || !s1 || !s2) throw new Error('unreachable');
+    expect(s0.breadcrumb).toEqual(['A', 'A1', 'A1a']);
+    expect(s1.breadcrumb).toEqual(['A', 'A1', 'A1b']);
+    expect(s2.breadcrumb).toEqual(['A', 'A2']);
+  });
+
+  it('Test 2: inline step inside a sub-sequential inherits chain of containing alias', () => {
+    const commands = makeCommands({
+      A1: { kind: 'sequential', steps: ['echo hi'] },
+      A: { kind: 'sequential', steps: ['A1'] },
+    });
+    const plan = resolver.resolve('A', commands, makeConfig());
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    const s0 = plan.steps[0];
+    if (!s0) throw new Error('unreachable');
+    expect(s0.breadcrumb).toEqual(['A', 'A1']);
+  });
+
+  it('Test 3: top-level sequential alias with only inline commands — breadcrumb = ["A"]', () => {
+    const commands = makeCommands({
+      A: { kind: 'sequential', steps: ['echo one', 'echo two'] },
+    });
+    const plan = resolver.resolve('A', commands, makeConfig());
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(2);
+    for (const step of plan.steps) {
+      expect(step.breadcrumb).toEqual(['A']);
+    }
+  });
+
+  it('Test 4: top-level SINGLE alias does NOT get a breadcrumb field on the plan', () => {
+    const commands = makeCommands({
+      A: { kind: 'single', cmd: ['echo', 'hi'] },
+    });
+    const plan = resolver.resolve('A', commands, makeConfig());
+    expect(plan.kind).toBe('single');
+    expect((plan as Record<string, unknown>).breadcrumb).toBeUndefined();
+  });
+
+  it('Test 5: for_each with `run: sub-alias` stamps breadcrumb including sub-alias name', () => {
+    const commands = makeCommands({
+      greet: { kind: 'single', cmd: ['echo', 'hello ${name}'] },
+      A: {
+        kind: 'for_each',
+        var: 'name',
+        in: ['alice', 'bob'],
+        mode: 'steps',
+        run: 'greet',
+      },
+    });
+    const plan = resolver.resolve('A', commands, makeConfig());
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(2);
+    for (const step of plan.steps) {
+      expect(step.breadcrumb).toEqual(['A', 'greet']);
+    }
+  });
+
+  it('Test 6: for_each with inline cmd (no run) — breadcrumb = chain to the for_each alias only', () => {
+    const commands = makeCommands({
+      A: {
+        kind: 'for_each',
+        var: 'n',
+        in: ['1', '2'],
+        mode: 'steps',
+        cmd: ['echo', '${n}'],
+      },
+    });
+    const plan = resolver.resolve('A', commands, makeConfig());
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(2);
+    for (const step of plan.steps) {
+      expect(step.breadcrumb).toEqual(['A']);
+    }
+  });
+
+  it('Test 7: parallel group with sub-alias entries — each entry carries breadcrumb', () => {
+    const commands = makeCommands({
+      lint: { kind: 'single', cmd: ['npm', 'run', 'lint'] },
+      test: { kind: 'single', cmd: ['npm', 'run', 'test'] },
+      A: { kind: 'parallel', group: ['lint', 'test'] },
+    });
+    const plan = resolver.resolve('A', commands, makeConfig());
+    expect(plan.kind).toBe('parallel');
+    if (plan.kind !== 'parallel') throw new Error('unreachable');
+    expect(plan.group[0]?.breadcrumb).toEqual(['A', 'lint']);
+    expect(plan.group[1]?.breadcrumb).toEqual(['A', 'test']);
+  });
+
+  it('Test 8: parallel group with inline entries — breadcrumb = ["A"]', () => {
+    const commands = makeCommands({
+      A: { kind: 'parallel', group: ['echo one', 'echo two'] },
+    });
+    const plan = resolver.resolve('A', commands, makeConfig());
+    if (plan.kind !== 'parallel') throw new Error('unreachable');
+    expect(plan.group[0]?.breadcrumb).toEqual(['A']);
+    expect(plan.group[1]?.breadcrumb).toEqual(['A']);
+  });
+
+  it('Test 9: regression for "expands nested sequential alias steps inline" — breadcrumb is additive', () => {
+    const commands = makeCommands({
+      lint: { kind: 'single', cmd: ['npm', 'run', 'lint'] },
+      test: { kind: 'single', cmd: ['npm', 'run', 'test'] },
+      checks: { kind: 'sequential', steps: ['lint', 'test'] },
+      ci: { kind: 'sequential', steps: ['checks', 'npm run build'] },
+    });
+    const plan = resolver.resolve('ci', commands, makeConfig());
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    // Existing argv assertion preserved
+    expect(plan.steps.map((s) => ('argv' in s ? s.argv : null))).toEqual([
+      ['npm', 'run', 'lint'],
+      ['npm', 'run', 'test'],
+      ['npm', 'run', 'build'],
+    ]);
+    // New breadcrumb assertion
+    expect(plan.steps.map((s) => s.breadcrumb)).toEqual([
+      ['ci', 'checks', 'lint'],
+      ['ci', 'checks', 'test'],
+      ['ci'],
+    ]);
   });
 });

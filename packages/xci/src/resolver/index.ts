@@ -73,6 +73,7 @@ function resolveToStepsLenient(
         rawArgv: rawCmd,
         ...(def.capture ? { capture: def.capture } : {}),
         ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+        breadcrumb: [...chain],
       }];
     }
     case 'sequential': {
@@ -83,7 +84,7 @@ function resolveToStepsLenient(
           const eqIdx = step.indexOf('=');
           const key = step.substring(0, eqIdx);
           const value = step.substring(eqIdx + 1);
-          allSteps.push({ kind: 'set', vars: { [key]: value } });
+          allSteps.push({ kind: 'set', vars: { [key]: value }, breadcrumb: [...chain] });
         } else if (commands.has(step)) {
           const subSteps = resolveToStepsLenient(step, commands, config, depth + 1, [...chain, step], effectiveCwd);
           for (const s of subSteps) allSteps.push(s);
@@ -94,6 +95,7 @@ function resolveToStepsLenient(
             argv,
             rawArgv: tokens,
             ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+            breadcrumb: [...chain],
           });
         }
       }
@@ -114,6 +116,7 @@ function resolveToStepsLenient(
           argv,
           rawArgv: tokens,
           ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+          breadcrumb: [...chain],
         };
       });
 
@@ -145,6 +148,7 @@ function resolveToStepsLenient(
             argv,
             rawArgv: def.cmd.map(t => t.replaceAll(`\${${def.var}}`, value)),
             ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+            breadcrumb: [...chain],
           });
         }
       }
@@ -170,6 +174,7 @@ function resolveToStepsLenient(
         ...(set ? { set } : {}),
         ...(def.delete ? { delete: def.delete } : {}),
         ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+        breadcrumb: [...chain],
       }];
     }
   }
@@ -221,7 +226,7 @@ function resolveAlias(
           const eqIdx = step.indexOf('=');
           const key = step.substring(0, eqIdx);
           const value = step.substring(eqIdx + 1);
-          allSteps.push({ kind: 'set', vars: { [key]: value } });
+          allSteps.push({ kind: 'set', vars: { [key]: value }, breadcrumb: [...chain] });
         } else if (commands.has(step)) {
           const subSteps = resolveToStepsLenient(step, commands, config, depth + 1, [...chain, step], effectiveCwd);
           for (const s of subSteps) allSteps.push(s);
@@ -232,6 +237,7 @@ function resolveAlias(
             argv,
             rawArgv: tokens,
             ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+            breadcrumb: [...chain],
           });
         }
       }
@@ -239,7 +245,7 @@ function resolveAlias(
     }
 
     case 'parallel': {
-      const group: { alias: string; argv: readonly string[]; cwd?: string }[] = [];
+      const group: { alias: string; argv: readonly string[]; cwd?: string; breadcrumb?: readonly string[] }[] = [];
       for (const entry of def.group) {
         if (commands.has(entry)) {
           // D-09: alias ref — must resolve to a single command for parallel group
@@ -255,6 +261,7 @@ function resolveAlias(
             alias: entry,
             argv: subPlan.argv,
             ...(entryCwd !== undefined ? { cwd: entryCwd } : {}),
+            breadcrumb: [...chain, entry],
           });
         } else {
           // Inline command
@@ -264,6 +271,7 @@ function resolveAlias(
             alias: entry,
             argv,
             ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+            breadcrumb: [...chain],
           });
         }
       }
@@ -289,7 +297,7 @@ function resolveAlias(
           })();
 
       if (def.mode === 'parallel') {
-        const group: { alias: string; argv: readonly string[]; cwd?: string }[] = [];
+        const group: { alias: string; argv: readonly string[]; cwd?: string; breadcrumb?: readonly string[] }[] = [];
         for (const value of values) {
           const loopConfig: ResolvedConfig = {
             ...config,
@@ -305,6 +313,7 @@ function resolveAlias(
               alias: `${def.run}[${value}]`,
               argv: subPlan.argv,
               ...(entryCwd !== undefined ? { cwd: entryCwd } : {}),
+              breadcrumb: [...chain, def.run],
             });
           } else if (def.cmd) {
             const argv = interpolateArgv(def.cmd, aliasName, loopConfig.values);
@@ -312,6 +321,7 @@ function resolveAlias(
               alias: `${aliasName}[${value}]`,
               argv,
               ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+              breadcrumb: [...chain],
             });
           }
         }
@@ -332,6 +342,7 @@ function resolveAlias(
             argv,
             rawArgv: def.cmd.map(t => t.replaceAll(`\${${def.var}}`, value)),
             ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+            breadcrumb: [...chain],
           });
         }
       }
