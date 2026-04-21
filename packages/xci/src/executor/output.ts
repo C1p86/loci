@@ -227,6 +227,7 @@ export function printRunHeader(
   const cyan = useColor ? CYAN : '';
   const dim = useColor ? DIM : '';
   const reset = useColor ? RESET : '';
+  const yellow = useColor ? BRIGHT_YELLOW : '';
 
   // Title
   process.stderr.write(`${bold}${cyan}\u25b6 running: ${alias}${reset}\n`);
@@ -264,7 +265,7 @@ export function printRunHeader(
   const topCwd = topLevelCwd(plan);
   const redactedTopCwd = redactCwd(topCwd, secretValues);
   if (redactedTopCwd !== undefined && (projectRoot === undefined || redactedTopCwd !== projectRoot)) {
-    process.stderr.write(`${dim}cwd: ${redactedTopCwd}${reset}\n`);
+    process.stderr.write(`${yellow}cwd: ${redactedTopCwd}${reset}\n`);
   }
 
   process.stderr.write('steps:\n');
@@ -280,7 +281,7 @@ export function printRunHeader(
         if (!step) continue;
         if (step.kind === 'ini') {
           const stepCwdDisplay = step.cwd && step.cwd !== topCwd
-            ? ` ${dim}(cwd: ${redactCwd(step.cwd, secretValues)})${reset}`
+            ? ` ${yellow}(cwd: ${redactCwd(step.cwd, secretValues)})${reset}`
             : '';
           process.stderr.write(`  ${i + 1}. ini:${step.mode} ${step.file}${stepCwdDisplay}\n`);
         } else if (step.kind === 'set') {
@@ -291,7 +292,7 @@ export function printRunHeader(
           const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
           const label = step.label ? `${step.label}: ` : '';
           const stepCwdDisplay = step.cwd && step.cwd !== topCwd
-            ? ` ${dim}(cwd: ${redactCwd(step.cwd, secretValues)})${reset}`
+            ? ` ${yellow}(cwd: ${redactCwd(step.cwd, secretValues)})${reset}`
             : '';
           process.stderr.write(`  ${i + 1}. ${label}${redacted.join(' ')}${captureTag}${stepCwdDisplay}\n`);
         }
@@ -302,7 +303,7 @@ export function printRunHeader(
       for (const entry of plan.group) {
         const redacted = redactArgv(entry.argv, secretValues);
         const entryCwdDisplay = entry.cwd && entry.cwd !== topCwd
-          ? ` ${dim}(cwd: ${redactCwd(entry.cwd, secretValues)})${reset}`
+          ? ` ${yellow}(cwd: ${redactCwd(entry.cwd, secretValues)})${reset}`
           : '';
         process.stderr.write(`  [${entry.alias}] ${redacted.join(' ')}${entryCwdDisplay}\n`);
       }
