@@ -771,4 +771,90 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
       expect(stderr).toContain('PASS');
     });
   });
+
+  // ------------------------------------------------------------------
+  // quick-260421-hnr: for_each.in display no longer crashes on string form
+  // Regression against quick-260421-ewq which widened the type from
+  // readonly string[] to readonly string[] | string but left two display
+  // sites in cli.ts calling def.in.join(...) unconditionally.
+  // ------------------------------------------------------------------
+
+  describe('quick-260421-hnr: for_each.in display (string + array forms)', () => {
+    const stringFormCommands = [
+      'items:',
+      '  for_each:',
+      '    var: ITEM',
+      '    in: "${ITEMS}"',
+      '    mode: steps',
+      '    cmd: ["echo", "${ITEM}"]',
+      'hello:',
+      '  cmd: ["node", "-e", "process.stdout.write(\'hi\')"]',
+      '',
+    ].join('\n');
+
+    const arrayFormCommands = [
+      'loop:',
+      '  for_each:',
+      '    var: X',
+      '    in: ["a", "b", "c"]',
+      '    mode: steps',
+      '    cmd: ["echo", "${X}"]',
+      '',
+    ].join('\n');
+
+    it('quick-260421-hnr: --list renders for_each.in string form without brackets', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': stringFormCommands,
+          '.xci/config.yml': 'ITEMS: "a,b,c"\n',
+        }),
+      );
+      const { stderr, code } = runCliInDir(dir, ['items', '--list']);
+      expect(code).toBe(0);
+      expect(stderr).toContain('in: ${ITEMS}');
+      expect(stderr).not.toMatch(/TypeError/i);
+    });
+
+    it('quick-260421-hnr: per-alias --help renders for_each.in string form without brackets', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': stringFormCommands,
+          '.xci/config.yml': 'ITEMS: "a,b,c"\n',
+        }),
+      );
+      const { stdout, stderr, code } = runCliInDir(dir, ['items', '--help']);
+      expect(code).toBe(0);
+      expect(stdout).toContain('in: ${ITEMS}');
+      expect(stdout).not.toMatch(/TypeError/i);
+      expect(stderr).not.toMatch(/TypeError/i);
+    });
+
+    it('quick-260421-hnr: startup does not crash when for_each.in uses string form (registration regression)', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': stringFormCommands,
+          '.xci/config.yml': 'ITEMS: "a,b,c"\n',
+        }),
+      );
+      // Invoke an unrelated alias — if buildAliasHelpText throws at registration
+      // for the string-form for_each alias, `hello` will never be dispatched.
+      const { stdout, stderr, code } = runCliInDir(dir, ['hello', '--log']);
+      expect(code).toBe(0);
+      expect(stdout).toContain('hi');
+      expect(stderr).not.toMatch(/TypeError/i);
+    });
+
+    it('quick-260421-hnr: --list renders for_each.in array form with brackets (no over-fix)', () => {
+      const dir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': arrayFormCommands,
+          '.xci/config.yml': '',
+        }),
+      );
+      const { stderr, code } = runCliInDir(dir, ['loop', '--list']);
+      expect(code).toBe(0);
+      expect(stderr).toContain('in: [a, b, c]');
+      expect(stderr).not.toMatch(/TypeError/i);
+    });
+  });
 });

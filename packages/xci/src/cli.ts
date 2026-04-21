@@ -172,13 +172,15 @@ function buildAliasHelpText(alias: string, def: CommandDef): string {
       lines.push(`  members (failMode: ${def.failMode ?? 'fast'}):`);
       def.group.forEach((entry) => lines.push(`    - ${entry}`));
       break;
-    case 'for_each':
+    case 'for_each': {
+      const inDisplay = Array.isArray(def.in) ? `[${def.in.join(', ')}]` : def.in;
       lines.push(`  var: ${def.var}`);
-      lines.push(`  in: [${def.in.join(', ')}]`);
+      lines.push(`  in: ${inDisplay}`);
       lines.push(`  mode: ${def.mode}`);
       if (def.cmd) lines.push(`  cmd: ${def.cmd.join(' ')}`);
       if (def.run) lines.push(`  run: ${def.run}`);
       break;
+    }
     case 'ini':
       lines.push(`  file: ${def.file}`);
       lines.push(`  mode: ${def.mode ?? 'overwrite'}`);
@@ -236,11 +238,13 @@ function printAliasDetails(
     case 'single':
       process.stderr.write(`  cmd: ${def.cmd.join(' ')}\n`);
       break;
-    case 'for_each':
-      process.stderr.write(`  var: ${def.var}  in: [${def.in.join(', ')}]  mode: ${def.mode}\n`);
+    case 'for_each': {
+      const inDisplay = Array.isArray(def.in) ? `[${def.in.join(', ')}]` : def.in;
+      process.stderr.write(`  var: ${def.var}  in: ${inDisplay}  mode: ${def.mode}\n`);
       if (def.cmd) process.stderr.write(`  cmd: ${def.cmd.join(' ')}\n`);
       if (def.run) process.stderr.write(`  run: ${def.run}\n`);
       break;
+    }
     case 'ini':
       process.stderr.write(`  file: ${def.file}  mode: ${def.mode ?? 'overwrite'}\n`);
       break;
