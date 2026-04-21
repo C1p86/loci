@@ -219,10 +219,12 @@ export function printRunHeader(
   plan: ExecutionPlan,
   effectiveValues: Readonly<Record<string, string>>,
   secretKeys: ReadonlySet<string>,
+  projectRoot?: string,
 ): void {
   const useColor = shouldUseColor();
   const bold = useColor ? BOLD : '';
   const cyan = useColor ? CYAN : '';
+  const dim = useColor ? DIM : '';
   const reset = useColor ? RESET : '';
 
   // Title
@@ -257,6 +259,13 @@ export function printRunHeader(
     if (v !== undefined && v !== '') secretValues.add(v);
   }
 
+  // quick-260421-g99: top-level cwd line (hidden if the plan's effective cwd equals projectRoot).
+  const topCwd = topLevelCwd(plan);
+  const redactedTopCwd = redactCwd(topCwd, secretValues);
+  if (redactedTopCwd !== undefined && (projectRoot === undefined || redactedTopCwd !== projectRoot)) {
+    process.stderr.write(`${dim}cwd: ${redactedTopCwd}${reset}\n`);
+  }
+
   process.stderr.write('steps:\n');
   switch (plan.kind) {
     case 'single': {
@@ -269,7 +278,10 @@ export function printRunHeader(
         const step = plan.steps[i];
         if (!step) continue;
         if (step.kind === 'ini') {
-          process.stderr.write(`  ${i + 1}. ini:${step.mode} ${step.file}\n`);
+          const stepCwdDisplay = step.cwd && step.cwd !== topCwd
+            ? ` ${dim}(cwd: ${redactCwd(step.cwd, secretValues)})${reset}`
+            : '';
+          process.stderr.write(`  ${i + 1}. ini:${step.mode} ${step.file}${stepCwdDisplay}\n`);
         } else if (step.kind === 'set') {
           const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(', ');
           process.stderr.write(`  ${i + 1}. set ${assignments}\n`);
@@ -277,7 +289,10 @@ export function printRunHeader(
           const redacted = redactArgv(step.argv, secretValues);
           const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
           const label = step.label ? `${step.label}: ` : '';
-          process.stderr.write(`  ${i + 1}. ${label}${redacted.join(' ')}${captureTag}\n`);
+          const stepCwdDisplay = step.cwd && step.cwd !== topCwd
+            ? ` ${dim}(cwd: ${redactCwd(step.cwd, secretValues)})${reset}`
+            : '';
+          process.stderr.write(`  ${i + 1}. ${label}${redacted.join(' ')}${captureTag}${stepCwdDisplay}\n`);
         }
       }
       break;
@@ -285,7 +300,10 @@ export function printRunHeader(
     case 'parallel': {
       for (const entry of plan.group) {
         const redacted = redactArgv(entry.argv, secretValues);
-        process.stderr.write(`  [${entry.alias}] ${redacted.join(' ')}\n`);
+        const entryCwdDisplay = entry.cwd && entry.cwd !== topCwd
+          ? ` ${dim}(cwd: ${redactCwd(entry.cwd, secretValues)})${reset}`
+          : '';
+        process.stderr.write(`  [${entry.alias}] ${redacted.join(' ')}${entryCwdDisplay}\n`);
       }
       break;
     }
@@ -321,6 +339,39 @@ function redactArgv(argv: readonly string[], secretValues: ReadonlySet<string>):
   return argv.map((token) => (secretValues.has(token) ? '***' : token));
 }
 
+/**
+ * Redact a cwd string: if its exact value matches a secret, display `***`.
+ * Returns undefined unchanged.
+ * quick-260421-g99
+ */
+function redactCwd(cwd: string | undefined, secretValues: ReadonlySet<string>): string | undefined {
+  if (cwd === undefined) return undefined;
+  return secretValues.has(cwd) ? '***' : cwd;
+}
+
+/**
+ * Pick a representative top-level cwd for header display: single/ini → plan.cwd;
+ * sequential → first spawn step's cwd; parallel → first group entry's cwd.
+ * quick-260421-g99
+ */
+function topLevelCwd(plan: ExecutionPlan): string | undefined {
+  switch (plan.kind) {
+    case 'single':
+      return plan.cwd;
+    case 'ini':
+      return plan.cwd;
+    case 'sequential': {
+      for (const step of plan.steps) {
+        if (step.kind === 'set') continue;
+        if (step.cwd !== undefined) return step.cwd;
+      }
+      return undefined;
+    }
+    case 'parallel':
+      return plan.group[0]?.cwd;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Dry-run output (D-27, D-30)                                          */
 /* ------------------------------------------------------------------ */
@@ -341,6 +392,13 @@ export function printDryRun(
 ): void {
   const prefix = dimPrefix('dry-run');
 
+  // quick-260421-g99: top-level cwd summary line before the plan body.
+  const topCwd = topLevelCwd(plan);
+  const redactedTopCwd = redactCwd(topCwd, secretValues);
+  if (redactedTopCwd !== undefined) {
+    process.stderr.write(`${prefix} cwd: ${redactedTopCwd}\n`);
+  }
+
   switch (plan.kind) {
     case 'single': {
       const redacted = redactArgv(plan.argv, secretValues);
@@ -353,14 +411,20 @@ export function printDryRun(
         const step = plan.steps[i];
         if (step) {
           if (step.kind === 'ini') {
-            process.stderr.write(`${prefix}   ${i + 1}. ini:${step.mode} ${step.file}\n`);
+            const stepCwdDisplay = step.cwd && step.cwd !== topCwd
+              ? ` (cwd: ${redactCwd(step.cwd, secretValues)})`
+              : '';
+            process.stderr.write(`${prefix}   ${i + 1}. ini:${step.mode} ${step.file}${stepCwdDisplay}\n`);
           } else if (step.kind === 'set') {
             const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(', ');
             process.stderr.write(`${prefix}   ${i + 1}. set ${assignments}\n`);
           } else {
             const redacted = redactArgv(step.argv, secretValues);
             const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
-            process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}\n`);
+            const stepCwdDisplay = step.cwd && step.cwd !== topCwd
+              ? ` (cwd: ${redactCwd(step.cwd, secretValues)})`
+              : '';
+            process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}${stepCwdDisplay}\n`);
           }
         }
       }
@@ -372,7 +436,10 @@ export function printDryRun(
       );
       for (const entry of plan.group) {
         const redacted = redactArgv(entry.argv, secretValues);
-        process.stderr.write(`${prefix}   [${entry.alias}] ${redacted.join(' ')}\n`);
+        const entryCwdDisplay = entry.cwd && entry.cwd !== topCwd
+          ? ` (cwd: ${redactCwd(entry.cwd, secretValues)})`
+          : '';
+        process.stderr.write(`${prefix}   [${entry.alias}] ${redacted.join(' ')}${entryCwdDisplay}\n`);
       }
       break;
     }
@@ -464,6 +531,13 @@ export function printVerboseCommand(
       break;
   }
 
+  // quick-260421-g99: resolved cwd summary — verbose is the right place to be exhaustive.
+  const topCwd = topLevelCwd(plan);
+  const redactedTopCwd = redactCwd(topCwd, secretValues);
+  if (redactedTopCwd !== undefined) {
+    process.stderr.write(`${prefix} resolved cwd: ${redactedTopCwd}\n`);
+  }
+
   // Resolved command (interpolated, secrets redacted)
   switch (plan.kind) {
     case 'single': {
@@ -477,14 +551,20 @@ export function printVerboseCommand(
         const step = plan.steps[i];
         if (step) {
           if (step.kind === 'ini') {
-            process.stderr.write(`${prefix}   ${i + 1}. ini:${step.mode} ${step.file}\n`);
+            const stepCwdDisplay = step.cwd && step.cwd !== topCwd
+              ? ` (cwd: ${redactCwd(step.cwd, secretValues)})`
+              : '';
+            process.stderr.write(`${prefix}   ${i + 1}. ini:${step.mode} ${step.file}${stepCwdDisplay}\n`);
           } else if (step.kind === 'set') {
             const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(', ');
             process.stderr.write(`${prefix}   ${i + 1}. set ${assignments}\n`);
           } else {
             const redacted = redactArgv(step.argv, secretValues);
             const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
-            process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}\n`);
+            const stepCwdDisplay = step.cwd && step.cwd !== topCwd
+              ? ` (cwd: ${redactCwd(step.cwd, secretValues)})`
+              : '';
+            process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}${stepCwdDisplay}\n`);
           }
         }
       }
@@ -493,7 +573,10 @@ export function printVerboseCommand(
       process.stderr.write(`${prefix} resolved parallel:\n`);
       for (const entry of plan.group) {
         const redacted = redactArgv(entry.argv, secretValues);
-        process.stderr.write(`${prefix}   [${entry.alias}] ${redacted.join(' ')}\n`);
+        const entryCwdDisplay = entry.cwd && entry.cwd !== topCwd
+          ? ` (cwd: ${redactCwd(entry.cwd, secretValues)})`
+          : '';
+        process.stderr.write(`${prefix}   [${entry.alias}] ${redacted.join(' ')}${entryCwdDisplay}\n`);
       }
       break;
   }

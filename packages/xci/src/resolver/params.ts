@@ -144,6 +144,12 @@ function collectAll(
     }
   };
 
+  // `cwd` is available on every kind — scan it uniformly so ${...} tokens surface
+  // as required params via the same MissingParamsError path.
+  if (typeof (def as { cwd?: unknown }).cwd === 'string') {
+    trackUsage(extractPlaceholders((def as { cwd: string }).cwd));
+  }
+
   // Scan placeholders based on command kind
   switch (def.kind) {
     case 'single':

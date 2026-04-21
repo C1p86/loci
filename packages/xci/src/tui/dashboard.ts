@@ -295,7 +295,9 @@ async function execSingle(
   updateCommand(0, 'running');
   flushRender();
   try {
-    const result = await runWithCapture(plan.argv, cwd, env);
+    // quick-260421-g99: plan.cwd (absolute) overrides the default cwd.
+    const effectiveCwd = plan.cwd ?? cwd;
+    const result = await runWithCapture(plan.argv, effectiveCwd, env);
     updateCommand(0, result.exitCode === 0 ? 'success' : 'failed', result.exitCode);
     flushRender();
     return result;
@@ -342,9 +344,13 @@ async function execSequential(
       flushRender();
       try {
         const { writeIni, deleteIniKeys } = await import('../executor/ini.js');
-        if (step.set) writeIni(step.file, step.set, step.mode);
-        if (step.delete) deleteIniKeys(step.file, step.delete as Record<string, string[]>);
-        appendLog(`  ${step.file}`);
+        const { isAbsolute, resolve: resolvePath } = await import('node:path');
+        // quick-260421-g99: resolve relative file path against step.cwd ?? default cwd.
+        const stepCwd = step.cwd ?? cwd;
+        const filePath = isAbsolute(step.file) ? step.file : resolvePath(stepCwd, step.file);
+        if (step.set) writeIni(filePath, step.set, step.mode);
+        if (step.delete) deleteIniKeys(filePath, step.delete as Record<string, string[]>);
+        appendLog(`  ${filePath}`);
         updateCommand(i, 'success');
         flushRender();
       } catch (err) {
@@ -370,9 +376,11 @@ async function execSequential(
     flushRender();
 
     const stepEnv = { ...env, ...capturedVars };
+    // quick-260421-g99: per-step cwd overrides default.
+    const stepSpawnCwd = step.cwd ?? cwd;
 
     try {
-      const result = await runWithCapture(finalArgv, cwd, stepEnv);
+      const result = await runWithCapture(finalArgv, stepSpawnCwd, stepEnv);
       if (result.exitCode !== 0) {
         updateCommand(i, 'failed', result.exitCode);
         for (let j = i + 1; j < plan.steps.length; j++) {
@@ -444,8 +452,10 @@ async function execParallel(
 
     const pfx = `[${entry.alias}] `;
 
+    // quick-260421-g99: per-entry cwd overrides the group default.
+    const effectiveCwd = entry.cwd ?? cwd;
     const proc = execa(cmd, args, {
-      cwd,
+      cwd: effectiveCwd,
       env: { ...process.env, ...env },
       stdout: 'pipe',
       stderr: 'pipe',

@@ -532,3 +532,222 @@ describe('resolver — for_each with string in (CSV-split)', () => {
     ).toThrow(UndefinedPlaceholderError);
   });
 });
+
+/* ============================================================
+ * resolver.resolve - cwd field + parent→child inheritance (quick-260421-g99)
+ * ============================================================ */
+
+describe('resolver — cwd field', () => {
+  it('emits cwd on a single plan when def has a static cwd', () => {
+    const plan = resolver.resolve(
+      'build',
+      makeCommands({ build: { kind: 'single', cmd: ['echo', 'hi'], cwd: 'sub' } }),
+      makeConfig(),
+    );
+    expect(plan.kind).toBe('single');
+    if (plan.kind !== 'single') throw new Error('unreachable');
+    expect(plan.cwd).toBe('sub');
+  });
+
+  it('lenient-interpolates ${placeholder} cwd at resolve time', () => {
+    const plan = resolver.resolve(
+      'build',
+      makeCommands({ build: { kind: 'single', cmd: ['echo', 'hi'], cwd: '${dir}' } }),
+      makeConfig({ dir: 'foo' }),
+    );
+    if (plan.kind !== 'single') throw new Error('unreachable');
+    expect(plan.cwd).toBe('foo');
+  });
+
+  it('plan.cwd is undefined when def has no cwd', () => {
+    const plan = resolver.resolve(
+      'build',
+      makeCommands({ build: { kind: 'single', cmd: ['echo', 'hi'] } }),
+      makeConfig(),
+    );
+    if (plan.kind !== 'single') throw new Error('unreachable');
+    expect(plan.cwd).toBeUndefined();
+  });
+
+  it('sequential parent cwd inherits to child with no cwd', () => {
+    const plan = resolver.resolve(
+      'pipe',
+      makeCommands({
+        pipe: { kind: 'sequential', steps: ['child'], cwd: 'a' },
+        child: { kind: 'single', cmd: ['echo', 'hi'] },
+      }),
+      makeConfig(),
+    );
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    const step = plan.steps[0];
+    if (!step || step.kind === 'set') throw new Error('unreachable');
+    expect(step.cwd).toBe('a');
+  });
+
+  it('child cwd wins over parent cwd', () => {
+    const plan = resolver.resolve(
+      'pipe',
+      makeCommands({
+        pipe: { kind: 'sequential', steps: ['child'], cwd: 'a' },
+        child: { kind: 'single', cmd: ['echo', 'hi'], cwd: 'b' },
+      }),
+      makeConfig(),
+    );
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    const step = plan.steps[0];
+    if (!step || step.kind === 'set') throw new Error('unreachable');
+    expect(step.cwd).toBe('b');
+  });
+
+  it('sequential parent with no cwd: child-only cwd still surfaces', () => {
+    const plan = resolver.resolve(
+      'pipe',
+      makeCommands({
+        pipe: { kind: 'sequential', steps: ['child'] },
+        child: { kind: 'single', cmd: ['echo', 'hi'], cwd: 'b' },
+      }),
+      makeConfig(),
+    );
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    const step = plan.steps[0];
+    if (!step || step.kind === 'set') throw new Error('unreachable');
+    expect(step.cwd).toBe('b');
+  });
+
+  it('inline sequential step inherits parent cwd', () => {
+    const plan = resolver.resolve(
+      'pipe',
+      makeCommands({
+        pipe: { kind: 'sequential', steps: ['echo hello'], cwd: 'a' },
+      }),
+      makeConfig(),
+    );
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    const step = plan.steps[0];
+    if (!step || step.kind === 'set') throw new Error('unreachable');
+    expect(step.cwd).toBe('a');
+  });
+
+  it('set step does NOT receive cwd', () => {
+    const plan = resolver.resolve(
+      'pipe',
+      makeCommands({
+        pipe: { kind: 'sequential', steps: ['X=hello', 'echo ${X}'], cwd: 'a' },
+      }),
+      makeConfig(),
+    );
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    const setStep = plan.steps[0];
+    if (!setStep || setStep.kind !== 'set') throw new Error('expected set step');
+    expect(setStep).not.toHaveProperty('cwd');
+  });
+
+  it('parallel cwd propagates to every group entry', () => {
+    const plan = resolver.resolve(
+      'group',
+      makeCommands({
+        group: { kind: 'parallel', group: ['a', 'b'], cwd: 'shared' },
+        a: { kind: 'single', cmd: ['echo', 'a'] },
+        b: { kind: 'single', cmd: ['echo', 'b'] },
+      }),
+      makeConfig(),
+    );
+    if (plan.kind !== 'parallel') throw new Error('unreachable');
+    expect(plan.group[0]?.cwd).toBe('shared');
+    expect(plan.group[1]?.cwd).toBe('shared');
+  });
+
+  it('parallel without cwd: only entries with own cwd carry one', () => {
+    const plan = resolver.resolve(
+      'group',
+      makeCommands({
+        group: { kind: 'parallel', group: ['a', 'b'] },
+        a: { kind: 'single', cmd: ['echo', 'a'] },
+        b: { kind: 'single', cmd: ['echo', 'b'], cwd: 'e' },
+      }),
+      makeConfig(),
+    );
+    if (plan.kind !== 'parallel') throw new Error('unreachable');
+    expect(plan.group[0]?.cwd).toBeUndefined();
+    expect(plan.group[1]?.cwd).toBe('e');
+  });
+
+  it('for_each (sequential mode with inline cmd) applies cwd to every expanded step', () => {
+    const plan = resolver.resolve(
+      'deploy',
+      makeCommands({
+        deploy: {
+          kind: 'for_each',
+          var: 'region',
+          in: ['us', 'eu'],
+          mode: 'steps',
+          cmd: ['echo', '${region}'],
+          cwd: 'deploy',
+        },
+      }),
+      makeConfig(),
+    );
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(2);
+    for (const step of plan.steps) {
+      if (step.kind === 'set') continue;
+      expect(step.cwd).toBe('deploy');
+    }
+  });
+
+  it('for_each (parallel mode with inline cmd) applies cwd to every group entry', () => {
+    const plan = resolver.resolve(
+      'deploy',
+      makeCommands({
+        deploy: {
+          kind: 'for_each',
+          var: 'region',
+          in: ['us', 'eu'],
+          mode: 'parallel',
+          cmd: ['echo', '${region}'],
+          cwd: 'deploy',
+        },
+      }),
+      makeConfig(),
+    );
+    if (plan.kind !== 'parallel') throw new Error('unreachable');
+    expect(plan.group).toHaveLength(2);
+    for (const entry of plan.group) {
+      expect(entry.cwd).toBe('deploy');
+    }
+  });
+
+  it('ini kind carries cwd through to plan', () => {
+    const plan = resolver.resolve(
+      'cfg',
+      makeCommands({
+        cfg: {
+          kind: 'ini',
+          file: 'x.ini',
+          set: { Section: { k: 'v' } },
+          cwd: 'work',
+        },
+      }),
+      makeConfig(),
+    );
+    expect(plan.kind).toBe('ini');
+    if (plan.kind !== 'ini') throw new Error('unreachable');
+    expect(plan.cwd).toBe('work');
+  });
+
+  it('grandparent cwd reaches grandchild through middle sequential', () => {
+    const plan = resolver.resolve(
+      'release',
+      makeCommands({
+        release: { kind: 'sequential', steps: ['mid'], cwd: 'grand' },
+        mid: { kind: 'sequential', steps: ['leaf'] },
+        leaf: { kind: 'single', cmd: ['echo', 'x'] },
+      }),
+      makeConfig(),
+    );
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    const step = plan.steps[0];
+    if (!step || step.kind === 'set') throw new Error('unreachable');
+    expect(step.cwd).toBe('grand');
+  });
+});

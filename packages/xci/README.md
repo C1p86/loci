@@ -261,6 +261,49 @@ deploy-fleet:
 xci deploy-fleet regions=eu-west-1,us-east-1,ap-northeast-1
 ```
 
+### Working Directory (`cwd`)
+
+By default every alias runs in the project root — the directory that contains `.xci/`. Use the optional `cwd` field to run an alias from a different directory. It accepts a **relative path** (resolved against the project root), an **absolute path**, or a **`${placeholder}`** interpolated from config or CLI params.
+
+```yaml
+# Relative path — runs from <project-root>/packages/auth
+build-auth:
+  cwd: packages/auth
+  cmd: npm run build
+```
+
+```yaml
+# Placeholder — pass the module via CLI: xci build-module module_path=packages/web
+build-module:
+  params:
+    module_path: required
+  cwd: "${module_path}"
+  cmd: npm run build
+```
+
+Child aliases inherit the parent's `cwd` unless they declare their own. A child's `cwd` always wins:
+
+```yaml
+release:
+  cwd: packages/web       # default for every step below
+  steps:
+    - bump-version          # inherits packages/web
+    - build                 # inherits packages/web
+    - publish-to-s3         # has its own cwd → packages/web IGNORED here
+
+bump-version:
+  cmd: npm version patch
+
+build:
+  cmd: npm run build
+
+publish-to-s3:
+  cwd: scripts/release
+  cmd: bash publish.sh
+```
+
+If the directory does not exist, execa surfaces the failure with the full absolute path in the error message. `cwd` works with every alias kind — `cmd`, `steps`, `parallel`, `for_each`, and `ini`.
+
 ### Split Commands Across Files
 
 Put YAML files in `.xci/commands/` to organize aliases by area. Subdirectories are scanned recursively.
