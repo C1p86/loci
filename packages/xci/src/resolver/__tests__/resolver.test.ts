@@ -434,3 +434,101 @@ describe('resolver re-exports', () => {
     expect(result).toEqual({ API_KEY: '***' });
   });
 });
+
+/* ============================================================
+ * resolver.resolve - for_each with string in (CSV-split, quick-260421-ewq)
+ * ============================================================ */
+
+describe('resolver — for_each with string in (CSV-split)', () => {
+  it('sequential mode: CSV-splits interpolated string into 2 steps', () => {
+    const def: CommandDef = {
+      kind: 'for_each',
+      var: 'region',
+      in: '${AwsLocations}',
+      mode: 'steps',
+      cmd: ['echo', '${region}'],
+    };
+    const plan = resolver.resolve(
+      'deploy',
+      makeCommands({ deploy: def }),
+      makeConfig({ AwsLocations: 'eu-west-1,us-east-1' }),
+    );
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(2);
+    const s0 = plan.steps[0];
+    const s1 = plan.steps[1];
+    if (!s0 || !s1) throw new Error('unreachable');
+    expect('argv' in s0 && s0.argv).toEqual(['echo', 'eu-west-1']);
+    expect('argv' in s1 && s1.argv).toEqual(['echo', 'us-east-1']);
+  });
+
+  it('trims whitespace and drops empty entries', () => {
+    const def: CommandDef = {
+      kind: 'for_each',
+      var: 'region',
+      in: '${AwsLocations}',
+      mode: 'steps',
+      cmd: ['echo', '${region}'],
+    };
+    const plan = resolver.resolve(
+      'deploy',
+      makeCommands({ deploy: def }),
+      makeConfig({ AwsLocations: ' a , , b ' }),
+    );
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(2);
+    const s0 = plan.steps[0];
+    const s1 = plan.steps[1];
+    if (!s0 || !s1) throw new Error('unreachable');
+    expect('argv' in s0 && s0.argv).toEqual(['echo', 'a']);
+    expect('argv' in s1 && s1.argv).toEqual(['echo', 'b']);
+  });
+
+  it('throws when CSV split yields zero entries', () => {
+    const def: CommandDef = {
+      kind: 'for_each',
+      var: 'region',
+      in: '${X}',
+      mode: 'steps',
+      cmd: ['echo', '${region}'],
+    };
+    expect(() =>
+      resolver.resolve('deploy', makeCommands({ deploy: def }), makeConfig({ X: ' , , ' })),
+    ).toThrow(/empty after CSV split/);
+  });
+
+  it('parallel mode: CSV-splits into group entries with default failMode fast', () => {
+    const def: CommandDef = {
+      kind: 'for_each',
+      var: 'region',
+      in: '${AwsLocations}',
+      mode: 'parallel',
+      cmd: ['echo', '${region}'],
+    };
+    const plan = resolver.resolve(
+      'deploy',
+      makeCommands({ deploy: def }),
+      makeConfig({ AwsLocations: 'eu-west-1,us-east-1' }),
+    );
+    expect(plan.kind).toBe('parallel');
+    if (plan.kind !== 'parallel') throw new Error('unreachable');
+    expect(plan.group).toHaveLength(2);
+    expect(plan.failMode).toBe('fast');
+    expect(plan.group[0]?.argv).toEqual(['echo', 'eu-west-1']);
+    expect(plan.group[1]?.argv).toEqual(['echo', 'us-east-1']);
+  });
+
+  it('throws UndefinedPlaceholderError when the referenced var is missing', () => {
+    const def: CommandDef = {
+      kind: 'for_each',
+      var: 'region',
+      in: '${AwsLocations}',
+      mode: 'steps',
+      cmd: ['echo', '${region}'],
+    };
+    expect(() =>
+      resolver.resolve('deploy', makeCommands({ deploy: def }), makeConfig({})),
+    ).toThrow(UndefinedPlaceholderError);
+  });
+});

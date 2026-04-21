@@ -412,3 +412,63 @@ describe('commandsLoader.load — commands/ directory', () => {
     await expect(commandsLoader.load(tmpDir)).rejects.toBeInstanceOf(CommandSchemaError);
   });
 });
+
+// ---------------------------------------------------------------------------
+// for_each.in — string form (quick-260421-ewq)
+// ---------------------------------------------------------------------------
+
+describe('for_each.in — string form', () => {
+  it('accepts array form unchanged (regression guard)', async () => {
+    writeCommands(
+      'deploy:\n' +
+      '  for_each:\n' +
+      '    var: region\n' +
+      '    in: ["a", "b"]\n' +
+      '    cmd: ["echo", "${region}"]\n',
+    );
+    const result = await commandsLoader.load(tmpDir);
+    const def = result.get('deploy');
+    expect(def).toMatchObject({ kind: 'for_each', in: ['a', 'b'] });
+  });
+
+  it('accepts string form with ${...} placeholder', async () => {
+    writeCommands(
+      'deploy:\n' +
+      '  for_each:\n' +
+      '    var: region\n' +
+      '    in: "${AwsLocations}"\n' +
+      '    cmd: ["echo", "${region}"]\n',
+    );
+    const result = await commandsLoader.load(tmpDir);
+    const def = result.get('deploy');
+    expect(def).toMatchObject({ kind: 'for_each', in: '${AwsLocations}' });
+  });
+
+  it('rejects scalar string without any ${...} placeholder', async () => {
+    writeCommands(
+      'deploy:\n' +
+      '  for_each:\n' +
+      '    var: region\n' +
+      '    in: "plain-string"\n' +
+      '    cmd: ["echo", "${region}"]\n',
+    );
+    await expect(commandsLoader.load(tmpDir)).rejects.toThrow(CommandSchemaError);
+    await expect(commandsLoader.load(tmpDir)).rejects.toThrow(/\$\{\.\.\.\}/);
+  });
+
+  it.each([
+    ['number', '    in: 123\n'],
+    ['null', '    in: null\n'],
+    ['object', '    in:\n      obj: true\n'],
+  ])('rejects non-array non-string for_each.in (%s)', async (_label, inBlock) => {
+    writeCommands(
+      'deploy:\n' +
+      '  for_each:\n' +
+      '    var: region\n' +
+      inBlock +
+      '    cmd: ["echo", "${region}"]\n',
+    );
+    await expect(commandsLoader.load(tmpDir)).rejects.toThrow(CommandSchemaError);
+    await expect(commandsLoader.load(tmpDir)).rejects.toThrow(/array of strings OR/);
+  });
+});
