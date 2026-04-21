@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 Phase: 14 (Docker & Publishing) — COMPLETE
 Plan: 4 of 4
 Next: v2.1 planning (post-v2.0 triage of Deferred/Future requirements — FUT-01..10)
-Last activity: 2026-04-21 - Completed quick task 260421-d0r: Add colored xci output + run-header recap with variables and steps
+Last activity: 2026-04-21 - Completed quick task 260421-ewq: Allow for_each.in to accept ${VAR} placeholder (CSV-split at resolve time)
 
 Progress (Phase 14): [██████████] 100% (4/4 plans)
 Progress (v2.0 milestone): [██████████] 100% (14/14 phases complete: 01-05 (v1.0), 06, 07, 08, 09, 10, 11, 12, 13, 14)
@@ -397,6 +397,7 @@ None
 | 260420-v15 | Make email link base URL configurable | 2026-04-20 | b7eff1c | [260420-v15-make-email-link-base-url-configurable](./quick/260420-v15-make-email-link-base-url-configurable/) |
 | 260420-vqw | Align email link paths with frontend routes | 2026-04-20 | b1f889a | [260420-vqw-align-email-link-paths-with-frontend-rou](./quick/260420-vqw-align-email-link-paths-with-frontend-rou/) |
 | 260421-d0r | Add colored xci output + run-header recap with variables and steps | 2026-04-21 | 9b4fb79 | [260421-d0r-aggiungere-colori-all-output-di-xci-e-un](./quick/260421-d0r-aggiungere-colori-all-output-di-xci-e-un/) |
+| 260421-ewq | Allow for_each.in to accept ${VAR} placeholder (CSV-split at resolve time) | 2026-04-21 | 1362c77 | [260421-ewq-allow-for-each-in-to-accept-a-var-placeh](./quick/260421-ewq-allow-for-each-in-to-accept-a-var-placeh/) |
 
 ## Session Continuity
 
