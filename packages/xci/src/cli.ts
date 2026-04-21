@@ -7,7 +7,7 @@ import { configLoader, resolveMachineConfigDir } from './config/index.js';
 import { commandsLoader } from './commands/index.js';
 import { resolver, buildEnvVars, redactSecrets } from './resolver/index.js';
 import { validateParams, getParamNames } from './resolver/params.js';
-import { executor, printDryRun, printVerboseCommand, printVerboseTrace, buildSecretValues } from './executor/index.js';
+import { executor, printDryRun, printRunHeader, printVerboseCommand, printVerboseTrace, buildSecretValues } from './executor/index.js';
 import { CliError, exitCodeFor, XciError, UnknownAliasError, UnknownFlagError } from './errors.js';
 import { printErrorLines } from './log-errors.js';
 import { XCI_VERSION } from './version.js';
@@ -435,6 +435,11 @@ function registerAliases(
 
       // Resolve the execution plan using effective config (includes builtins + overrides + param defaults)
       const plan = resolver.resolve(alias, commands, effectiveConfig);
+
+      // Run header — only for real execution (skip dry-run, skip TUI which owns stderr).
+      if (!isDryRun && !isUi) {
+        printRunHeader(alias, def, plan, effectiveValues, config.secretKeys);
+      }
 
       // Build env vars: include both original keys (for ${placeholder} interpolation in
       // sequential steps) and UPPER_UNDERSCORE keys (for child process env vars).
