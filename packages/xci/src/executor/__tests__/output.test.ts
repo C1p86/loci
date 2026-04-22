@@ -543,6 +543,20 @@ describe('printStepPreview — cwd preview', () => {
     expect(joined.indexOf('cwd:')).toBeLessThan(joined.indexOf('run:'));
   });
 
+  it('prints cwd and run even when verbose is false (quick-260422-qxy)', () => {
+    vi.stubEnv('NO_COLOR', '1');
+    vi.stubEnv('FORCE_COLOR', undefined as unknown as string);
+
+    printStepPreview(undefined, ['echo', 'hi'], undefined, {
+      cwd: '/abs/dir',
+      verbose: false,
+    });
+
+    const joined = captured.join('');
+    expect(joined).toContain('  cwd: /abs/dir\n');
+    expect(joined).toContain('  run: echo hi\n');
+  });
+
   it('does NOT print cwd line when cwd option is omitted', () => {
     vi.stubEnv('NO_COLOR', undefined as unknown as string);
     vi.stubEnv('FORCE_COLOR', '1');
