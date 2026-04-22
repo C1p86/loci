@@ -479,6 +479,16 @@ describe('printRunHeader', () => {
     expect(output).not.toContain('bar');
   });
 
+  it('always prints the top-level cwd line when plan.cwd is set (quick-260422-pnv)', () => {
+    const def: CommandDef = { kind: 'single', cmd: ['echo', 'hi'] };
+    const plan: ExecutionPlan = { kind: 'single', argv: ['echo', 'hi'], cwd: '/project/root' };
+
+    printRunHeader('greet', def, plan, {}, new Set());
+
+    const output = stderrOutput.join('');
+    expect(output).toContain('cwd: /project/root');
+  });
+
   it('wraps the title in BOLD + CYAN when FORCE_COLOR is set', () => {
     vi.stubEnv('NO_COLOR', undefined as unknown as string);
     vi.stubEnv('FORCE_COLOR', '1');
