@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 Phase: 14 (Docker & Publishing) — COMPLETE
 Plan: 4 of 4
 Next: v2.1 planning (post-v2.0 triage of Deferred/Future requirements — FUT-01..10)
-Last activity: 2026-04-22 - Completed quick task 260422-mxr: print effective cwd in dark yellow before every sequential step + verify nested cwd inheritance
+Last activity: 2026-04-22 - Completed quick task 260422-pnv: always print effective cwd for single/parallel commands and unconditionally in printRunHeader
 
 Progress (Phase 14): [██████████] 100% (4/4 plans)
 Progress (v2.0 milestone): [██████████] 100% (14/14 phases complete: 01-05 (v1.0), 06, 07, 08, 09, 10, 11, 12, 13, 14)
@@ -405,6 +405,7 @@ None
 | 260421-nmx | print step cwd in dark yellow before each spawn | 2026-04-21 | e6ff3bd | [260421-nmx-print-step-cwd-in-dark-yellow-before-eac](./quick/260421-nmx-print-step-cwd-in-dark-yellow-before-eac/) |
 | 260422-dfh | Fix for_each loop variable not available during step re-interpolation in sequential executor | 2026-04-22 | d771b51 | [260422-dfh-fix-for-each-loop-variable-not-available](./quick/260422-dfh-fix-for-each-loop-variable-not-available/) |
 | 260422-mxr | print effective cwd in dark yellow before every sequential step + verify nested cwd inheritance | 2026-04-22 | f1fd3f8 | [260422-mxr-print-effective-cwd-in-dark-yellow-befor](./quick/260422-mxr-print-effective-cwd-in-dark-yellow-befor/) |
+| 260422-pnv | always print effective cwd for single/parallel commands and unconditionally in printRunHeader | 2026-04-22 | e79f2ac | [260422-pnv-always-print-cwd-single-parallel-and-run-head](./quick/260422-pnv-always-print-cwd-single-parallel-and-run-head/) |
 
 ## Session Continuity
 
