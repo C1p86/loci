@@ -751,3 +751,62 @@ describe('resolver — cwd field', () => {
     expect(step.cwd).toBe('grand');
   });
 });
+
+/* ============================================================
+ * resolver.resolve - for_each rawArgv bakes loop variable (quick-260422-dfh)
+ * ============================================================ */
+
+describe('for_each rawArgv bakes loop variable', () => {
+  it('strict path (inline cmd): rawArgv has loop variable replaced for each step', () => {
+    const def: CommandDef = {
+      kind: 'for_each',
+      var: 'svc',
+      in: ['api', 'web'],
+      mode: 'steps',
+      cmd: ['deploy', '${svc}', '--region', 'us'],
+    };
+    const plan = resolver.resolve('deploy-all', makeCommands({ 'deploy-all': def }), makeConfig());
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(2);
+
+    const s0 = plan.steps[0];
+    const s1 = plan.steps[1];
+    if (!s0 || !s1) throw new Error('unreachable');
+    if (s0.kind === 'set' || s1.kind === 'set') throw new Error('unreachable');
+
+    // rawArgv must NOT contain the unresolved ${svc} placeholder
+    expect(s0.rawArgv).toEqual(['deploy', 'api', '--region', 'us']);
+    expect(s1.rawArgv).toEqual(['deploy', 'web', '--region', 'us']);
+  });
+
+  it('lenient path (for_each with run referencing alias): rawArgv has loop variable replaced', () => {
+    // The lenient path (resolveToStepsLenient) is exercised when for_each uses `run`
+    // pointing to another alias. That alias is resolved via resolveToStepsLenient which
+    // has its own for_each inline-cmd branch.
+    const def: CommandDef = {
+      kind: 'for_each',
+      var: 'svc',
+      in: ['api', 'web'],
+      mode: 'steps',
+      cmd: ['deploy', '${svc}', '--region', 'us'],
+    };
+    // Use a sequential wrapper so the for_each is resolved via resolveToStepsLenient
+    const commands = makeCommands({
+      'deploy-all': def,
+      wrapper: { kind: 'sequential', steps: ['deploy-all'] },
+    });
+    const plan = resolver.resolve('wrapper', commands, makeConfig());
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(2);
+
+    const s0 = plan.steps[0];
+    const s1 = plan.steps[1];
+    if (!s0 || !s1) throw new Error('unreachable');
+    if (s0.kind === 'set' || s1.kind === 'set') throw new Error('unreachable');
+
+    expect(s0.rawArgv).toEqual(['deploy', 'api', '--region', 'us']);
+    expect(s1.rawArgv).toEqual(['deploy', 'web', '--region', 'us']);
+  });
+});
