@@ -444,7 +444,7 @@ function registerAliases(
 
       // Run header — only for real execution (skip dry-run, skip TUI which owns stderr).
       if (!isDryRun && !isUi) {
-        printRunHeader(alias, def, plan, effectiveValues, config.secretKeys, projectRoot);
+        printRunHeader(alias, def, plan, effectiveValues, config.secretKeys);
       }
 
       // Build env vars: include both original keys (for ${placeholder} interpolation in

@@ -6,7 +6,7 @@ import { createWriteStream } from 'node:fs';
 import { execa } from 'execa';
 import { SpawnError } from '../errors.js';
 import type { ExecutionResult } from '../types.js';
-import { makeLineTransform, printParallelSummary } from './output.js';
+import { makeLineTransform, printParallelSummary, printStepPreview } from './output.js';
 
 type SettledResult = { exitCode: number; canceled: boolean };
 
@@ -40,6 +40,18 @@ export async function runParallel(
 
   const mergedEnv = { ...process.env, ...env };
   const logStream = logFile ? createWriteStream(logFile, { flags: 'a' }) : undefined;
+
+  // quick-260422-pnv: print cwd + command preview per entry before any spawn, so the
+  // dark-yellow cwd line is visible for parallel runs too (not only sequential).
+  for (const { alias, argv, cwd: entryCwd } of group) {
+    const effectiveCwd = entryCwd ?? cwd;
+    process.stderr.write(`[${alias}]\n`);
+    printStepPreview(undefined, argv, undefined, {
+      verbose: env['XCI_VERBOSE'] === '1',
+      logFile,
+      cwd: effectiveCwd,
+    });
+  }
 
   // For failMode 'fast', wrap each promise so that on failure it immediately aborts the rest.
   const rawPromises = group.map(({ alias, argv, cwd: entryCwd }) => {

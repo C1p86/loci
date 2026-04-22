@@ -25,7 +25,12 @@ export const executor: Executor = {
         // quick-260421-g99: plan.cwd (absolute after resolveAbsoluteCwds) overrides the options default.
         const effectiveCwd = plan.cwd ?? cwd;
         printStepHeader(cmdName);
-        printStepPreview(undefined, plan.argv, undefined, { verbose: env['XCI_VERBOSE'] === '1', logFile });
+        // quick-260422-pnv: always pass cwd so the dark-yellow cwd line appears for single commands too.
+        printStepPreview(undefined, plan.argv, undefined, {
+          verbose: env['XCI_VERBOSE'] === '1',
+          logFile,
+          cwd: effectiveCwd,
+        });
         const startTime = Date.now();
 
         if (plan.capture) {

@@ -220,7 +220,6 @@ export function printRunHeader(
   plan: ExecutionPlan,
   effectiveValues: Readonly<Record<string, string>>,
   secretKeys: ReadonlySet<string>,
-  projectRoot?: string,
 ): void {
   const useColor = shouldUseColor();
   const bold = useColor ? BOLD : '';
@@ -261,10 +260,12 @@ export function printRunHeader(
     if (v !== undefined && v !== '') secretValues.add(v);
   }
 
-  // quick-260421-g99: top-level cwd line (hidden if the plan's effective cwd equals projectRoot).
+  // quick-260421-g99 / quick-260422-pnv: top-level cwd line — always printed when a
+  // cwd is resolvable (no longer hidden when it equals projectRoot). Operators asked
+  // to see the working directory on every run, not only when it differs from the root.
   const topCwd = topLevelCwd(plan);
   const redactedTopCwd = redactCwd(topCwd, secretValues);
-  if (redactedTopCwd !== undefined && (projectRoot === undefined || redactedTopCwd !== projectRoot)) {
+  if (redactedTopCwd !== undefined) {
     process.stderr.write(`${yellow}cwd: ${redactedTopCwd}${reset}\n`);
   }
 
