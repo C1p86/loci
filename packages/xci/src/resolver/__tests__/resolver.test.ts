@@ -934,6 +934,109 @@ describe('for_each rawArgv bakes loop variable', () => {
 });
 
 /* ============================================================
+ * cwd inheritance — nested sub-aliases and for_each (quick-260422-mxr)
+ * Verification-only: expected to pass against current resolver (Phase
+ * quick-260421-g99 already wired computeEffectiveCwd + parentCwd).
+ * ============================================================ */
+
+describe('cwd inheritance — nested sub-aliases and for_each', () => {
+  it('leaf inherits outer sequential cwd through middle sequential that has no own cwd', () => {
+    const commands = makeCommands({
+      outer: { kind: 'sequential', steps: ['middle'], cwd: '/top' },
+      middle: { kind: 'sequential', steps: ['leaf'] },
+      leaf: { kind: 'single', cmd: ['echo', 'hi'] },
+    });
+    const plan = resolver.resolve('outer', commands, makeConfig());
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind === 'sequential') {
+      expect(plan.steps).toHaveLength(1);
+      const step = plan.steps[0];
+      if (!step || step.kind === 'set') throw new Error('unreachable');
+      expect(step.cwd).toBe('/top');
+    }
+  });
+
+  it('middle sequential cwd overrides outer cwd for downstream leaf', () => {
+    const commands = makeCommands({
+      outer: { kind: 'sequential', steps: ['middle'], cwd: '/top' },
+      middle: { kind: 'sequential', steps: ['leaf'], cwd: '/mid' },
+      leaf: { kind: 'single', cmd: ['echo', 'hi'] },
+    });
+    const plan = resolver.resolve('outer', commands, makeConfig());
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind === 'sequential') {
+      expect(plan.steps).toHaveLength(1);
+      const step = plan.steps[0];
+      if (!step || step.kind === 'set') throw new Error('unreachable');
+      expect(step.cwd).toBe('/mid');
+    }
+  });
+
+  it('for_each without own cwd inherits outer sequential cwd for each iteration (run mode)', () => {
+    const commands = makeCommands({
+      outer: { kind: 'sequential', steps: ['loop'], cwd: '/top' },
+      loop: { kind: 'for_each', var: 'x', in: ['a', 'b'], mode: 'steps', run: 'leaf' },
+      leaf: { kind: 'single', cmd: ['echo', '${x}'] },
+    });
+    const plan = resolver.resolve('outer', commands, makeConfig());
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind === 'sequential') {
+      expect(plan.steps).toHaveLength(2);
+      const s0 = plan.steps[0];
+      const s1 = plan.steps[1];
+      if (!s0 || s0.kind === 'set') throw new Error('unreachable');
+      if (!s1 || s1.kind === 'set') throw new Error('unreachable');
+      expect(s0.cwd).toBe('/top');
+      expect(s1.cwd).toBe('/top');
+    }
+  });
+
+  it('for_each with own cwd overrides outer sequential cwd', () => {
+    const commands = makeCommands({
+      outer: { kind: 'sequential', steps: ['loop'], cwd: '/top' },
+      loop: {
+        kind: 'for_each',
+        var: 'x',
+        in: ['a'],
+        mode: 'steps',
+        run: 'leaf',
+        cwd: '/loop',
+      },
+      leaf: { kind: 'single', cmd: ['echo', 'hi'] },
+    });
+    const plan = resolver.resolve('outer', commands, makeConfig());
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind === 'sequential') {
+      expect(plan.steps).toHaveLength(1);
+      const step = plan.steps[0];
+      if (!step || step.kind === 'set') throw new Error('unreachable');
+      expect(step.cwd).toBe('/loop');
+    }
+  });
+
+  it('for_each inline cmd inherits outer sequential cwd', () => {
+    const commands = makeCommands({
+      outer: { kind: 'sequential', steps: ['loop'], cwd: '/top' },
+      loop: {
+        kind: 'for_each',
+        var: 'x',
+        in: ['a'],
+        mode: 'steps',
+        cmd: ['echo', '${x}'],
+      },
+    });
+    const plan = resolver.resolve('outer', commands, makeConfig());
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind === 'sequential') {
+      expect(plan.steps).toHaveLength(1);
+      const step = plan.steps[0];
+      if (!step || step.kind === 'set') throw new Error('unreachable');
+      expect(step.cwd).toBe('/top');
+    }
+  });
+});
+
+/* ============================================================
  * resolver.resolve - breadcrumb (quick-260421-kbl)
  * ============================================================ */
 
