@@ -611,8 +611,10 @@ export function printStepPreview(
 
     // quick-260421-nmx: emit dark-yellow cwd line before raw/run so operators
     // can see where the step will spawn (especially for_each iterations).
+    // quick-260422-mxr: dark yellow (SGR 33) per user's "giallo scuro" request;
+    // printRunHeader keeps BRIGHT_YELLOW (SGR 93) so the banner stays distinct.
     if (options?.cwd !== undefined) {
-      const yellow = useColor ? BRIGHT_YELLOW : '';
+      const yellow = useColor ? YELLOW : '';
       const yReset = useColor ? RESET : '';
       process.stderr.write(`${yellow}  cwd: ${options.cwd}${yReset}\n`);
     }

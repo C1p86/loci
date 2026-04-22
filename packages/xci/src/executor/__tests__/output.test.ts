@@ -529,7 +529,7 @@ describe('printStepPreview — cwd preview', () => {
     printStepPreview(undefined, ['echo', 'hi'], undefined, { cwd: '/abs/dir' });
 
     const joined = captured.join('');
-    expect(joined).toContain('\x1b[93m  cwd: /abs/dir\x1b[0m');
+    expect(joined).toContain('\x1b[33m  cwd: /abs/dir\x1b[0m');
     expect(joined.indexOf('cwd:')).toBeLessThan(joined.indexOf('run:'));
   });
 

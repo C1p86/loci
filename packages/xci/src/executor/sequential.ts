@@ -187,20 +187,21 @@ export async function runSequential(
       ? interpolateArgv(step.rawArgv, '(step)', mergedValues)
       : step.argv;
 
+    // quick-260421-g99: per-step cwd override (absolute when set by resolveAbsoluteCwds).
+    // quick-260422-mxr: declared before printStepPreview so preview always shows
+    // the EFFECTIVE spawn cwd (own override or inherited/default), never hides it.
+    const stepSpawnCwd = step.cwd ?? cwd;
+
     const stepCmd = displayLabel;
     printStepHeader(stepCmd, stepNum, totalSteps);
     printStepPreview(step.rawArgv, finalArgv, undefined, {
       verbose: env['XCI_VERBOSE'] === '1',
       logFile,
-      // quick-260421-nmx: surface effective cwd in yellow before the run: line
-      // when set; spread-if pattern required by exactOptionalPropertyTypes.
-      ...(step.cwd !== undefined ? { cwd: step.cwd } : {}),
+      cwd: stepSpawnCwd,
     });
 
     // Merge captured variables into env for this step
     const stepEnv = { ...env, ...capturedVars };
-    // quick-260421-g99: per-step cwd override (absolute when set by resolveAbsoluteCwds).
-    const stepSpawnCwd = step.cwd ?? cwd;
     const startTime = Date.now();
 
     if (step.capture) {
