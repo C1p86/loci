@@ -604,28 +604,30 @@ export function printStepPreview(
   const resArgv = secretValues ? redactArgv(resolvedArgv, secretValues) : resolvedArgv;
   const resStr = resArgv.join(' ');
 
-  // Write to stderr only in verbose mode
-  if (options?.verbose !== false) {
-    const useColor = shouldUseColor();
-    const dim = useColor ? DIM : '';
-    const reset = useColor ? RESET : '';
+  // quick-260422-qxy: cwd + raw + run are always visible on stderr. Previously the
+  // whole block was gated behind `verbose !== false`, but callers pass
+  // `verbose: env.XCI_VERBOSE === '1'` which collapses to `false` in normal mode —
+  // operators never saw cwd or the resolved command. The `verbose` option is kept
+  // as an opt-in for future extra-chatty output but no longer silences the preview.
+  const useColor = shouldUseColor();
+  const dim = useColor ? DIM : '';
+  const reset = useColor ? RESET : '';
 
-    // quick-260421-nmx: emit dark-yellow cwd line before raw/run so operators
-    // can see where the step will spawn (especially for_each iterations).
-    // quick-260422-mxr: dark yellow (SGR 33) per user's "giallo scuro" request;
-    // printRunHeader keeps BRIGHT_YELLOW (SGR 93) so the banner stays distinct.
-    if (options?.cwd !== undefined) {
-      const yellow = useColor ? YELLOW : '';
-      const yReset = useColor ? RESET : '';
-      process.stderr.write(`${yellow}  cwd: ${options.cwd}${yReset}\n`);
-    }
+  // quick-260421-nmx: emit dark-yellow cwd line before raw/run so operators
+  // can see where the step will spawn (especially for_each iterations).
+  // quick-260422-mxr: dark yellow (SGR 33) per user's "giallo scuro" request;
+  // printRunHeader keeps BRIGHT_YELLOW (SGR 93) so the banner stays distinct.
+  if (options?.cwd !== undefined) {
+    const yellow = useColor ? YELLOW : '';
+    const yReset = useColor ? RESET : '';
+    process.stderr.write(`${yellow}  cwd: ${options.cwd}${yReset}\n`);
+  }
 
-    if (rawStr && rawStr !== resStr) {
-      process.stderr.write(`${dim}  raw: ${rawStr}${reset}\n`);
-      process.stderr.write(`${dim}  run: ${resStr}${reset}\n`);
-    } else {
-      process.stderr.write(`${dim}  run: ${resStr}${reset}\n`);
-    }
+  if (rawStr && rawStr !== resStr) {
+    process.stderr.write(`${dim}  raw: ${rawStr}${reset}\n`);
+    process.stderr.write(`${dim}  run: ${resStr}${reset}\n`);
+  } else {
+    process.stderr.write(`${dim}  run: ${resStr}${reset}\n`);
   }
 
   // Always write to log file if provided
