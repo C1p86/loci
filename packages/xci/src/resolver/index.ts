@@ -143,7 +143,7 @@ function resolveToStepsLenient(
           const argv = interpolateArgvLenient(def.cmd, loopValues);
           allSteps.push({
             argv,
-            rawArgv: def.cmd,
+            rawArgv: def.cmd.map(t => t.replaceAll(`\${${def.var}}`, value)),
             ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
           });
         }
@@ -330,7 +330,7 @@ function resolveAlias(
           const argv = interpolateArgvLenient(def.cmd, loopValues);
           allSteps.push({
             argv,
-            rawArgv: def.cmd,
+            rawArgv: def.cmd.map(t => t.replaceAll(`\${${def.var}}`, value)),
             ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
           });
         }
