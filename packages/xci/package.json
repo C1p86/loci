@@ -37,7 +37,7 @@
     "smoke": "node dist/cli.mjs --version",
     "size-limit": "size-limit",
     "prepublishOnly": "pnpm build",
-    "install-local": "pnpm build && npm install -g ."
+    "install-local": "node scripts/clean-node-modules.mjs && cd ../.. && pnpm install && cd packages/xci && pnpm build && npm install -g ."
   },
   "dependencies": {
     "commander": "14.0.3",
