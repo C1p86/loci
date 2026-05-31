@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Local CLI
-status: Ready to execute
-stopped_at: "Completed 15-01-PLAN.md: multi-pass placeholder resolution for Go interpolation engine"
-last_updated: "2026-05-31T20:34:58.163Z"
+status: Milestone complete
+stopped_at: Completed 15-03-PLAN.md — Phase 15 complete
+last_updated: "2026-05-31T20:54:22.210Z"
 progress:
   total_phases: 15
-  completed_phases: 14
+  completed_phases: 15
   total_plans: 66
-  completed_plans: 67
+  completed_plans: 69
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 
 ## Current Position
 
-Phase: 15 (go-cli-parity-fixes) — EXECUTING
-Plan: 2 of 3
+Phase: 15
+Plan: Not started
 
 ## Performance Metrics
 
@@ -122,6 +122,8 @@ Plan: 2 of 3
 | Phase 14-docker-publishing P02 | 126 | 2 tasks | 5 files |
 | Phase 14-docker-publishing P03 | 12m | 3 tasks | 4 files |
 | Phase 15-go-cli-parity-fixes P01 | 156 | 2 tasks | 2 files |
+| Phase 15 P02 | 7 | 2 tasks | 4 files |
+| Phase 15 P03 | 600 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -346,6 +348,9 @@ Recent decisions affecting current work:
 - [Phase 14-04]: First release is rc.1 dry-run per D-22; runbook documents rc flow + subsequent release + break-glass
 - [Phase 14]: Milestone v2.0 COMPLETE — all 99 requirements traced green; BC-01..04 preserved (v1 CLI observable identical)
 - [Phase 15-go-cli-parity-fixes]: interpolateTokenMultiPass uses persistent escape sentinel across the entire multi-pass loop (not per-pass) to prevent literal outputs from being re-expanded on subsequent passes
+- [Phase 15]: checkSecretsTracked uses git ls-files --error-unmatch; exit 0 = tracked, any error = silently ignored
+- [Phase 15]: validateParams error format: alias X: required parameter Y is not defined (alias quoted, param unquoted)
+- [Phase 15]: Passthrough switch replaces single-condition if block; KindSingle/KindSequential/KindParallel all handled with empty-slice guard
 
 ### Pending Todos
 
@@ -405,7 +410,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-05-31T20:34:58.159Z
-Stopped at: Completed 15-01-PLAN.md: multi-pass placeholder resolution for Go interpolation engine
+Last session: 2026-05-31T20:49:54.374Z
+Stopped at: Completed 15-03-PLAN.md — Phase 15 complete
 Phase 12 closed: 5 plans complete, 8 requirement IDs traced (PLUG-01..08), 5/5 SC covered, integration tests green (Linux-only E2E gated per Phase 10/11 pattern), v1 302-test + hyperfine + ws-fence regressions all pass
 Resume: Phase 13 — Web Dashboard SPA (needs Phase 7+8+9+10+11 complete — SATISFIED; Phase 12 consumed by UI for plugin settings + DLQ views)

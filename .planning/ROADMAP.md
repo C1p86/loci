@@ -282,7 +282,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. `xci build -- --no-cache --verbose` passa `--no-cache --verbose` come argomenti aggiuntivi al comando finale del piano
 **Plans**: 3 plans
 - [x] 15-01-PLAN.md — Multi-pass placeholder resolution (GOCLI-03): interpolateTokenMultiPass + updated InterpolateArgv/InterpolateArgvLenient + new tests
-- [ ] 15-02-PLAN.md — Params validation + Secrets git warning (GOCLI-02, GOCLI-04): ParamDef type, loader parsing, validateParams + checkSecretsTracked in cmd/run.go
+- [x] 15-02-PLAN.md — Params validation + Secrets git warning (GOCLI-02, GOCLI-04): ParamDef type, loader parsing, validateParams + checkSecretsTracked in cmd/run.go
 - [ ] 15-03-PLAN.md — Passthrough args fix for sequential/parallel + integration tests (GOCLI-05, GOCLI-01 verification)
 
 ## Progress
@@ -309,6 +309,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 12. Plugin System & Webhooks | 5/5 | Complete | 2026-04-19 |
 | 13. Web Dashboard SPA | 6/6 | Complete | 2026-04-19 |
 | 14. Docker & Publishing | 4/4 | Complete | 2026-04-19 |
-| 15. Go CLI — Parity Fixes | 1/3 | In Progress|  |
+| 15. Go CLI — Parity Fixes | 2/3 | Complete    | 2026-05-31 |
 
 **v2.0 milestone: [██████████] 100% complete (9 phases, 68 plans, 99/99 requirements)**
