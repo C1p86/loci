@@ -143,4 +143,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-16 — started milestone v2.0 (Remote CI — Agents + Web Dashboard). Major product pivot: inverts 3 v1 Out-of-Scope items (remote execution, web dashboard, auto triggers) and partially inverts secrets-via-vault. Stack additions: Fastify + Postgres server, React+Vite web, WebSocket agent protocol, plugin system for triggers. Backward-compat with v1 CLI is non-negotiable.*
+*Last updated: 2026-05-31 — Phase 15 complete: Go CLI parity fixes. Added multi-pass interpolation (GOCLI-03), required params validation (GOCLI-02), secrets.yml git-tracking warning (GOCLI-04), passthrough args for sequential/parallel plans (GOCLI-05), and comprehensive cmd/run_test.go test suite (GOCLI-01). go-xci Go port now feature-equivalent with TypeScript xci for all 5 parity requirements. This is the last phase of milestone v1.0 Local CLI.*
