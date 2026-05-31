@@ -270,6 +270,18 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 14-03-PLAN.md — scripts/smoke.mjs + .github/workflows/docker.yml + release.yml pre-publish validation
 - [x] 14-04-PLAN.md — Release runbook + root README v2.0 + CHANGELOG + milestone closeout
 
+### Phase 15: Go CLI — Parity Fixes
+**Goal**: Il CLI Go `go-xci` è in parità con la versione TypeScript per tutte le feature in-scope: KEY=VALUE overrides, params validation, multi-pass placeholder resolution, secrets.yml git warning, e passthrough args `--`
+**Depends on**: go-xci (fase standalone, nessuna dipendenza Node)
+**Requirements**: GOCLI-01, GOCLI-02, GOCLI-03, GOCLI-04, GOCLI-05
+**Success Criteria** (what must be TRUE):
+  1. `xci build ENV=production` injetta `ENV=production` nel config values prima della risoluzione placeholder, vincendo su tutti i layer YAML
+  2. Un alias con `params: { TOKEN: { required: true } }` eseguito senza TOKEN stampa `error: alias "build": required parameter TOKEN is not defined` ed esce con code 1
+  3. Un config con `base: "https://example.com"` e `url: "${base}/api"` produce `url = https://example.com/api` dopo merge (multi-pass self-interpolation)
+  4. Se `.xci/secrets.yml` è tracciato da git, `xci <alias>` stampa il warning su stderr prima dell'esecuzione
+  5. `xci build -- --no-cache --verbose` passa `--no-cache --verbose` come argomenti aggiuntivi al comando finale del piano
+**Plans**: TBD
+
 ## Progress
 
 **Execution Order (v1.0):**
