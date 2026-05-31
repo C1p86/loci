@@ -433,7 +433,7 @@ Quali fasi coprono quali requirement.
 
 - [ ] **GOCLI-01**: `xci <alias> KEY=VALUE` effettua override dei parametri: args CLI che matchano `KEY=VALUE` (chiave uppercase, no spazi) vengono mergiati nel config prima della risoluzione dei placeholder, vincendo su tutti i layer YAML.
 - [ ] **GOCLI-02**: Il campo `params:` nei command def YAML è letto e usato per validare i parametri richiesti: se un parametro è `required: true` e non è definito in nessun layer di config né negli override CLI, `xci` esce con errore che nomina il parametro mancante e l'alias.
-- [ ] **GOCLI-03**: Interpolazione placeholder multi-pass: se il valore risolto di `${VAR}` contiene a sua volta `${OTHER}`, viene ri-risolto (max 10 iterazioni, come TypeScript). Comportamento identico alla versione Node per self-referential values e nested placeholders.
+- [x] **GOCLI-03**: Interpolazione placeholder multi-pass: se il valore risolto di `${VAR}` contiene a sua volta `${OTHER}`, viene ri-risolto (max 10 iterazioni, come TypeScript). Comportamento identico alla versione Node per self-referential values e nested placeholders.
 - [ ] **GOCLI-04**: Warning su stderr se `.xci/secrets.yml` risulta tracciato da git (`git ls-files --error-unmatch .xci/secrets.yml`): `warning: .xci/secrets.yml is tracked by git — secrets may be exposed`. Il warning è best-effort: se git non è disponibile o il comando fallisce, silenzio (nessun errore).
 - [ ] **GOCLI-05**: Argomenti dopo `--` sono passati come pass-through all'ultimo comando del piano di esecuzione: `xci build -- --verbose --no-cache` aggiunge `--verbose --no-cache` all'argv del comando finale, identico al comportamento TypeScript.
 

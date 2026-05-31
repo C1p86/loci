@@ -1,17 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: — Remote CI (Agents + Web Dashboard)
-status: Phase 14 complete — milestone v2.0 shipped
-stopped_at: Completed 14-04-PLAN.md — v2.0 milestone COMPLETE
-last_updated: "2026-04-19T20:16:46.190Z"
-last_activity: 2026-04-19
+milestone: v1.0
+milestone_name: — Local CLI
+status: Ready to execute
+stopped_at: "Completed 15-01-PLAN.md: multi-pass placeholder resolution for Go interpolation engine"
+last_updated: "2026-05-31T20:34:58.163Z"
 progress:
-  total_phases: 14
+  total_phases: 15
   completed_phases: 14
-  total_plans: 68
-  completed_plans: 68
-  percent: 100
+  total_plans: 66
+  completed_plans: 67
 ---
 
 # Project State
@@ -21,17 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** v2.0 MILESTONE COMPLETE — ready for release (see .github/RUNBOOK-RELEASE.md)
+**Current focus:** Phase 15 — go-cli-parity-fixes
 
 ## Current Position
 
-Phase: 14 (Docker & Publishing) — COMPLETE
-Plan: 4 of 4
-Next: v2.1 planning (post-v2.0 triage of Deferred/Future requirements — FUT-01..10)
-Last activity: 2026-05-31 - Completed quick task 260531-sgb: Create Go CLI go-xci project
-
-Progress (Phase 14): [██████████] 100% (4/4 plans)
-Progress (v2.0 milestone): [██████████] 100% (14/14 phases complete: 01-05 (v1.0), 06, 07, 08, 09, 10, 11, 12, 13, 14)
+Phase: 15 (go-cli-parity-fixes) — EXECUTING
+Plan: 2 of 3
 
 ## Performance Metrics
 
@@ -128,6 +121,7 @@ Progress (v2.0 milestone): [██████████] 100% (14/14 phases c
 | Phase 14-docker-publishing P01 | 35 | 2 tasks | 10 files |
 | Phase 14-docker-publishing P02 | 126 | 2 tasks | 5 files |
 | Phase 14-docker-publishing P03 | 12m | 3 tasks | 4 files |
+| Phase 15-go-cli-parity-fixes P01 | 156 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -351,6 +345,7 @@ Recent decisions affecting current work:
 - [Phase 14-03]: release.yml extended with typecheck + lint + build + test + pnpm publish --dry-run before changesets/action (D-19/D-38)
 - [Phase 14-04]: First release is rc.1 dry-run per D-22; runbook documents rc flow + subsequent release + break-glass
 - [Phase 14]: Milestone v2.0 COMPLETE — all 99 requirements traced green; BC-01..04 preserved (v1 CLI observable identical)
+- [Phase 15-go-cli-parity-fixes]: interpolateTokenMultiPass uses persistent escape sentinel across the entire multi-pass loop (not per-pass) to prevent literal outputs from being re-expanded on subsequent passes
 
 ### Pending Todos
 
@@ -410,7 +405,7 @@ None
 
 ## Session Continuity
 
-Last session: 2026-05-31T18:30:00.000Z
-Stopped at: Completed quick task 260531-sgb: Create Go CLI go-xci — single-binary Go port of xci
+Last session: 2026-05-31T20:34:58.159Z
+Stopped at: Completed 15-01-PLAN.md: multi-pass placeholder resolution for Go interpolation engine
 Phase 12 closed: 5 plans complete, 8 requirement IDs traced (PLUG-01..08), 5/5 SC covered, integration tests green (Linux-only E2E gated per Phase 10/11 pattern), v1 302-test + hyperfine + ws-fence regressions all pass
 Resume: Phase 13 — Web Dashboard SPA (needs Phase 7+8+9+10+11 complete — SATISFIED; Phase 12 consumed by UI for plugin settings + DLQ views)
