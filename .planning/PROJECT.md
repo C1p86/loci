@@ -1,146 +1,142 @@
-# loci
+# loci / xci
 
 ## What This Is
 
-`loci` è un tool CLI cross-platform (Windows, Linux, macOS) scritto in Node.js che esegue comandi da riga di comando definiti in file di configurazione del progetto. È una specie di "CI tool locale": definisci una volta gli alias dei comandi (con i loro parametri) in un file versionato, poi richiami quegli alias da terminale ovunque stia lavorando, e `loci` li esegue con i parametri risolti secondo una gerarchia di config a 4 livelli.
+`xci` è un sistema CI distribuito cross-platform composto da tre parti:
 
-Serve a chi lavora su più progetti e vuole evitare di ricordare/digitare a mano lunghe sequenze di build, package, deploy, o altri comandi ripetitivi, condividendo le definizioni col team ma mantenendo locali i segreti e gli override per-macchina.
+1. **CLI `xci`** (Node.js, pubblicato su npm): esegue alias di comandi definiti in file YAML versionati, con config a 4 livelli (machine/project/secrets/local), interpolazione placeholder `${VAR}`, catene sequenziali e gruppi paralleli. Funziona standalone su Windows/Linux/macOS.
+
+2. **Server `@xci/server`** (Fastify + Postgres, Docker image): backend multi-tenant SaaS che riceve connessioni da agenti xci, gestisce task definitions, dispatcha run sugli agenti via WebSocket, persiste log, gestisce secrets con envelope encryption, supporta trigger via plugin webhook.
+
+3. **Web `@xci/web`** (React 19 + Vite, SPA): dashboard per gestire agenti, definire task YAML, triggerare run, vedere log live, gestire segreti org, configurare plugin webhook, e visualizzare badge di stato build.
+
+**Distribuito come:** `npm i -g xci` per il CLI; Docker image per server+web.
 
 ## Core Value
 
 **Un alias → sempre lo stesso comando eseguito correttamente**, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
 
-## Current Milestone: v2.0 Remote CI — Agents + Web Dashboard
+*Il server estende questo: un alias può ora essere eseguito su agenti remoti, dispatchato dalla UI, con secrets gestiti centralmente.*
 
-**Goal:** Trasformare `xci` da CLI locale a sistema CI distribuito: agenti che si registrano a un server web SaaS, task definite dalla UI e dispatchate in remoto sugli agenti — preservando il CLI esistente senza regressioni osservabili.
+## Current State (post-v2.0)
 
-**Target features:**
-
-*Agent layer*
-- `xci --agent <url> --token <T>`: modalità agente con WebSocket persistente al server (auto-reconnect)
-- Registrazione agente con hostname di default, overridabile dalla UI
-- Per-agent token + handshake (TOFU alla prima registrazione, revocabile dalla UI)
-- Esecuzione task remote con lo stesso engine di v1 (single / sequential / parallel)
-- Streaming stdout/stderr realtime al server via WS; exit code propagato
-
-*Server (backend)*
-- Stack: Fastify + TypeScript + Postgres, distribuito come Docker image
-- SaaS multi-tenant: signup, login, org isolation, TLS-ready, password reset, CSRF
-- REST API + WebSocket endpoint per agenti
-- Task definitions server-side con lo stesso YAML DSL del CLI (alias, single/sequential/parallel, placeholder `${NAME}`)
-- Dispatch con label matching: agenti pubblicano label (`os`, `arch`, ...), task dichiara requisiti, server sceglie
-- Log persistence con retention configurabile
-- Secrets hybrid: org-level cifrati sul server (envelope encryption) + per-agent locali che hanno precedenza
-- Plugin system per trigger esterni (interfaccia stabile: verify → parse → map-to-task)
-- Plugin in v2.0: GitHub (webhook + signature HMAC) + Perforce (trigger script / changelist hook)
-- Billing stub: entities org/plan/quota + enforcement limiti (Free plan). Stripe in v2.1+
-
-*Web UI (frontend)*
-- React + Vite SPA
-- Dashboard agenti: lista, stato online/offline, label, rename hostname
-- Editor task YAML
-- Trigger manuale dalla UI + schedulazione via plugin
-- Log realtime con autoscroll + storico
-
-*Packaging & distribution*
-- Monorepo con workspaces
-- 3 npm package: `xci` (CLI + agent mode), `@xci/server` (backend), `@xci/web` (SPA)
-- Docker image pubblicata (server + web statico + Postgres esterno)
-
-**Non-negotiable constraint — Backward compatibility:**
-- La suite di test v1 (202 test) deve passare invariata
-- `xci` senza `--agent` è osservabilmente identico a v1: config loading, esecuzione, exit code, `--list` / `--dry-run` / `--verbose`, pass-through args
-
-**Scope pivot intenzionale:** v2.0 inverte 3 "Out of Scope" di v1 (esecuzione remota, UI dashboard, trigger automatici) e inverte parzialmente "gestione segreti via vault / KMS" (modello hybrid).
+- **v1.0 shipped:** 2026-04-15 — CLI standalone, 57 requirements
+- **v2.0 shipped:** 2026-04-19 — Remote CI (9 phases, 99 requirements), archived
+- **Phase 15 shipped:** 2026-05-31 — Go CLI parity (5 requirements), `go-xci/` in repo
+- **Next milestone:** TBD — run `/gsd:new-milestone` to define v3.x scope
 
 ## Requirements
 
 ### Validated
 
-- [x] Carica e fonde config da 4 livelli con precedenza deterministica (machine < project < secrets < local) — Validated in Phase 2: Config System
-- [x] Formato file di config: YAML (con semantica YAML 1.2 — yes/no/on/off sono stringhe) — Validated in Phase 2: Config System
-- [x] Precedenza di merge (ultimo vince): machine → project → secrets → local — Validated in Phase 2: Config System
-- [x] File secrets.yml protetto: warning stderr se tracciato da git, valori mai loggati — Validated in Phase 2: Config System
-- [x] Errore chiaro con filename e riga per YAML malformato — Validated in Phase 2: Config System
-- [x] Tipi di comando supportati: singolo, catena sequenziale (stop al primo fallimento), gruppo parallelo — Validated in Phase 4: Executor & CLI
-- [x] Output dei comandi figli streamato su stdout/stderr in tempo reale — Validated in Phase 4: Executor & CLI
-- [x] Exit code del comando (o del primo fallito nella catena) propagato come exit code di `loci` — Validated in Phase 4: Executor & CLI
-- [x] Comando `loci` senza argomenti (o `loci --list`) elenca gli alias disponibili con loro descrizione — Validated in Phase 4: Executor & CLI
+**v1.0 (CLI standalone)**
 
-- [x] `loci init` scaffolda .loci/ con template dimostrativi (single, sequential, parallel) e aggiorna .gitignore — Validated in Phase 5: Init & Distribution
-- [x] README completo con quickstart, config reference, commands reference, platform overrides — Validated in Phase 5: Init & Distribution
-- [x] Package pronto per npm publish come `xci` (MIT license, npm publish --dry-run passa) — Validated in Phase 5: Init & Distribution
+- ✓ Carica e fonde config da 4 livelli con precedenza deterministica (machine < project < secrets < local) — v1.0
+- ✓ Formato file di config: YAML con semantica YAML 1.2 — v1.0
+- ✓ File secrets.yml protetto: warning stderr se tracciato da git, valori mai loggati — v1.0
+- ✓ Tipi di comando: singolo, catena sequenziale (stop al primo fallimento), gruppo parallelo — v1.0
+- ✓ Output dei comandi figli streamato su stdout/stderr in tempo reale — v1.0
+- ✓ Exit code propagato — v1.0
+- ✓ `xci` senza argomenti / `--list` elenca alias con descrizione — v1.0
+- ✓ `xci init` scaffolda .loci/ con template dimostrativi, aggiorna .gitignore — v1.0
+- ✓ README completo con quickstart, config reference, commands reference — v1.0
+- ✓ Package pubblicato come `xci` su npm (MIT license) — v1.0
+
+**v2.0 (Remote CI)**
+
+- ✓ Monorepo pnpm workspaces + Turborepo + Changesets; 3 npm packages — v2.0
+- ✓ Docker image multi-stage node:22-slim, non-root, healthcheck, SIGTERM — v2.0
+- ✓ Multi-tenant auth: signup/login/sessions/invites, CSRF, rate-limit, org isolation — v2.0
+- ✓ Agent mode: TOFU registration, persistent WS, heartbeat/reconnect, drain/shutdown — v2.0
+- ✓ Server-side task definitions (shared YAML DSL); org secrets AES-256-GCM envelope encryption — v2.0
+- ✓ Label-match dispatch pipeline, 8-state TaskRun machine, quota enforcement — v2.0
+- ✓ Real-time log streaming (agent → Postgres → UI WS), ordered replay, secret redaction — v2.0
+- ✓ Webhook plugins: GitHub (HMAC-SHA256), Perforce (token); Dead Letter Queue, idempotency — v2.0
+- ✓ React 19 + Vite + Tailwind 4 SPA: agents, task editor, log viewer, history, settings, badges — v2.0
+- ✓ CI smoke test (signup → agent → task → run → log) before Docker release tag — v2.0
+
+**Go CLI (Phase 15)**
+
+- ✓ `go-xci` Go port with cobra: 4-layer config, executor (single/sequential/parallel), resolver, CLI — Phase 15
+- ✓ KEY=VALUE CLI parameter overrides win over all YAML layers — Phase 15
+- ✓ Required params validation (`params: { TOKEN: { required: true } }`) — Phase 15
+- ✓ Multi-pass placeholder resolution (max 10 iterations, nested `${VAR}` support) — Phase 15
+- ✓ secrets.yml git-tracking warning (best-effort, silent if git unavailable) — Phase 15
+- ✓ Passthrough args `--` for sequential/parallel plans — Phase 15
 
 ### Active
 
-- [ ] CLI Node.js basato su commander.js, installabile globalmente da npm (`npm i -g xci`)
-- [ ] Funziona identicamente su Windows, Linux, macOS
-- [ ] Composizione — un alias può riferire altri alias definiti nello stesso file (riuso)
-- [ ] Interpolazione parametri nei comandi tramite placeholder `${NOME}` che risolve dal config unito
-- [ ] Errore chiaro se un placeholder referenzia un parametro non definito in nessun livello
+*(To be defined in next milestone via `/gsd:new-milestone`)*
+
+Candidates from Future requirements (post-v2.0):
+- Shell completions (bash/zsh/fish/PowerShell) — DX-V2-01
+- Stripe integration + paid plans — FUT-01
+- KMS real integration (AWS KMS / GCP KMS / Vault) — FUT-07
+- Multi-region / HA deploy — FUT-08
+- Matrix runs and artifact passing — FUT-02
+- SSO / OIDC / 2FA — FUT-04
+- Sequence/parallel task dispatch on agent (deferred from Phase 10) — future
 
 ### Out of Scope
 
-- ~~**Esecuzione remota / runner SSH**~~ — **Invertito in v2.0** (dispatch remoto tramite agenti WebSocket). Il CLI continua a eseguire in locale quando invocato senza `--agent`.
-- ~~**Trigger automatici (file watcher, git hooks)**~~ — **Invertito in v2.0** lato server (webhook plugin GitHub/Perforce). Il CLI locale resta manuale.
-- ~~**UI grafica / dashboard**~~ — **Invertito in v2.0** (web SPA servita da `@xci/server`). Il CLI resta invariato.
-- **Sostituzione di npm scripts / Makefile** — loci non vuole rimpiazzarli, vive affianco. Gli alias possono comunque chiamare `npm run x` o `make x`.
-- **Gestione segreti via vault / KMS completo** — *Parzialmente invertito in v2.0*: i secrets org-level sul server sono cifrati con envelope encryption; i secrets per-agent restano in chiaro in `.xci/secrets.yml` locale come in v1.
-- **Support per linguaggi di config diversi da YAML** (JSON, TOML, .env) — scelto YAML e basta, per coerenza.
-- **Versioning / lock del tool per progetto** — versione unica globale installata. Niente `loci.lock` o auto-update per-progetto.
-- **Stripe / pagamenti reali in v2.0** — billing stub-only (entities + quota enforcement del Free plan). Integrazione Stripe e piani paid rimandati a v2.1+.
-- **Multi-region / high-availability del server** — v2.0 è single-region, single-instance Docker. HA e multi-region sono fuori scope per questa milestone.
+- ~~Esecuzione remota / runner SSH~~ — **Invertito in v2.0** (agent WebSocket)
+- ~~Trigger automatici~~ — **Invertito in v2.0** (webhook plugins GitHub/Perforce)
+- ~~UI grafica / dashboard~~ — **Invertito in v2.0** (React SPA)
+- **Sostituzione npm scripts / Makefile** — convive, non rimpiazza
+- **Support per config non-YAML** — un solo formato per coerenza
+- **Versioning/lock del tool per progetto** — versione globale installata
+- **Stripe / pagamenti in v2.0** — billing stub-only; Stripe a FUT-01
+- **Multi-region / HA del server** — single-region single-instance in v2.0; HA a FUT-08
+- **Plugin system dinamico runtime** — anti-feature per sicurezza (PLUG-02)
+- **Auto-update agent binary** — security risk; utente aggiorna con `npm i -g xci@latest`
 
 ## Context
 
-- **Utente target iniziale**: developer singolo che lavora su più progetti con stack diversi e vuole standardizzare il modo in cui lancia build/package/deploy.
-- **Primo caso d'uso concreto** dichiarato: catena `build → package → deploy`.
-- **Ecosistema**: Node.js moderno, npm pubblico come canale di distribuzione.
-- **Stile comandi**: CLI in stile `commander.js` (sub-command, flag POSIX-style).
-- **Cross-platform**: esecuzione comandi shell deve funzionare su `cmd.exe`/PowerShell su Windows e su `sh`/`bash`/`zsh` su Unix. Questo impone uso di librerie tipo `execa` / `cross-spawn` per lo spawn dei processi figli.
-- **Filosofia**: "convention over configuration" dove ragionevole, ma la gerarchia di config a 4 livelli è esplicita perché rispecchia una reale separazione di responsabilità (defaults di sistema vs defaults di progetto vs segreti vs override locali).
+- **Utente target:** developer singolo o team che lavora su più progetti con stack diversi; vuole standardizzare build/package/deploy senza ricordare sequenze di comandi
+- **Primo caso d'uso:** catena `build → package → deploy`
+- **Ecosistema:** Node.js moderno, npm pubblico; server opzionale via Docker
+- **v2.0 codebase:** ~115,000 LOC added (564 files). TypeScript 5.x + Fastify 5 + Drizzle + React 19 + Vite + Tailwind 4
+- **Go port:** `go-xci/` directory — single-binary Go alternative for the CLI (cobra), feature-parity with TypeScript xci for GOCLI-01..05
+- **Known tech debt:** bundle-size CI gate not wired (D-15 omitted Phase 6); session token not hashed at rest (D-12 deferred); 68 pre-existing Biome style errors in packages/xci/src/
 
 ## Constraints
 
-- **Tech stack**: Node.js (runtime LTS supportato), TypeScript consigliato per DX e type-safety dei config parsing. Commander.js come base CLI.
-- **Compatibility**: Windows 10+, Linux moderno, macOS moderno. Deve girare su tutti e tre con stesso comportamento osservabile.
-- **Distribution**: pubblicato su npm pubblico, installazione tramite `npm i -g loci`. Nessun binario compilato (richiede Node installato sul sistema).
-- **Dependencies**: minime. Principali candidate: `commander`, `js-yaml`, `execa` (o `cross-spawn`). Evitare dipendenze pesanti o con transitive troppo ampie.
-- **Security**: il file `secrets.yml` deve essere letto solo se esiste; il tool deve emettere un warning (o errore configurabile) se viene trovato accidentalmente tracciato dal git. Loci NON deve mai loggare i valori dei secrets in output di debug.
-- **Performance**: l'overhead di startup deve restare sotto la soglia percettibile (indicativo: < 300ms cold start su hardware moderno) perché verrà chiamato molte volte al giorno.
+- **Tech stack:** Node.js ≥20.5, TypeScript 5.x, commander.js v14, execa 9.x, yaml 2.x, tsup, vitest, biome. Server: Fastify 5, Drizzle-ORM, Postgres. Web: React 19, Vite, Tailwind 4, TanStack Query 5, Zustand 5.
+- **Compatibility:** Windows 10+, Linux, macOS — identical observable behavior
+- **Distribution:** `npm i -g xci` (CLI); Docker image for server+web; Go binary for go-xci
+- **Dependencies:** minimal; ws/reconnecting-websocket external from cli.mjs bundle
+- **Security:** secrets.yml git-tracking warning; no secret values ever logged; AES-256-GCM envelope encryption for org secrets; timingSafeEqual for all token comparisons
+- **Performance:** cold start `xci --version` < 300ms (BC-04 active gate on CI)
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Nome `loci` | Gioco di parole "local CI", breve (4 lettere), pronunciabile, disponibile come nome npm da verificare | — Pending |
-| YAML per i file di config | Leggibile, supporta commenti, struttura nested, libreria matura (`js-yaml`) | — Pending |
-| Cartella `.loci/` con file separati (anziché file singoli in root) | Evita di affollare la root del progetto, tiene raggruppata la config, convenzione `.dotfolder` già familiare | — Pending |
-| Env var `LOCI_MACHINE_CONFIG` punta al file (non a una cartella) | Esplicito, flessibile (puoi nominare il file come vuoi), nome chiaro sullo scopo | — Pending |
-| Precedenza merge: machine → project → secrets → local | Local override deve vincere su tutto perché è "override per-PC"; secrets vince su project perché contiene i valori "reali" che altrimenti non ci sarebbero | — Pending |
-| Interpolazione con placeholder `${NAME}` (no env var auto-injection) | Sintassi esplicita, valori risolti prima dello spawn, nessuna collisione con variabili di shell, errore immediato se manca un parametro | — Pending |
-| Catene sequenziali con stop-on-first-failure | Semantica "CI pipeline" attesa dall'utente, stesso comportamento di `&&` in shell ma portabile | — Pending |
-| Comandi paralleli supportati fin dall'inizio | Serve all'utente per il suo workflow (es. lanciare più servizi o più check) | — Pending |
-| Composizione: un alias può referire altri alias | Riuso tra pipeline (es. `ci` chiama `lint`, `test`, `build` già definiti) | — Pending |
-| `commander.js` come framework CLI | Scelto esplicitamente dall'utente | ✓ Good |
-| Distribuzione via `npm i -g` (no binari standalone) | Target è developer che già hanno Node, riduce complessità build | — Pending |
+| Nome `loci` / package `xci` | `loci` taken on npm; `xci` is the published name (D-01) | ✓ Good |
+| YAML per i file di config | Leggibile, YAML 1.2 semantics (yaml eemeli), commenti supportati | ✓ Good |
+| commander.js v14 | Scelto esplicitamente; v15 ESM-only dropped — stay on v14 | ✓ Good |
+| execa vs cross-spawn | execa: Promise-based, real-time streaming, PATHEXT on Windows, AbortController | ✓ Good |
+| tsup bundle (noExternal) | Single-file output minimizes cold-start disk reads | ✓ Good |
+| `forOrg(orgId)` as sole scoped-repo entry point | Structural enforcement prevents missing org_id filters; Biome noRestrictedImports reinforces | ✓ Good |
+| AES-256-GCM envelope encryption (MEK/DEK) | Industry standard; rotation without re-encrypting all values; KMS-ready (FUT-07) | ✓ Good |
+| CSRF per-route (not global) | Signup/login have no session — exempt by design; avoids double-CSRF on auth flow | ✓ Good |
+| WS auth via first frame (not URL) | Token in URL appears in proxy logs/access logs — frame body is WS-TLS encrypted only | ✓ Good |
+| Agent credential stored locally via env-paths | OS-appropriate config dir (not ~/.config on macOS); --config-dir override | ✓ Good |
+| node:22-slim base (not Alpine) | @node-rs/argon2 prebuilt binaries require glibc | ✓ Good |
+| Drizzle tsc -b for @xci/server | Servers have no cold-start pressure; tsc produces better error messages for server code | ✓ Good |
+| Bundle-size gate deferred (D-15) | Baseline 760KB vs 200KB target (pre-dates Phase 2-5 additions); re-evaluate in v3.x | ⚠️ Revisit |
+| Go port as separate go-xci/ directory | Go single-binary is useful for environments without Node; keeps TypeScript as canonical | ✓ Good |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
-**After each phase transition** (via `/gsd-transition`):
-1. Requirements invalidated? → Move to Out of Scope with reason
-2. Requirements validated? → Move to Validated with phase reference
-3. New requirements emerged? → Add to Active
-4. Decisions to log? → Add to Key Decisions
-5. "What This Is" still accurate? → Update if drifted
-
-**After each milestone** (via `/gsd-complete-milestone`):
+**After each milestone** (via `/gsd:complete-milestone`):
 1. Full review of all sections
 2. Core Value check — still the right priority?
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
+5. Move shipped requirements to Validated
 
 ---
-*Last updated: 2026-05-31 — Phase 15 complete: Go CLI parity fixes. Added multi-pass interpolation (GOCLI-03), required params validation (GOCLI-02), secrets.yml git-tracking warning (GOCLI-04), passthrough args for sequential/parallel plans (GOCLI-05), and comprehensive cmd/run_test.go test suite (GOCLI-01). go-xci Go port now feature-equivalent with TypeScript xci for all 5 parity requirements. This is the last phase of milestone v1.0 Local CLI.*
+*Last updated: 2026-06-01 after v2.0 milestone archival. v2.0 shipped phases 6–14 (99 requirements); Phase 15 shipped Go CLI parity (5 requirements). Next: /gsd:new-milestone to define v3.x scope.*

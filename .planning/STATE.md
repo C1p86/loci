@@ -1,25 +1,25 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: — Local CLI
-status: Milestone complete
-stopped_at: Completed 15-03-PLAN.md — Phase 15 complete
-last_updated: "2026-05-31T20:54:22.210Z"
+milestone: v2.0
+milestone_name: Remote CI — Agents + Web Dashboard
+status: v2.0 milestone archived — planning next milestone
+stopped_at: Completed v2.0 milestone archival — phases 6-14 archived to milestones/
+last_updated: "2026-06-01T00:00:00.000Z"
 progress:
   total_phases: 15
   completed_phases: 15
-  total_plans: 66
-  completed_plans: 69
+  total_plans: 65
+  completed_plans: 65
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-16)
+See: .planning/PROJECT.md (updated 2026-06-01)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** Phase 15 — go-cli-parity-fixes
+**Current focus:** Planning next milestone — v2.0 archived, v3.x roadmap TBD
 
 ## Current Position
 
