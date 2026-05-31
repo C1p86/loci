@@ -18,12 +18,24 @@
 
 *Il server estende questo: un alias può ora essere eseguito su agenti remoti, dispatchato dalla UI, con secrets gestiti centralmente.*
 
+## Current Milestone: v2.1 Quality & Parity
+
+**Goal:** Completare la parità Go CLI, abilitare il dispatch multi-step sull'agente, aggiungere shell completions, chiudere il debito di sicurezza e qualità accumulato in v2.0.
+
+**Target features:**
+- Go CLI parity — colored output, `for_each ${VAR}`, campo `cwd` + ereditarietà, breadcrumb step, stampa cwd
+- Agent dispatch multi-step — sequence/parallel nei task remoti (deferred da Phase 10)
+- Shell completions — bash/zsh/fish/PowerShell
+- Security debt — session token hashing at rest, `haveibeenpwned` su signup/reset
+- Code quality — 68 Biome errors cleanup, bundle-size CI gate wiring
+- DevOps — branch protection required checks, `NPM_TOKEN` secret
+
 ## Current State (post-v2.0)
 
 - **v1.0 shipped:** 2026-04-15 — CLI standalone, 57 requirements
 - **v2.0 shipped:** 2026-04-19 — Remote CI (9 phases, 99 requirements), archived
 - **Phase 15 shipped:** 2026-05-31 — Go CLI parity (5 requirements), `go-xci/` in repo
-- **Next milestone:** TBD — run `/gsd:new-milestone` to define v3.x scope
+- **v2.1 in progress:** 2026-06-01 — Quality & Parity milestone started
 
 ## Requirements
 
@@ -64,18 +76,21 @@
 - ✓ secrets.yml git-tracking warning (best-effort, silent if git unavailable) — Phase 15
 - ✓ Passthrough args `--` for sequential/parallel plans — Phase 15
 
-### Active
+### Active (v2.1)
 
-*(To be defined in next milestone via `/gsd:new-milestone`)*
-
-Candidates from Future requirements (post-v2.0):
-- Shell completions (bash/zsh/fish/PowerShell) — DX-V2-01
-- Stripe integration + paid plans — FUT-01
-- KMS real integration (AWS KMS / GCP KMS / Vault) — FUT-07
-- Multi-region / HA deploy — FUT-08
-- Matrix runs and artifact passing — FUT-02
-- SSO / OIDC / 2FA — FUT-04
-- Sequence/parallel task dispatch on agent (deferred from Phase 10) — future
+- Go CLI: colored output + run-header recap — GOCLI-06
+- Go CLI: `for_each.in` con `${VAR}` placeholder — GOCLI-07
+- Go CLI: campo `cwd` opzionale con ereditarietà parent→child — GOCLI-08
+- Go CLI: breadcrumb completo negli step header — GOCLI-09
+- Go CLI: stampa cwd effettivo prima di ogni step — GOCLI-10
+- Agent dispatch sequence/parallel multi-step — DISP-01
+- Shell completions bash/zsh/fish/PowerShell — DX-01
+- Session token hashing at rest — SEC-01
+- `haveibeenpwned` check su signup/reset — SEC-02
+- Biome style errors cleanup (68 errori in `packages/xci/src/`) — QA-01
+- Bundle-size CI gate wiring — QA-02
+- Branch protection + required status checks — OPS-01
+- `NPM_TOKEN` secret setup — OPS-02
 
 ### Out of Scope
 
@@ -139,4 +154,4 @@ This document evolves at phase transitions and milestone boundaries.
 5. Move shipped requirements to Validated
 
 ---
-*Last updated: 2026-06-01 after v2.0 milestone archival. v2.0 shipped phases 6–14 (99 requirements); Phase 15 shipped Go CLI parity (5 requirements). Next: /gsd:new-milestone to define v3.x scope.*
+*Last updated: 2026-06-01 — v2.1 milestone started. Focus: Go CLI parity, agent multi-step dispatch, shell completions, security debt, code quality, DevOps todos.*
