@@ -128,9 +128,22 @@ func runAlias(alias string, cliArgs []string, dryRun, verbose bool) (int, error)
 		return 1, fmt.Errorf("resolve error: %w", err)
 	}
 
-	// Append passthrough args to single-command argv
-	if plan.Kind == commands.KindSingle && len(passthrough) > 0 {
-		plan.Argv = append(plan.Argv, passthrough...)
+	// Append passthrough args to the last command of the plan (GOCLI-05)
+	if len(passthrough) > 0 {
+		switch plan.Kind {
+		case commands.KindSingle:
+			plan.Argv = append(plan.Argv, passthrough...)
+		case commands.KindSequential:
+			if len(plan.Steps) > 0 {
+				last := len(plan.Steps) - 1
+				plan.Steps[last].Argv = append(plan.Steps[last].Argv, passthrough...)
+			}
+		case commands.KindParallel:
+			if len(plan.Group) > 0 {
+				last := len(plan.Group) - 1
+				plan.Group[last].Argv = append(plan.Group[last].Argv, passthrough...)
+			}
+		}
 	}
 
 	if dryRun {
