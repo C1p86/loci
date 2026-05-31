@@ -70,3 +70,49 @@ func TestInterpolateArgv_tokenNotResplit(t *testing.T) {
 		t.Errorf("expected 'hello world', got %q", got[0])
 	}
 }
+
+func TestInterpolateArgv_multiPass(t *testing.T) {
+	// base is defined; url references base — needs 2 passes to fully resolve
+	vals := map[string]string{
+		"base": "https://example.com",
+		"url":  "${base}/api",
+	}
+	got, err := InterpolateArgv([]string{"${url}"}, "test", vals)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "https://example.com/api"
+	if got[0] != want {
+		t.Errorf("expected %q, got %q", want, got[0])
+	}
+}
+
+func TestInterpolateArgv_multiPassStable(t *testing.T) {
+	// Single-level resolve — stable after first pass
+	vals := map[string]string{"A": "hello"}
+	got, err := InterpolateArgv([]string{"${A}"}, "test", vals)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got[0] != "hello" {
+		t.Errorf("expected hello, got %q", got[0])
+	}
+}
+
+func TestInterpolateArgv_multiPassMaxDepth(t *testing.T) {
+	// 12-level chain exceeds maxPasses=10; lenient mode leaves remaining placeholder as-is (no panic)
+	vals := make(map[string]string)
+	keys := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"}
+	for i := 0; i < len(keys)-1; i++ {
+		vals[keys[i]] = "${" + keys[i+1] + "}"
+	}
+	vals["l"] = "leaf"
+	// Lenient: should not panic or error even when maxPasses exceeded
+	got := InterpolateArgvLenient([]string{"${a}"}, vals)
+	if len(got) != 1 {
+		t.Fatalf("expected 1 token, got %d", len(got))
+	}
+	// After 10 passes, result may be "${c}" or similar (not yet "leaf") — just confirm no panic
+	// The important thing is it terminated
+	_ = got[0]
+}
