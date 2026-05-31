@@ -76,8 +76,8 @@ func normalizePlatformBlock(aliasName, platformKey string, raw interface{}) ([]s
 }
 
 // normalizeObject parses an object-form alias definition.
-// IN SCOPE: single (cmd + platforms), sequential (steps), parallel.
-// OUT OF SCOPE: ini, for_each, capture, params — return error if encountered.
+// IN SCOPE: single (cmd + platforms), sequential (steps), parallel, params.
+// OUT OF SCOPE: ini, for_each, capture — return error if encountered.
 func normalizeObject(aliasName string, obj map[string]interface{}) (CommandDef, error) {
 	// OUT OF SCOPE checks
 	if _, has := obj["ini"]; has {
@@ -104,6 +104,35 @@ func normalizeObject(aliasName string, obj map[string]interface{}) (CommandDef, 
 		}
 	}
 
+	// Parse optional params block
+	var params map[string]ParamDef
+	if paramsRaw, has := obj["params"]; has {
+		paramsObj, ok := paramsRaw.(map[string]interface{})
+		if !ok {
+			return CommandDef{}, fmt.Errorf("%s: params must be an object", aliasName)
+		}
+		params = make(map[string]ParamDef, len(paramsObj))
+		for paramName, paramVal := range paramsObj {
+			switch pv := paramVal.(type) {
+			case map[string]interface{}:
+				pd := ParamDef{}
+				if req, ok := pv["required"]; ok {
+					if b, ok := req.(bool); ok {
+						pd.Required = b
+					}
+				}
+				if desc, ok := pv["description"]; ok {
+					if s, ok := desc.(string); ok {
+						pd.Description = s
+					}
+				}
+				params[paramName] = pd
+			default:
+				return CommandDef{}, fmt.Errorf("%s: params.%s must be an object", aliasName, paramName)
+			}
+		}
+	}
+
 	// Sequential: has steps
 	if stepsRaw, has := obj["steps"]; has {
 		steps, err := validateStringSlice(aliasName, "steps", stepsRaw)
@@ -115,6 +144,7 @@ func normalizeObject(aliasName string, obj map[string]interface{}) (CommandDef, 
 			Steps:       steps,
 			Description: description,
 			Cwd:         cwd,
+			Params:      params,
 		}, nil
 	}
 
@@ -138,6 +168,7 @@ func normalizeObject(aliasName string, obj map[string]interface{}) (CommandDef, 
 			FailMode:    failMode,
 			Description: description,
 			Cwd:         cwd,
+			Params:      params,
 		}, nil
 	}
 
@@ -187,6 +218,7 @@ func normalizeObject(aliasName string, obj map[string]interface{}) (CommandDef, 
 		Cmd:         cmd,
 		Description: description,
 		Cwd:         cwd,
+		Params:      params,
 	}
 	if len(platforms) > 0 {
 		def.Platforms = platforms

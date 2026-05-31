@@ -210,3 +210,45 @@ func TestLoadCommands_missingFile(t *testing.T) {
 		t.Fatal("expected error for missing file")
 	}
 }
+
+func TestLoadCommands_paramsRequired(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "commands.yml")
+	yamlContent := `deploy:
+  cmd: ./deploy.sh
+  params:
+    TOKEN:
+      required: true
+      description: API token
+    ENV:
+      required: false
+`
+	if err := os.WriteFile(path, []byte(yamlContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+	cmds, err := LoadCommands(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	def := cmds["deploy"]
+	if def.Params == nil {
+		t.Fatal("expected Params to be non-nil")
+	}
+	token, ok := def.Params["TOKEN"]
+	if !ok {
+		t.Fatal("expected TOKEN param")
+	}
+	if !token.Required {
+		t.Error("expected TOKEN.Required=true")
+	}
+	if token.Description != "API token" {
+		t.Errorf("expected description 'API token', got %q", token.Description)
+	}
+	env, ok := def.Params["ENV"]
+	if !ok {
+		t.Fatal("expected ENV param")
+	}
+	if env.Required {
+		t.Error("expected ENV.Required=false")
+	}
+}

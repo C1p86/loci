@@ -9,6 +9,12 @@ const (
 	KindParallel   Kind = "parallel"
 )
 
+// ParamDef defines a declared parameter for an alias.
+type ParamDef struct {
+	Required    bool
+	Description string
+}
+
 // CommandDef holds the normalized definition of a single xci alias.
 type CommandDef struct {
 	Kind        Kind
@@ -18,7 +24,8 @@ type CommandDef struct {
 	Group       []string            // parallel group entries
 	FailMode    string              // "" | "fast" | "complete"
 	Description string
-	Cwd         string // optional working directory
+	Cwd         string              // optional working directory
+	Params      map[string]ParamDef // optional parameter declarations; nil means no params declared
 }
 
 // CommandMap maps alias names to their normalized definitions.

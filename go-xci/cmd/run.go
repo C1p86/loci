@@ -3,15 +3,16 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"regexp"
 	"sort"
 	"strings"
 
-	"github.com/andrearuggeri/go-xci/internal/commands"
-	"github.com/andrearuggeri/go-xci/internal/config"
-	"github.com/andrearuggeri/go-xci/internal/discovery"
-	"github.com/andrearuggeri/go-xci/internal/executor"
-	"github.com/andrearuggeri/go-xci/internal/resolver"
+	"github.com/andrearuggeri/xci/internal/commands"
+	"github.com/andrearuggeri/xci/internal/config"
+	"github.com/andrearuggeri/xci/internal/discovery"
+	"github.com/andrearuggeri/xci/internal/executor"
+	"github.com/andrearuggeri/xci/internal/resolver"
 )
 
 // keyValueRE matches KEY=VALUE style overrides.
@@ -43,6 +44,32 @@ func parseOverrides(cliArgs []string) (overrides map[string]string, passthrough 
 	return
 }
 
+// validateParams checks that all required params declared on the alias are
+// present in values. Returns an error with the alias name and param name if any
+// required param is missing. Best-practice: call before resolver.Resolve.
+func validateParams(alias string, def commands.CommandDef, values map[string]string) error {
+	for name, param := range def.Params {
+		if !param.Required {
+			continue
+		}
+		if _, ok := values[name]; !ok {
+			return fmt.Errorf("alias %q: required parameter %s is not defined", alias, name)
+		}
+	}
+	return nil
+}
+
+// checkSecretsTracked prints a warning on stderr if .xci/secrets.yml is
+// tracked by git. Best-effort: silently ignores all errors (git not available,
+// not a repo, secrets.yml not tracked — all treated as "no warning needed").
+func checkSecretsTracked(root string) {
+	cmd := exec.Command("git", "ls-files", "--error-unmatch", ".xci/secrets.yml")
+	cmd.Dir = root
+	if err := cmd.Run(); err == nil {
+		fmt.Fprintln(os.Stderr, "warning: .xci/secrets.yml is tracked by git — secrets may be exposed")
+	}
+}
+
 // runAlias loads config/commands, resolves the alias, and executes it.
 // Returns the child process exit code.
 func runAlias(alias string, cliArgs []string, dryRun, verbose bool) (int, error) {
@@ -68,6 +95,9 @@ func runAlias(alias string, cliArgs []string, dryRun, verbose bool) (int, error)
 		return 1, fmt.Errorf("commands error: %w", err)
 	}
 
+	// Check if secrets.yml is accidentally tracked by git (GOCLI-04)
+	checkSecretsTracked(root)
+
 	// Parse KEY=VALUE overrides from CLI args
 	overrides, passthrough := parseOverrides(cliArgs)
 
@@ -83,6 +113,14 @@ func runAlias(alias string, cliArgs []string, dryRun, verbose bool) (int, error)
 		Values:     mergedValues,
 		Provenance: cfg.Provenance,
 		SecretKeys: cfg.SecretKeys,
+	}
+
+	// Validate required params declared on the alias (GOCLI-02)
+	if def, ok := cmds[alias]; ok {
+		if err := validateParams(alias, def, mergedValues); err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			return 1, nil
+		}
 	}
 
 	plan, err := resolver.Resolve(alias, cmds, mergedCfg)
