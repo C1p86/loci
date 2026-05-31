@@ -54,13 +54,59 @@ func interpolateToken(token string, aliasName string, values map[string]string, 
 	return resolved, nil
 }
 
+// interpolateTokenMultiPass resolves ${KEY} placeholders repeatedly until the
+// output is stable (no more changes) or maxPasses is exhausted.
+// This handles self-referencing values: if base="https://example.com" and
+// url="${base}/api", then resolving "${url}" yields "${base}/api" on pass 1,
+// then "https://example.com/api" on pass 2.
+// Escape sequences ($${KEY}) are protected across all passes and restored once at the end.
+func interpolateTokenMultiPass(token, aliasName string, values map[string]string, strict bool, maxPasses int) (string, error) {
+	// Protect escape sequences for the entire multi-pass session so that
+	// literals produced in pass N are not re-expanded in pass N+1.
+	current := strings.ReplaceAll(token, "$${", escapeSentinel+"{")
+
+	for pass := 0; pass < maxPasses; pass++ {
+		var resolveErr error
+		next := placeholderRE.ReplaceAllStringFunc(current, func(match string) string {
+			if resolveErr != nil {
+				return match
+			}
+			if strings.HasPrefix(match, escapeSentinel) {
+				return match // leave escape sentinels intact
+			}
+			key := match[2 : len(match)-1]
+			val, ok := values[key]
+			if !ok {
+				if strict {
+					resolveErr = fmt.Errorf("%s: undefined placeholder ${%s}", aliasName, key)
+					return match
+				}
+				return match // lenient: leave as-is
+			}
+			// Protect any escape sequences inside resolved values too
+			return strings.ReplaceAll(val, "$${", escapeSentinel+"{")
+		})
+		if resolveErr != nil {
+			return "", resolveErr
+		}
+		if next == current {
+			break // stable — no remaining placeholders to expand
+		}
+		current = next
+	}
+
+	// Restore sentinels to literal ${ at the very end
+	current = strings.ReplaceAll(current, escapeSentinel+"{", "${")
+	return current, nil
+}
+
 // InterpolateArgv resolves ${KEY} placeholders across an argv array (strict mode).
 // Returns an error if any placeholder key is not found in values.
 // Tokens are NOT re-split; each token stays as one argv element.
 func InterpolateArgv(argv []string, aliasName string, values map[string]string) ([]string, error) {
 	result := make([]string, 0, len(argv))
 	for _, token := range argv {
-		resolved, err := interpolateToken(token, aliasName, values, true)
+		resolved, err := interpolateTokenMultiPass(token, aliasName, values, true, 10)
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +120,7 @@ func InterpolateArgv(argv []string, aliasName string, values map[string]string) 
 func InterpolateArgvLenient(argv []string, values map[string]string) []string {
 	result := make([]string, 0, len(argv))
 	for _, token := range argv {
-		resolved, _ := interpolateToken(token, "", values, false)
+		resolved, _ := interpolateTokenMultiPass(token, "", values, false, 10)
 		result = append(result, resolved)
 	}
 	return result
