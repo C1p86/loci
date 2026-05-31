@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 Phase: 14 (Docker & Publishing) — COMPLETE
 Plan: 4 of 4
 Next: v2.1 planning (post-v2.0 triage of Deferred/Future requirements — FUT-01..10)
-Last activity: 2026-04-22 - Completed quick task 260422-pnv: always print effective cwd for single/parallel commands and unconditionally in printRunHeader
+Last activity: 2026-05-31 - Completed quick task 260531-sgb: Create Go CLI go-xci project
 
 Progress (Phase 14): [██████████] 100% (4/4 plans)
 Progress (v2.0 milestone): [██████████] 100% (14/14 phases complete: 01-05 (v1.0), 06, 07, 08, 09, 10, 11, 12, 13, 14)
@@ -406,10 +406,11 @@ None
 | 260422-dfh | Fix for_each loop variable not available during step re-interpolation in sequential executor | 2026-04-22 | d771b51 | [260422-dfh-fix-for-each-loop-variable-not-available](./quick/260422-dfh-fix-for-each-loop-variable-not-available/) |
 | 260422-mxr | print effective cwd in dark yellow before every sequential step + verify nested cwd inheritance | 2026-04-22 | f1fd3f8 | [260422-mxr-print-effective-cwd-in-dark-yellow-befor](./quick/260422-mxr-print-effective-cwd-in-dark-yellow-befor/) |
 | 260422-pnv | always print effective cwd for single/parallel commands and unconditionally in printRunHeader | 2026-04-22 | e79f2ac | [260422-pnv-always-print-cwd-single-parallel-and-run-head](./quick/260422-pnv-always-print-cwd-single-parallel-and-run-head/) |
+| 260531-sgb | Create Go CLI go-xci project — single-binary Go port of xci with cobra, 4-layer config, executor | 2026-05-31 | bf52c12 | [260531-sgb-crea-progetto-go-cli-go-xci-nella-cartel](./quick/260531-sgb-crea-progetto-go-cli-go-xci-nella-cartel/) |
 
 ## Session Continuity
 
-Last session: 2026-04-19T20:16:46.123Z
-Stopped at: Completed 14-04-PLAN.md — v2.0 milestone COMPLETE
+Last session: 2026-05-31T18:30:00.000Z
+Stopped at: Completed quick task 260531-sgb: Create Go CLI go-xci — single-binary Go port of xci
 Phase 12 closed: 5 plans complete, 8 requirement IDs traced (PLUG-01..08), 5/5 SC covered, integration tests green (Linux-only E2E gated per Phase 10/11 pattern), v1 302-test + hyperfine + ws-fence regressions all pass
 Resume: Phase 13 — Web Dashboard SPA (needs Phase 7+8+9+10+11 complete — SATISFIED; Phase 12 consumed by UI for plugin settings + DLQ views)
