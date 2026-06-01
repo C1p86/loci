@@ -65,20 +65,18 @@
 
 ## Traceability
 
-*Populated by roadmapper.*
-
 | REQ-ID | Phase | Plan |
 |--------|-------|------|
-| GOCLI-06 | — | — |
-| GOCLI-07 | — | — |
-| GOCLI-08 | — | — |
-| GOCLI-09 | — | — |
-| GOCLI-10 | — | — |
-| DISP-01 | — | — |
-| DX-01 | — | — |
-| SEC-01 | — | — |
-| SEC-02 | — | — |
-| QA-01 | — | — |
-| QA-02 | — | — |
-| OPS-01 | — | — |
-| OPS-02 | — | — |
+| GOCLI-06 | Phase 16 | — |
+| GOCLI-07 | Phase 17 | — |
+| GOCLI-08 | Phase 17 | — |
+| GOCLI-09 | Phase 17 | — |
+| GOCLI-10 | Phase 17 | — |
+| DISP-01 | Phase 18 | — |
+| DX-01 | Phase 18 | — |
+| SEC-01 | Phase 19 | — |
+| SEC-02 | Phase 19 | — |
+| QA-01 | Phase 20 | — |
+| QA-02 | Phase 20 | — |
+| OPS-01 | Phase 20 | — |
+| OPS-02 | Phase 20 | — |
