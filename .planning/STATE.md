@@ -2,15 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Quality & Parity
-status: Roadmap created — awaiting first plan
-stopped_at: Phase 16 context gathered
-last_updated: "2026-06-01T00:26:17.759Z"
-last_activity: 2026-06-01 — v2.1 roadmap created (phases 16–20, 13 requirements)
+status: Ready to execute
+stopped_at: Completed 16-go-cli-output-infrastructure 16-01-PLAN.md
+last_updated: "2026-06-01T10:24:38.096Z"
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
 ---
 
 # Project State
@@ -20,16 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-01)
 
 **Core value:** Un alias → sempre lo stesso comando eseguito correttamente, su qualunque sistema operativo, con i parametri giusti per quel progetto e per quella macchina, senza mai esporre token/password nel versioning.
-**Current focus:** v2.1 Quality & Parity — Phase 16: Go CLI Output Infrastructure
+**Current focus:** Phase 16 — go-cli-output-infrastructure
 
 ## Current Position
 
-Phase: 16 — Go CLI Output Infrastructure
-Plan: Not started
-Status: Roadmap created — awaiting first plan
-Last activity: 2026-06-01 — v2.1 roadmap created (phases 16–20, 13 requirements)
-
-Progress bar: ░░░░░░░░░░ 0/5 phases complete
+Phase: 16 (go-cli-output-infrastructure) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -58,6 +53,7 @@ Progress bar: ░░░░░░░░░░ 0/5 phases complete
 | Phase 15 P03 | 600s | 2 | 2 |
 
 *Updated after each plan completion*
+| Phase 16-go-cli-output-infrastructure P01 | 10 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -77,6 +73,8 @@ Recent decisions affecting current work:
 - [Phase 15]: checkSecretsTracked uses git ls-files --error-unmatch; exit 0 = tracked, any error = silently ignored
 - [Phase 15]: validateParams error format: alias X: required parameter Y is not defined
 - [Phase 15]: Passthrough switch replaces single-condition if block; KindSingle/KindSequential/KindParallel all handled with empty-slice guard
+- [Phase 16-go-cli-output-infrastructure]: ShouldUseColor checks stderr TTY via go-isatty (not color.NoColor default which uses stdout) — prevents color regression when stdout is redirected
+- [Phase 16-go-cli-output-infrastructure]: PrintStepCwd added in Phase 16 output package to prevent sequential.go cwd regression when step headers are upgraded (Phase 17 GOCLI-10 then extends it)
 
 ### Critical Pitfalls (v2.1 — from research)
 
@@ -139,6 +137,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-06-01T00:26:17.756Z
-Stopped at: Phase 16 context gathered
+Last session: 2026-06-01T10:24:38.093Z
+Stopped at: Completed 16-go-cli-output-infrastructure 16-01-PLAN.md
 Resume: Phase 16 — Go CLI Output Infrastructure (`/gsd:plan-phase 16`)

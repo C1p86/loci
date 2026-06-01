@@ -10,7 +10,7 @@
 
 ### Go CLI Parity
 
-- [ ] **GOCLI-06**: User can see a colored run-header showing alias name and resolved params before execution begins (output.go foundation with fatih/color, isTTY detection, Windows VT support)
+- [x] **GOCLI-06**: User can see a colored run-header showing alias name and resolved params before execution begins (output.go foundation with fatih/color, isTTY detection, Windows VT support)
 - [ ] **GOCLI-07**: User can define `for_each.in` with a `${VAR}` placeholder that resolves to a CSV list at runtime; each iteration runs the step with `${ITEM}` available
 - [ ] **GOCLI-08**: User can set an optional `cwd` field on an alias; child steps inherit the parent's cwd when they don't define their own
 - [ ] **GOCLI-09**: User can see the full breadcrumb in step headers (e.g. `build > compile > step1`) during nested execution
