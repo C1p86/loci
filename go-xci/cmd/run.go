@@ -12,6 +12,7 @@ import (
 	"github.com/andrearuggeri/xci/internal/config"
 	"github.com/andrearuggeri/xci/internal/discovery"
 	"github.com/andrearuggeri/xci/internal/executor"
+	"github.com/andrearuggeri/xci/internal/output"
 	"github.com/andrearuggeri/xci/internal/resolver"
 )
 
@@ -184,6 +185,9 @@ func runAlias(alias string, cliArgs []string, dryRun, verbose bool) (int, error)
 		}
 		fmt.Println("")
 	}
+
+	output.InitColor()
+	output.PrintRunHeader(alias, cmds[alias], mergedValues, mergedCfg.SecretKeys)
 
 	// Build child environment: inherit os.Environ, apply overrides
 	env := os.Environ()
