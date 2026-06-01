@@ -80,7 +80,9 @@ See full archive: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
   2. The header uses bright cyan color on TTY-capable terminals; plain text on non-TTY (pipes, CI)
   3. Colors render correctly on Windows (VT processing enabled automatically via fatih/color + go-isatty)
   4. All diagnostic output from go-xci uses stderr; stdout remains clean for tab completion
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 16-01-PLAN.md — Create the `output` package (fatih/color dep, ShouldUseColor/PrintRunHeader/PrintStepHeader/PrintStepCwd/PrintParallelSummary, stderr-only) [Wave 1]
+- [ ] 16-02-PLAN.md — Wire output package into cmd/run.go, sequential.go, parallel.go call sites [Wave 2]
 
 ### Phase 17: Go CLI Feature Parity
 **Goal**: The Go CLI supports all remaining parity features: iterative execution, working directory control, and rich execution breadcrumbs
@@ -149,7 +151,7 @@ See full archive: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 | 13. Web Dashboard SPA | 6/6 | Complete | 2026-04-19 |
 | 14. Docker & Publishing | 4/4 | Complete | 2026-04-19 |
 | 15. Go CLI — Parity Fixes | 3/3 | Complete | 2026-05-31 |
-| 16. Go CLI Output Infrastructure | 0/? | Not started | - |
+| 16. Go CLI Output Infrastructure | 0/2 | Not started | - |
 | 17. Go CLI Feature Parity | 0/? | Not started | - |
 | 18. Agent Multi-Step Dispatch & Shell Completions | 0/? | Not started | - |
 | 19. Security Debt | 0/? | Not started | - |
