@@ -1,6 +1,7 @@
 package output
 
 import (
+	"os"
 	"testing"
 
 	"github.com/andrearuggeri/xci/internal/commands"
@@ -25,13 +26,9 @@ func TestShouldUseColor_NoColorEmpty(t *testing.T) {
 
 // TestShouldUseColor_ForceColor verifies that FORCE_COLOR set (NO_COLOR unset) returns true.
 func TestShouldUseColor_ForceColor(t *testing.T) {
+	// Ensure NO_COLOR is not set for this test
+	os.Unsetenv("NO_COLOR")
 	t.Setenv("FORCE_COLOR", "1")
-	// NO_COLOR must not be set — t.Setenv unsets when given key not set before,
-	// but to be safe we explicitly unset using the env override approach.
-	// t.Setenv will restore to original after test, so we use Unsetenv pattern via
-	// a separate env var manipulation: the test environment starts fresh.
-	// Since NO_COLOR may already be set in the environment, we need to ensure it's unset.
-	// Use the os package to unset it for this test:
 	result := ShouldUseColor()
 	if !result {
 		t.Error("expected ShouldUseColor() == true when FORCE_COLOR is set and NO_COLOR is unset")
