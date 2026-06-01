@@ -50,7 +50,7 @@ See full archive: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 
 ### v2.1 Quality & Parity (Phases 16–20)
 
-- [ ] **Phase 16: Go CLI Output Infrastructure** — Shared `output.go` with fatih/color, isTTY detection, Windows VT support, colored run-header
+- [x] **Phase 16: Go CLI Output Infrastructure** — Shared `output.go` with fatih/color, isTTY detection, Windows VT support, colored run-header (completed 2026-06-01)
 - [ ] **Phase 17: Go CLI Feature Parity** — `for_each.in` with `${VAR}` CSV-split, `cwd` field with inheritance, breadcrumb step headers, cwd-print before each step
 - [ ] **Phase 18: Agent Multi-Step Dispatch & Shell Completions** — ExecutionPlan dispatch on agent with seq accumulator; bash/zsh/fish completion generators + Go cobra completion
 - [ ] **Phase 19: Security Debt** — Session token SHA-256 hashing at rest with two-phase migration; haveibeenpwned k-anonymity check on signup/reset
@@ -82,7 +82,7 @@ See full archive: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
   4. All diagnostic output from go-xci uses stderr; stdout remains clean for tab completion
 **Plans**: 2 plans
 - [x] 16-01-PLAN.md — Create the `output` package (fatih/color dep, ShouldUseColor/PrintRunHeader/PrintStepHeader/PrintStepCwd/PrintParallelSummary, stderr-only) [Wave 1]
-- [ ] 16-02-PLAN.md — Wire output package into cmd/run.go, sequential.go, parallel.go call sites [Wave 2]
+- [x] 16-02-PLAN.md — Wire output package into cmd/run.go, sequential.go, parallel.go call sites [Wave 2]
 
 ### Phase 17: Go CLI Feature Parity
 **Goal**: The Go CLI supports all remaining parity features: iterative execution, working directory control, and rich execution breadcrumbs
@@ -151,7 +151,7 @@ See full archive: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 | 13. Web Dashboard SPA | 6/6 | Complete | 2026-04-19 |
 | 14. Docker & Publishing | 4/4 | Complete | 2026-04-19 |
 | 15. Go CLI — Parity Fixes | 3/3 | Complete | 2026-05-31 |
-| 16. Go CLI Output Infrastructure | 1/2 | In Progress|  |
+| 16. Go CLI Output Infrastructure | 2/2 | Complete   | 2026-06-01 |
 | 17. Go CLI Feature Parity | 0/? | Not started | - |
 | 18. Agent Multi-Step Dispatch & Shell Completions | 0/? | Not started | - |
 | 19. Security Debt | 0/? | Not started | - |

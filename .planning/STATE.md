@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Quality & Parity
-status: Ready to execute
-stopped_at: Completed 16-go-cli-output-infrastructure 16-01-PLAN.md
-last_updated: "2026-06-01T10:24:38.096Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 16-go-cli-output-infrastructure 16-02-PLAN.md
+last_updated: "2026-06-01T10:28:01.738Z"
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -54,6 +54,7 @@ Plan: 2 of 2
 
 *Updated after each plan completion*
 | Phase 16-go-cli-output-infrastructure P01 | 10 | 2 tasks | 4 files |
+| Phase 16-go-cli-output-infrastructure P02 | 3 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,8 @@ Recent decisions affecting current work:
 - [Phase 15]: Passthrough switch replaces single-condition if block; KindSingle/KindSequential/KindParallel all handled with empty-slice guard
 - [Phase 16-go-cli-output-infrastructure]: ShouldUseColor checks stderr TTY via go-isatty (not color.NoColor default which uses stdout) — prevents color regression when stdout is redirected
 - [Phase 16-go-cli-output-infrastructure]: PrintStepCwd added in Phase 16 output package to prevent sequential.go cwd regression when step headers are upgraded (Phase 17 GOCLI-10 then extends it)
+- [Phase 16-go-cli-output-infrastructure]: PrintRunHeader receives cmds[alias] (raw CommandDef) not plan — enables placeholder scanning without import cycle risk
+- [Phase 16-go-cli-output-infrastructure]: InitColor placed in runAlias (cmd/run.go) not PersistentPreRun — run is only command path needing color; list/init/__complete unaffected
 
 ### Critical Pitfalls (v2.1 — from research)
 
@@ -137,6 +140,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-06-01T10:24:38.093Z
-Stopped at: Completed 16-go-cli-output-infrastructure 16-01-PLAN.md
+Last session: 2026-06-01T10:28:01.735Z
+Stopped at: Completed 16-go-cli-output-infrastructure 16-02-PLAN.md
 Resume: Phase 16 — Go CLI Output Infrastructure (`/gsd:plan-phase 16`)
