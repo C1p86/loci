@@ -1,17 +1,16 @@
 package executor
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
-	"strings"
 	"sync"
 
-	"github.com/andrearuggeri/go-xci/internal/resolver"
+	"github.com/andrearuggeri/xci/internal/output"
+	"github.com/andrearuggeri/xci/internal/resolver"
 )
 
 // linePrefixWriter wraps a writer and prepends [prefix] to every output line.
@@ -133,10 +132,10 @@ func runParallel(group []resolver.GroupEntry, failMode string, opts Options) (in
 
 	firstNonZero := 0
 	var firstErr error
-	summaryLines := make([]string, 0, len(group))
+	parallelResults := make([]output.ParallelResult, 0, len(group))
 
 	for r := range results {
-		summaryLines = append(summaryLines, fmt.Sprintf("  [%s] exit %d", r.alias, r.code))
+		parallelResults = append(parallelResults, output.ParallelResult{Alias: r.alias, ExitCode: r.code})
 		if r.code != 0 || r.err != nil {
 			if firstNonZero == 0 {
 				firstNonZero = r.code
@@ -146,22 +145,12 @@ func runParallel(group []resolver.GroupEntry, failMode string, opts Options) (in
 				firstErr = r.err
 			}
 			if failMode == "fast" {
-				cancel() // signal remaining goroutines to stop
+				cancel()
 			}
 		}
 	}
 
-	// Print summary
-	fmt.Fprintln(os.Stderr, "[xci] parallel results:")
-	for _, line := range summaryLines {
-		// Sort the output in a stable way (we collect as they arrive, order may vary)
-		_ = line
-	}
-	// Use buffered scan for deterministic summary
-	scanner := bufio.NewScanner(strings.NewReader(strings.Join(summaryLines, "\n")))
-	for scanner.Scan() {
-		fmt.Fprintln(os.Stderr, scanner.Text())
-	}
+	output.PrintParallelSummary(parallelResults)
 
 	return firstNonZero, firstErr
 }

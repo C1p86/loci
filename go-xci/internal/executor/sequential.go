@@ -1,11 +1,10 @@
 package executor
 
 import (
-	"fmt"
-	"os"
 	"strings"
 
-	"github.com/andrearuggeri/go-xci/internal/resolver"
+	"github.com/andrearuggeri/xci/internal/output"
+	"github.com/andrearuggeri/xci/internal/resolver"
 )
 
 // runSequential executes steps one by one, stopping at first non-zero exit.
@@ -48,11 +47,8 @@ func runSequential(steps []resolver.Step, opts Options) (int, error) {
 		if len(label) > 80 {
 			label = label[:80] + "..."
 		}
-		fmt.Fprintf(os.Stderr, "[xci] step %d: %s", i+1, label)
-		if cwd != "" {
-			fmt.Fprintf(os.Stderr, " (cwd: %s)", cwd)
-		}
-		fmt.Fprintln(os.Stderr)
+		output.PrintStepHeader(label, i+1, len(steps))
+		output.PrintStepCwd(cwd)
 
 		// Build env: inherit opts.Env, then overlay setVars
 		env := opts.Env
