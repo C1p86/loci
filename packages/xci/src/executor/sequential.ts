@@ -118,6 +118,7 @@ export async function runSequential(
   showOutput = true,
   tailLines?: number,
   fromStep?: string,
+  secretValues?: ReadonlySet<string>,
 ): Promise<ExecutionResult> {
   const capturedVars: Record<string, string> = {};
   const totalSteps = steps.length;
@@ -263,7 +264,7 @@ export async function runSequential(
     const shortCmd = rawCmd.length > 60 ? `${rawCmd.slice(0, 57)}…` : rawCmd;
     setTerminalTitle(`xci: ${alias} [${stepNum}/${totalSteps}] ${shortCmd}`);
     printStepHeader(stepCmd, stepNum, totalSteps);
-    printStepPreview(step.rawArgv, finalArgv, undefined, {
+    printStepPreview(step.rawArgv, finalArgv, secretValues, {
       verbose: env['XCI_VERBOSE'] === '1',
       logFile,
       cwd: stepSpawnCwd,

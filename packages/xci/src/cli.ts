@@ -526,7 +526,7 @@ function registerAliases(
             cwd: projectRoot,
             env,
           } satisfies DashboardContext)
-        : await executor.run(finalPlan, { cwd: projectRoot, env, logFile, showOutput, tailLines, fromStep });
+        : await executor.run(finalPlan, { cwd: projectRoot, env, logFile, showOutput, tailLines, fromStep, secretValues });
       if (result.exitCode !== 0) {
         process.exitCode = result.exitCode;
         // Surface error-matching lines (/error/i) BEFORE any askShowLog prompt so the

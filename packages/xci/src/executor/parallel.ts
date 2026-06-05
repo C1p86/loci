@@ -27,6 +27,7 @@ export async function runParallel(
   env: Record<string, string>,
   logFile?: string,
   showOutput = true,
+  secretValues?: ReadonlySet<string>,
 ): Promise<ExecutionResult> {
   const controller = new AbortController();
   const { signal } = controller;
@@ -46,7 +47,7 @@ export async function runParallel(
   for (const { alias, argv, cwd: entryCwd } of group) {
     const effectiveCwd = entryCwd ?? cwd;
     process.stderr.write(`[${alias}]\n`);
-    printStepPreview(undefined, argv, undefined, {
+    printStepPreview(undefined, argv, secretValues, {
       verbose: env['XCI_VERBOSE'] === '1',
       logFile,
       cwd: effectiveCwd,

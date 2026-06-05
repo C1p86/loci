@@ -196,6 +196,7 @@ export interface ExecutorOptions {
   readonly showOutput?: boolean; // pipe output to terminal (default: false)
   readonly tailLines?: number;   // show last N lines of output after each command (--short-log N)
   readonly fromStep?: string;    // start from this step label, skip earlier ones (--from)
+  readonly secretValues?: ReadonlySet<string>; // redact these values from preview output
 }
 
 export interface Executor {

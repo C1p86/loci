@@ -16,7 +16,7 @@ export { resolveAbsoluteCwds } from './cwd.js';
 
 export const executor: Executor = {
   async run(plan: ExecutionPlan, options: ExecutorOptions): Promise<ExecutionResult> {
-    const { cwd, env, logFile, showOutput, tailLines, fromStep } = options;
+    const { cwd, env, logFile, showOutput, tailLines, fromStep, secretValues } = options;
     const show = showOutput ?? true;
 
     const result = await (async (): Promise<ExecutionResult> => {
@@ -29,7 +29,7 @@ export const executor: Executor = {
           setTerminalTitle(`xci: ${singleCmd.length > 70 ? `${singleCmd.slice(0, 67)}…` : singleCmd}`);
           printStepHeader(cmdName);
           // quick-260422-pnv: always pass cwd so the dark-yellow cwd line appears for single commands too.
-          printStepPreview(undefined, plan.argv, undefined, {
+          printStepPreview(undefined, plan.argv, secretValues, {
             verbose: env['XCI_VERBOSE'] === '1',
             logFile,
             cwd: effectiveCwd,
@@ -67,10 +67,10 @@ export const executor: Executor = {
           return singleResult;
         }
         case 'sequential':
-          return runSequential(plan.steps, cwd, env, logFile, show, tailLines, fromStep);
+          return runSequential(plan.steps, cwd, env, logFile, show, tailLines, fromStep, secretValues);
         case 'parallel': {
           setTerminalTitle(`xci: [${plan.group.length} in parallel]`);
-          const parallelResult = await runParallel(plan.group, plan.failMode, cwd, env, logFile, show);
+          const parallelResult = await runParallel(plan.group, plan.failMode, cwd, env, logFile, show, secretValues);
           resetTerminalTitle();
           return parallelResult;
         }
