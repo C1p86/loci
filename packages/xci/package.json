@@ -45,6 +45,7 @@
     "execa": "9.6.1",
     "reconnecting-websocket": "4.4.0",
     "ws": "8.20.0",
+    "node-notifier": "^10.0.1",
     "yaml": "2.8.3"
   },
   "size-limit": [
