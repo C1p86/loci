@@ -134,8 +134,10 @@ export async function notifyCompletion(exitCode: number): Promise<void> {
     : `xci: errore (exit ${exitCode})`;
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod = await import('node-notifier' as string) as { default: { notify(opts: { title: string; message: string }): void } };
-    mod.default.notify({ title: 'xci', message });
+    const mod = await import('node-notifier' as string) as { default: { notify(opts: { title: string; message: string }, cb: () => void): void } };
+    await new Promise<void>((resolve) => {
+      mod.default.notify({ title: 'xci', message }, resolve);
+    });
   } catch {
     // node-notifier unavailable or OS unsupported — silent fallback
   }
