@@ -860,6 +860,163 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
 });
 
 /* ================================================================
+ * quick-260605-q1f: multi-alias + composition
+ * ================================================================ */
+
+describe.skipIf(!existsSync(CLI))('multi-alias composition (+ separator)', () => {
+  // Shared commands.yml for composition tests
+  const compositionCommands = [
+    'ok1:',
+    '  cmd: ["node", "-e", "process.exit(0)"]',
+    'ok2:',
+    '  cmd: ["node", "-e", "process.exit(0)"]',
+    'fail1:',
+    '  cmd: ["node", "-e", "process.exit(3)"]',
+    'echoarg:',
+    '  cmd: ["node", "-e", "process.stdout.write(process.argv.slice(1).join(\',\'))"]',
+    // marker-writer: writes a flag file at path given by MARKER env var
+    'marker:',
+    '  cmd: ["node", "-e", "require(\'fs\').writeFileSync(process.env.MARKER, \'x\')"]',
+    '',
+  ].join('\n');
+
+  it('sequential success: ok1 + ok2 exits 0', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': compositionCommands,
+        '.xci/config.yml': '',
+      }),
+    );
+    const { code } = runCliInDir(dir, ['ok1', '+', 'ok2']);
+    expect(code).toBe(0);
+  });
+
+  it('sequential stops on first failure: fail1 + ok2 exits with fail1 code, ok2 does not run', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': compositionCommands,
+        '.xci/config.yml': '',
+      }),
+    );
+    const markerFile = join(dir, 'ok2-ran.txt');
+    // ok2 in our commands doesn't write a marker, so we rely on the fact that
+    // sequential stops: substitute ok2 with marker alias for this test
+    const cmdsWithMarker = compositionCommands + [
+      'marker-ok2:',
+      '  cmd: ["node", "-e", "require(\'fs\').writeFileSync(process.env.MARKER2, \'x\')"]',
+      '',
+    ].join('\n');
+    const dir2 = trackDir(
+      createTempProject({
+        '.xci/commands.yml': cmdsWithMarker,
+        '.xci/config.yml': '',
+      }),
+    );
+    const marker2 = join(dir2, 'ok2-ran.txt');
+    const { code } = runCliInDir(dir2, ['fail1', '+', 'marker-ok2'], { MARKER2: marker2 });
+    expect(code).toBe(3);
+    // ok2 must NOT have run since fail1 exits non-zero first
+    expect(existsSync(marker2)).toBe(false);
+  });
+
+  it('parallel waits all + returns first non-zero: --parallel ok1 + fail1 exits non-zero', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': compositionCommands,
+        '.xci/config.yml': '',
+      }),
+    );
+    // Both run — parallel does not short-circuit.
+    // We can't easily assert ok1 ran when it has no side-effect, but we verify exit code
+    const { code } = runCliInDir(dir, ['--parallel', 'ok1', '+', 'fail1']);
+    expect(code).not.toBe(0);
+    expect(code).toBe(3);
+  });
+
+  it('parallel all success: --parallel ok1 + ok2 exits 0', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': compositionCommands,
+        '.xci/config.yml': '',
+      }),
+    );
+    const { code } = runCliInDir(dir, ['--parallel', 'ok1', '+', 'ok2']);
+    expect(code).toBe(0);
+  });
+
+  it('per-segment args routing: echoarg AAA + echoarg BBB routes args to correct segments', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': compositionCommands,
+        '.xci/config.yml': '',
+      }),
+    );
+    // --log makes both segments' stdout visible in the test result
+    const { stdout, code } = runCliInDir(dir, ['echoarg', 'AAA', '+', 'echoarg', 'BBB', '--log']);
+    expect(code).toBe(0);
+    expect(stdout).toContain('AAA');
+    expect(stdout).toContain('BBB');
+    // AAA must not appear in the echoarg BBB invocation's output
+    // (they run sequentially so output is interleaved: we just check both are present)
+    // The key assertion is that neither segment receives the other's args:
+    // We can infer from the output — if both AAA and BBB appear and neither output contains 'AAA,BBB'
+    // that means they were routed separately.
+    expect(stdout).not.toContain('AAA,BBB');
+    expect(stdout).not.toContain('BBB,AAA');
+  });
+
+  it('unknown alias in chain fails early (exit 50), ok1 does not execute', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': compositionCommands,
+        '.xci/config.yml': '',
+      }),
+    );
+    const markerFile = join(dir, 'ok1-ran.txt');
+    // We can only write a marker if commands.yml has the marker alias
+    // The existing ok1 just exits 0 — we assert only exit code and stderr
+    const { stderr, code } = runCliInDir(dir, ['ok1', '+', 'nope']);
+    expect(code).toBe(50);
+    expect(stderr).toContain('Unknown alias: "nope"');
+    // Since validation is early (before execution), no commands ran
+    // We cannot assert marker from ok1 since ok1 has no side-effect,
+    // but the exit code being 50 (not the alias' exit code) confirms early abort
+  });
+
+  it('--parallel not forwarded to segments: echoarg output does not contain --parallel', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': compositionCommands,
+        '.xci/config.yml': '',
+      }),
+    );
+    const { stdout, code } = runCliInDir(dir, ['--parallel', 'echoarg', '+', 'echoarg', '--log']);
+    expect(code).toBe(0);
+    // Neither echoarg invocation should receive --parallel as an argument
+    expect(stdout).not.toContain('--parallel');
+  });
+
+  it('unknown alias anywhere in chain exits 50 before any execution (with flag-file proof)', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          'writer:',
+          '  cmd: ["node", "-e", "require(\'fs\').writeFileSync(process.env.MARKER, \'x\')"]',
+          '',
+        ].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const markerFile = join(dir, 'writer-ran.txt');
+    const { stderr, code } = runCliInDir(dir, ['writer', '+', 'nonexistent'], { MARKER: markerFile });
+    expect(code).toBe(50);
+    expect(stderr).toContain('Unknown alias: "nonexistent"');
+    // writer must NOT have run — early validation precedes execution
+    expect(existsSync(markerFile)).toBe(false);
+  });
+});
+
+/* ================================================================
  * quick-260421-kbl: breadcrumb step headers in nested sequentials
  * ================================================================ */
 
