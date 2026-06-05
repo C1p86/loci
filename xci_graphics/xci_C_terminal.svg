@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 200">
+  <rect width="520" height="200" rx="22" fill="#15171c"/>
+  <rect x="48" y="40" width="424" height="120" rx="16" fill="#0c0d11" stroke="#2a2e38" stroke-width="2"/>
+  <circle cx="74" cy="66" r="5.5" fill="#ff5f56"/>
+  <circle cx="93" cy="66" r="5.5" fill="#ffbd2e"/>
+  <circle cx="112" cy="66" r="5.5" fill="#27c93f"/>
+  <line x1="48" y1="84" x2="472" y2="84" stroke="#2a2e38" stroke-width="2"/>
+  <!-- prompt line, mono, baseline 134 -->
+  <text x="74" y="134" font-family="DejaVu Sans Mono" font-size="46" font-weight="bold" fill="#e6e8ec"><tspan fill="#27c93f">&#8250; </tspan>x<tspan fill="#27c93f">ci</tspan></text>
+  <!-- cursor block after text with clear gap -->
+  <rect x="226" y="103" width="22" height="34" rx="2" fill="#27c93f"/>
+</svg>

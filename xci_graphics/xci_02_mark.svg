@@ -1,0 +1,21 @@
+<svg viewBox="0 0 480 200" xmlns="http://www.w3.org/2000/svg" font-family="'Inter','Helvetica Neue',Arial,sans-serif">
+  <defs>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="200" rx="24" fill="#ffffff"/>
+  <!-- hexagonal node mark = pipeline node, with a check -->
+  <g transform="translate(92,100)">
+    <path d="M0 -56 L48 -28 L48 28 L0 56 L-48 28 L-48 -28 Z" fill="url(#g2)"/>
+    <!-- pipeline dots -->
+    <circle cx="-20" cy="0" r="6" fill="#ffffff" opacity="0.9"/>
+    <circle cx="2" cy="0" r="6" fill="#ffffff" opacity="0.9"/>
+    <!-- check -->
+    <path d="M-6 4 L4 16 L26 -14" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <!-- wordmark -->
+  <text x="170" y="118" font-size="78" font-weight="800" letter-spacing="-1" fill="#1e1b2e">xci</text>
+  <text x="173" y="150" font-size="15" letter-spacing="4" fill="#8b87a3" font-weight="600">CI / CD PIPELINE</text>
+</svg>
