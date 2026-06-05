@@ -5,7 +5,7 @@
 
 import { tokenize } from '../commands/tokenize.js';
 import { CommandSchemaError, UnknownAliasError } from '../errors.js';
-import type { CommandDef, CommandMap, ExecutionPlan, ResolvedConfig, Resolver, SequentialStep } from '../types.js';
+import type { CommandDef, CommandMap, ExecutionPlan, PromptStepDef, ResolvedConfig, Resolver, SequentialStep } from '../types.js';
 import { interpolateArgv, interpolateArgvLenient } from './interpolate.js';
 import { selectPlatformCmd } from './platform.js';
 
@@ -106,7 +106,11 @@ function resolveToStepsLenient(
     case 'sequential': {
       const allSteps: SequentialStep[] = [];
       for (const step of def.steps) {
-        if (VAR_ASSIGN_RE.test(step)) {
+        if (typeof step === 'object') {
+          // Inline prompt step
+          const p = step as PromptStepDef;
+          allSteps.push({ kind: 'prompt', var: p.var, ...(p.message !== undefined ? { message: p.message } : {}), ...(p.default !== undefined ? { default: p.default } : {}), breadcrumb: [...chain] });
+        } else if (VAR_ASSIGN_RE.test(step)) {
           // Variable assignment step: KEY=VALUE
           const eqIdx = step.indexOf('=');
           const key = step.substring(0, eqIdx);
@@ -251,7 +255,11 @@ function resolveAlias(
       // resolution with captured variables from prior steps.
       const allSteps: SequentialStep[] = [];
       for (const step of def.steps) {
-        if (VAR_ASSIGN_RE.test(step)) {
+        if (typeof step === 'object') {
+          // Inline prompt step
+          const p = step as PromptStepDef;
+          allSteps.push({ kind: 'prompt', var: p.var, ...(p.message !== undefined ? { message: p.message } : {}), ...(p.default !== undefined ? { default: p.default } : {}), breadcrumb: [...chain] });
+        } else if (VAR_ASSIGN_RE.test(step)) {
           const eqIdx = step.indexOf('=');
           const key = step.substring(0, eqIdx);
           const value = step.substring(eqIdx + 1);

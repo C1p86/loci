@@ -34,6 +34,14 @@ export interface ConfigLoader {
 /** Reference to another alias (composition). */
 export type CommandRef = string;
 
+/** Inline prompt step inside a sequential steps array. */
+export interface PromptStepDef {
+  readonly kind: 'prompt';
+  readonly var: string;
+  readonly message?: string;
+  readonly default?: string;
+}
+
 export interface PlatformOverrides {
   readonly linux?: readonly string[];
   readonly windows?: readonly string[];
@@ -69,7 +77,7 @@ export type CommandDef =
     }
   | {
       readonly kind: 'sequential';
-      readonly steps: readonly CommandRef[];
+      readonly steps: readonly (CommandRef | PromptStepDef)[];
       readonly description?: string;
       readonly params?: Readonly<Record<string, ParamDef>>;
       readonly cwd?: string; // working directory — relative to projectRoot, absolute path, or ${placeholder}. Inherited by child aliases when they don't declare their own.
@@ -138,6 +146,13 @@ export type SequentialStep =
       readonly kind: 'set';
       readonly vars: Readonly<Record<string, string>>;   // variable assignments (raw, may contain ${placeholders})
       readonly breadcrumb?: readonly string[];  // path of containing alias names (quick-260421-kbl)
+    }
+  | {
+      readonly kind: 'prompt';
+      readonly var: string;
+      readonly message?: string;
+      readonly default?: string;
+      readonly breadcrumb?: readonly string[];
     };
 
 export type ExecutionPlan =

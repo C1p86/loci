@@ -5,6 +5,7 @@
 import { execSync } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import { isAbsolute, resolve as resolvePath } from 'node:path';
+import { createInterface } from 'node:readline';
 import { execa } from 'execa';
 import { SpawnError } from '../errors.js';
 
@@ -13,7 +14,7 @@ import { interpolateArgv } from '../resolver/interpolate.js';
 import type { ExecutionResult, SequentialStep } from '../types.js';
 import { validateCapture } from './capture.js';
 import { writeIni, deleteIniKeys } from './ini.js';
-import { printCaptureResult, printStepHeader, printStepPreview, printStepResult } from './output.js';
+import { printCaptureResult, printStepHeader, printStepPreview, printStepResult, resetTerminalTitle, setTerminalTitle } from './output.js';
 import { runSingle } from './single.js';
 
 /**
@@ -89,6 +90,20 @@ async function runAndCapture(
 }
 
 /**
+ * Read one line from stdin. Writes prompt message to stderr so it appears
+ * even when stdout is piped. Resolves with the trimmed input.
+ */
+function promptUser(message: string): Promise<string> {
+  return new Promise((resolve) => {
+    const rl = createInterface({ input: process.stdin, output: process.stderr, terminal: true });
+    rl.question(`  ${message} `, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
+}
+
+/**
  * Run a sequence of steps in order.
  * Steps with `capture` pipe stdout into a variable available to subsequent steps.
  * Validates captured values against type and assertions if configured.
@@ -117,10 +132,12 @@ export async function runSequential(
     // that is rendered in step headers / results.
     const leafLabel = step.kind === 'ini' ? `ini:${step.mode}`
       : step.kind === 'set' ? 'set'
+      : step.kind === 'prompt' ? `prompt:${step.var}`
       : (step.label ?? step.argv[0] ?? '(unknown)');
     const displayLabel = step.breadcrumb && step.breadcrumb.length > 0
       ? step.breadcrumb.join(' > ')
       : leafLabel;
+    const alias = step.breadcrumb?.[0] ?? displayLabel;
 
     // Check if this is the --from target (match against leaf OR full path)
     if (skipping && (leafLabel === fromStep || displayLabel === fromStep)) {
@@ -136,6 +153,7 @@ export async function runSequential(
 
     // Handle variable assignment steps
     if (step.kind === 'set') {
+      setTerminalTitle(`xci: ${alias} [${stepNum}/${totalSteps}] (set)`);
       printStepHeader(displayLabel, stepNum, totalSteps);
       const mergedValues = { ...env, ...capturedVars };
       for (const [key, rawValue] of Object.entries(step.vars)) {
@@ -154,8 +172,41 @@ export async function runSequential(
       continue;
     }
 
+    // Handle prompt steps — pause and read user input from stdin
+    if (step.kind === 'prompt') {
+      setTerminalTitle(`xci: ${alias} [${stepNum}/${totalSteps}] (prompt)`);
+      printStepHeader(displayLabel, stepNum, totalSteps);
+
+      let value: string;
+      if (!process.stdin.isTTY) {
+        if (step.default !== undefined) {
+          value = step.default;
+          process.stderr.write(`  (non-interactive) using default: ${value}\n`);
+        } else {
+          process.stderr.write(`  error: prompt requires user input but stdin is not a TTY and no default is set\n`);
+          printStepResult(displayLabel, 1, 0);
+          resetTerminalTitle();
+          return { exitCode: 1 };
+        }
+      } else {
+        const message = step.message ?? `Enter value for ${step.var}:`;
+        value = await promptUser(message);
+        if (value === '' && step.default !== undefined) {
+          value = step.default;
+        }
+      }
+
+      capturedVars[step.var] = value;
+      const envKey = step.var.toUpperCase().replace(/[.\-]/g, '_');
+      capturedVars[envKey] = value;
+      process.stderr.write(`  ${step.var}=${value}\n`);
+      printStepResult(displayLabel, 0, 0);
+      continue;
+    }
+
     // Handle ini steps inline
     if (step.kind === 'ini') {
+      setTerminalTitle(`xci: ${alias} [${stepNum}/${totalSteps}] (ini)`);
       printStepHeader(displayLabel, stepNum, totalSteps);
       const startTime = Date.now();
       // quick-260421-g99: resolve file relative to step.cwd ?? default cwd.
@@ -190,6 +241,7 @@ export async function runSequential(
       } catch (err) {
         process.stderr.write(`  error: ${(err as Error).message}\n`);
         printStepResult(displayLabel, 1, Date.now() - startTime);
+        resetTerminalTitle();
         return { exitCode: 1 };
       }
       continue;
@@ -207,6 +259,9 @@ export async function runSequential(
     const stepSpawnCwd = step.cwd ?? cwd;
 
     const stepCmd = displayLabel;
+    const rawCmd = finalArgv.join(' ');
+    const shortCmd = rawCmd.length > 60 ? `${rawCmd.slice(0, 57)}…` : rawCmd;
+    setTerminalTitle(`xci: ${alias} [${stepNum}/${totalSteps}] ${shortCmd}`);
     printStepHeader(stepCmd, stepNum, totalSteps);
     printStepPreview(step.rawArgv, finalArgv, undefined, {
       verbose: env['XCI_VERBOSE'] === '1',
@@ -226,6 +281,7 @@ export async function runSequential(
 
       if (result.exitCode !== 0) {
         printStepResult(stepCmd, result.exitCode, elapsed);
+        resetTerminalTitle();
         return { exitCode: result.exitCode };
       }
 
@@ -241,6 +297,7 @@ export async function runSequential(
 
       if (!validation.valid) {
         printStepResult(stepCmd, 1, elapsed);
+        resetTerminalTitle();
         return { exitCode: 1 };
       }
 
@@ -256,9 +313,11 @@ export async function runSequential(
       printStepResult(stepCmd, result.exitCode, elapsed);
 
       if (result.exitCode !== 0) {
+        resetTerminalTitle();
         return result;
       }
     }
   }
+  resetTerminalTitle();
   return { exitCode: 0 };
 }

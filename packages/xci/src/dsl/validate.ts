@@ -49,7 +49,7 @@ function collectExplicitRefs(def: CommandDef): readonly string[] {
   // Mirror getAliasRefs in commands/validate.ts but return ALL candidate names
   // (including unknowns — the whole point of this helper).
   if (def.kind === 'sequential') {
-    return def.steps;
+    return def.steps.filter((s): s is string => typeof s === 'string');
   }
   if (def.kind === 'parallel') {
     return def.group;

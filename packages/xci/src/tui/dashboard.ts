@@ -218,7 +218,7 @@ function buildEntries(plan: ExecutionPlan): CommandEntry[] {
       return [{ label: plan.argv[0] ?? '(cmd)', status: 'pending' }];
     case 'sequential':
       return plan.steps.map((step) => ({
-        label: step.kind === 'ini' ? `ini:${step.mode}` : step.kind === 'set' ? 'set' : (step.label ?? step.argv[0] ?? '(step)'),
+        label: step.kind === 'ini' ? `ini:${step.mode}` : step.kind === 'set' ? 'set' : step.kind === 'prompt' ? `prompt:${step.var}` : (step.label ?? step.argv[0] ?? '(step)'),
         status: 'pending' as CommandStatus,
       }));
     case 'parallel':
@@ -333,6 +333,31 @@ async function execSequential(
       }
       updateCommand(i, 'success');
       flushRender();
+      continue;
+    }
+
+    // Handle prompt steps — TUI mode uses default or fails (no interactive readline in TUI)
+    if (step.kind === 'prompt') {
+      updateCommand(i, 'running');
+      appendLog(`-- step ${i + 1}/${plan.steps.length}: prompt:${step.var} --`);
+      flushRender();
+      if (step.default !== undefined) {
+        const value = step.default;
+        capturedVars[step.var] = value;
+        const envKey = step.var.toUpperCase().replace(/[.\-]/g, '_');
+        capturedVars[envKey] = value;
+        appendLog(`  (non-interactive) using default: ${value}`);
+        updateCommand(i, 'success');
+        flushRender();
+      } else {
+        appendLog(`  error: prompt step requires a default value in non-interactive (TUI) mode`);
+        updateCommand(i, 'failed', 1);
+        for (let j = i + 1; j < plan.steps.length; j++) {
+          updateCommand(j, 'skipped');
+        }
+        flushRender();
+        return { exitCode: 1 };
+      }
       continue;
     }
 

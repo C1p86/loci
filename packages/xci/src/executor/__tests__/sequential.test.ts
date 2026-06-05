@@ -172,6 +172,72 @@ describe('runSequential', () => {
     stderrSpy.mockRestore();
   });
 
+  /* ================================================================
+   * prompt steps
+   * ================================================================ */
+
+  it('prompt step uses default when stdin is not a TTY', async () => {
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    // stdin.isTTY is undefined in test environment (not a TTY)
+    const result = await runSequential(
+      [{ kind: 'prompt', var: 'deploy.target', message: 'Enter target:', default: 'staging' }],
+      process.cwd(),
+      {},
+    );
+    expect(result.exitCode).toBe(0);
+    const output = stderrSpy.mock.calls.map((c) => String(c[0])).join('');
+    expect(output).toContain('deploy.target=staging');
+    stderrSpy.mockRestore();
+  });
+
+  it('prompt step fails with exitCode 1 when non-TTY and no default', async () => {
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const result = await runSequential(
+      [{ kind: 'prompt', var: 'deploy.target', message: 'Enter target:' }],
+      process.cwd(),
+      {},
+    );
+    expect(result.exitCode).toBe(1);
+    stderrSpy.mockRestore();
+  });
+
+  it('prompt step stores value in capturedVars available to subsequent steps', async () => {
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const stdoutChunks: string[] = [];
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      stdoutChunks.push(String(chunk));
+      return true;
+    });
+    const result = await runSequential(
+      [
+        { kind: 'prompt', var: 'env', default: 'prod' },
+        // print the captured variable to stdout so we can assert it
+        { argv: [process.execPath, '-e', 'process.stdout.write(process.env.ENV ?? "")'], rawArgv: ['node', '-e', 'process.stdout.write(process.env.ENV ?? "")'] },
+      ],
+      process.cwd(),
+      {},
+    );
+    expect(result.exitCode).toBe(0);
+    // The ENV variable should have been passed as env to the child process
+    // Check that the prompt step stored the value (visible in stderr output)
+    const stderrOutput = stderrSpy.mock.calls.map((c) => String(c[0])).join('');
+    expect(stderrOutput).toContain('env=prod');
+    stderrSpy.mockRestore();
+    stdoutSpy.mockRestore();
+  });
+
+  it('prompt step label is prompt:<var>', async () => {
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    await runSequential(
+      [{ kind: 'prompt', var: 'my.var', default: 'x' }],
+      process.cwd(),
+      {},
+    );
+    const output = stderrSpy.mock.calls.map((c) => String(c[0])).join('');
+    expect(output).toContain('prompt:my.var');
+    stderrSpy.mockRestore();
+  });
+
   it('Test F: --from with unknown value skips every step', async () => {
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     const steps = [

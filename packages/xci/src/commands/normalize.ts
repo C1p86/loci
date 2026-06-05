@@ -4,7 +4,7 @@
 // Converts the flexible user-facing YAML shapes into the strict CommandDef union.
 
 import { CommandSchemaError } from '../errors.js';
-import type { CaptureConfig, CaptureType, CommandDef, CommandMap, ParamDef, PlatformOverrides } from '../types.js';
+import type { CaptureConfig, CaptureType, CommandDef, CommandMap, ParamDef, PlatformOverrides, PromptStepDef } from '../types.js';
 import { tokenize } from './tokenize.js';
 
 /**
@@ -284,7 +284,38 @@ function normalizeObject(
 
   // Check for steps (sequential)
   if (Object.hasOwn(obj, 'steps')) {
-    const steps = validateStringArray(aliasName, obj.steps, 'steps');
+    const rawSteps = obj.steps;
+    if (!Array.isArray(rawSteps)) {
+      throw new CommandSchemaError(aliasName, 'steps must be an array');
+    }
+    const steps: (string | PromptStepDef)[] = [];
+    for (const item of rawSteps) {
+      if (typeof item === 'string') {
+        steps.push(item);
+      } else if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+        const stepObj = item as Record<string, unknown>;
+        if (stepObj.kind !== 'prompt') {
+          throw new CommandSchemaError(aliasName, `inline step objects must have kind: "prompt", got "${String(stepObj.kind)}"`);
+        }
+        if (typeof stepObj.var !== 'string' || stepObj.var.length === 0) {
+          throw new CommandSchemaError(aliasName, 'prompt step must have a non-empty "var" string');
+        }
+        if (stepObj.message !== undefined && typeof stepObj.message !== 'string') {
+          throw new CommandSchemaError(aliasName, 'prompt step "message" must be a string');
+        }
+        if (stepObj.default !== undefined && typeof stepObj.default !== 'string') {
+          throw new CommandSchemaError(aliasName, 'prompt step "default" must be a string');
+        }
+        steps.push({
+          kind: 'prompt',
+          var: stepObj.var,
+          ...(stepObj.message !== undefined ? { message: stepObj.message as string } : {}),
+          ...(stepObj.default !== undefined ? { default: stepObj.default as string } : {}),
+        });
+      } else {
+        throw new CommandSchemaError(aliasName, `steps must contain strings or prompt objects, got ${item === null ? 'null' : typeof item}`);
+      }
+    }
     const description = typeof obj.description === 'string' ? obj.description : undefined;
     const params = normalizeParams(aliasName, obj.params);
     const cwd = parseCwd(aliasName, obj);

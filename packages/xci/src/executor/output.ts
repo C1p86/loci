@@ -107,6 +107,27 @@ export function dimPrefix(label: string): string {
 }
 
 /* ------------------------------------------------------------------ */
+/* Terminal title                                                        */
+/* ------------------------------------------------------------------ */
+
+export function setTerminalTitle(title: string): void {
+  if (process.stderr.isTTY) {
+    process.stderr.write(`\x1b]0;${title}\x07`);
+  }
+}
+
+export function resetTerminalTitle(): void {
+  if (process.stderr.isTTY) {
+    process.stderr.write(`\x1b]0;\x07`);
+  }
+}
+
+export function beepCompletion(exitCode: number): void {
+  if (process.env['XCI_BEEP'] !== '1' || !process.stderr.isTTY) return;
+  process.stderr.write(exitCode === 0 ? '\x07' : '\x07\x07\x07');
+}
+
+/* ------------------------------------------------------------------ */
 /* Step header (D-08)                                                   */
 /* ------------------------------------------------------------------ */
 
@@ -288,6 +309,10 @@ export function printRunHeader(
         } else if (step.kind === 'set') {
           const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(', ');
           process.stderr.write(`  ${i + 1}. set ${assignments}\n`);
+        } else if (step.kind === 'prompt') {
+          const defaultStr = step.default !== undefined ? ` [default: ${step.default}]` : '';
+          const msg = step.message ? ` "${step.message}"` : '';
+          process.stderr.write(`  ${i + 1}. prompt → ${step.var}${msg}${defaultStr}\n`);
         } else {
           const redacted = redactArgv(step.argv, secretValues);
           const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
@@ -421,6 +446,10 @@ export function printDryRun(
           } else if (step.kind === 'set') {
             const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(', ');
             process.stderr.write(`${prefix}   ${i + 1}. set ${assignments}\n`);
+          } else if (step.kind === 'prompt') {
+            const defaultStr = step.default !== undefined ? ` [default: ${step.default}]` : '';
+            const msg = step.message ? ` "${step.message}"` : '';
+            process.stderr.write(`${prefix}   ${i + 1}. prompt → ${step.var}${msg}${defaultStr}\n`);
           } else {
             const redacted = redactArgv(step.argv, secretValues);
             const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
@@ -561,6 +590,10 @@ export function printVerboseCommand(
           } else if (step.kind === 'set') {
             const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(', ');
             process.stderr.write(`${prefix}   ${i + 1}. set ${assignments}\n`);
+          } else if (step.kind === 'prompt') {
+            const defaultStr = step.default !== undefined ? ` [default: ${step.default}]` : '';
+            const msg = step.message ? ` "${step.message}"` : '';
+            process.stderr.write(`${prefix}   ${i + 1}. prompt → ${step.var}${msg}${defaultStr}\n`);
           } else {
             const redacted = redactArgv(step.argv, secretValues);
             const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
