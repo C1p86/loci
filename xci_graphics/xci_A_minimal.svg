@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 200">
-  <rect width="520" height="200" rx="22" fill="#0d1311"/>
-  <!-- wordmark on a real baseline (no descenders in xci). size 115 -> char 69.2, w=207.7, start=156 -->
-  <text x="156" y="132" font-family="DejaVu Sans Mono" font-size="115" font-weight="bold"
-        fill="#e8efe9">x<tspan fill="#21c45d">ci</tspan></text>
-  <!-- accent bar sits in the clear gap below the letters -->
-  <rect x="156" y="150" width="208" height="6" rx="3" fill="#21c45d"/>
-  <text x="158" y="180" font-family="DejaVu Sans Mono" font-size="13" letter-spacing="6.5" fill="#5d7a6b">CONTINUOUS INTEGRATION</text>
-</svg>
