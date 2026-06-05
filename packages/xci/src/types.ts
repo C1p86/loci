@@ -116,7 +116,7 @@ export type CommandDef =
 export type CommandMap = ReadonlyMap<string, CommandDef>;
 
 export interface CommandsLoader {
-  load(cwd: string): Promise<CommandMap>;
+  load(cwd: string, builtinCommandsDir?: string): Promise<CommandMap>;
 }
 
 /* ------------------------------------------------------------

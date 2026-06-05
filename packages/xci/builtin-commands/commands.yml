@@ -1,0 +1,10 @@
+# builtin-commands/commands.yml
+# Commands bundled with xci — available system-wide regardless of project directory.
+
+__prompt-test:
+  kind: sequential
+  description: Test notifyWaitingForInput on prompt step
+  steps:
+    - kind: prompt
+      var: answer
+      message: "Type something to test prompt notification:"

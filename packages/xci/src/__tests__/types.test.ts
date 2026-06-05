@@ -69,7 +69,7 @@ describe('types.ts — pipeline contracts', () => {
   });
 
   it('CommandsLoader and Resolver interfaces exist and have the expected shape', () => {
-    expectTypeOf<CommandsLoader['load']>().parameters.toEqualTypeOf<[string]>();
+    expectTypeOf<CommandsLoader['load']>().parameters.toEqualTypeOf<[string, (string | undefined)?]>();
     expectTypeOf<Resolver['resolve']>().parameters.toEqualTypeOf<
       [string, CommandMap, ResolvedConfig]
     >();

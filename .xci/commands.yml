@@ -4,12 +4,3 @@
 hello:
   description: Say hello — run with `loci hello`
   cmd: ["node", "-e", "console.log('hello from loci')"]
-
-__prompt-test:
-  kind: sequential
-  description: Test notifyWaitingForInput on prompt step
-  steps:
-    - kind: prompt
-      var: answer
-      message: "Type something to test prompt notification:"
-    - hello

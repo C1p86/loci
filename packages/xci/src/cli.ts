@@ -1,6 +1,8 @@
 // src/cli.ts
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { ReadStream } from 'node:tty';
 import { Command } from 'commander';
 import { configLoader, resolveMachineConfigDir } from './config/index.js';
@@ -19,6 +21,10 @@ import { isTTY, showPicker, runWithDashboard, type DashboardContext } from './tu
 
 // Re-export CliError for backward-compat with existing tests
 export { CliError };
+
+// Builtin commands directory: sibling of dist/ in the installed package.
+// In the bundle (dist/cli.mjs) this resolves to <package-root>/builtin-commands/.
+const BUILTIN_COMMANDS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'builtin-commands');
 
 /* ------------------------------------------------------------------ */
 /* Log file setup                                                       */
@@ -707,7 +713,7 @@ async function handleGetCompletions(argv: readonly string[]): Promise<string[]> 
   try {
     [config, commands] = await Promise.all([
       configLoader.load(projectRoot),
-      commandsLoader.load(projectRoot),
+      commandsLoader.load(projectRoot, BUILTIN_COMMANDS_DIR),
     ]);
   } catch {
     return completions;
@@ -929,11 +935,27 @@ async function main(argv: readonly string[]): Promise<number> {
       process.stderr.write('Restart PowerShell to apply.\n');
     });
 
-  // D-18: walk-up discovery
-  const projectRoot = findXciRoot(process.cwd());
+  // D-18: walk-up discovery.
+  // If the nearest .xci/ is the home machine-config dir, don't treat it as a project root.
+  const rawProjectRoot = findXciRoot(process.cwd());
+  const projectRoot = rawProjectRoot === homedir() ? null : rawProjectRoot;
+  const effectiveRoot = projectRoot ?? process.cwd();
 
   if (projectRoot === null) {
-    // D-19: no .xci/ found — --version, --help, --list, and init still work
+    // D-19: no project .xci/ found.
+    // Builtin commands (bundled with xci) are still available system-wide.
+    const emptyConfig: ResolvedConfig = {
+      values: Object.freeze({}),
+      provenance: Object.freeze({}),
+      secretKeys: Object.freeze(new Set<string>()),
+    };
+    try {
+      const builtins = await commandsLoader.load(effectiveRoot, BUILTIN_COMMANDS_DIR);
+      if (builtins.size > 0) {
+        registerAliases(program, builtins, emptyConfig, effectiveRoot);
+      }
+    } catch { /* builtin load errors must not block --help/--version/init */ }
+
     let helpOrVersionDisplayed = false;
     let subcommandRan = false;
     program.action(() => {
@@ -958,8 +980,8 @@ async function main(argv: readonly string[]): Promise<number> {
         return handleError(err, program);
       }
     }
-    // Exit 0 when --help/--version shown or a subcommand (init, agent-emit-perforce-trigger) ran.
-    // Honour process.exitCode if a subcommand's action set it non-zero (e.g. invalid token error).
+    // Exit 0 when --help/--version shown or a subcommand (init, builtin alias, etc.) ran.
+    // Honour process.exitCode if a subcommand's action set it non-zero.
     if (helpOrVersionDisplayed || subcommandRan) {
       return process.exitCode ? Number(process.exitCode) : 0;
     }
@@ -978,7 +1000,7 @@ async function main(argv: readonly string[]): Promise<number> {
   try {
     [config, commands] = await Promise.all([
       configLoader.load(projectRoot),
-      commandsLoader.load(projectRoot),
+      commandsLoader.load(projectRoot, BUILTIN_COMMANDS_DIR),
     ]);
   } catch (err) {
     if (err instanceof XciError) {

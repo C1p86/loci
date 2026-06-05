@@ -148,7 +148,7 @@ function loadCommandsFromDir(baseDir: string): Map<string, CommandDef> {
 // ---------------------------------------------------------------------------
 
 export const commandsLoader: CommandsLoader = {
-  async load(cwd: string): Promise<CommandMap> {
+  async load(cwd: string, builtinCommandsDir?: string): Promise<CommandMap> {
     const { dir: machineDir } = resolveMachineConfigDir(); // throws on invalid env
     const projectDir = join(cwd, '.xci');
 
@@ -163,10 +163,15 @@ export const commandsLoader: CommandsLoader = {
       }
     } catch { /* ignore */ }
 
-    // Start with machine commands from root (lower priority)
-    const commands: Map<string, CommandDef> = machineDir
-      ? loadCommandsFromDir(machineDir)
+    // Start with builtin commands (lowest priority — always available system-wide)
+    const commands: Map<string, CommandDef> = builtinCommandsDir
+      ? loadCommandsFromDir(builtinCommandsDir)
       : new Map();
+
+    // Merge machine commands (override builtins on duplicates)
+    if (machineDir) {
+      mergeCommandsSilent(commands, loadCommandsFromDir(machineDir));
+    }
 
     // Merge machine project-specific commands (override root on duplicates)
     if (machineDir && projectName) {
