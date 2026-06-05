@@ -127,6 +127,20 @@ export function beepCompletion(exitCode: number): void {
   process.stderr.write(exitCode === 0 ? '\x07' : '\x07\x07\x07');
 }
 
+export async function notifyCompletion(exitCode: number): Promise<void> {
+  if (process.env['XCI_NOTIFY'] !== '1') return;
+  const message = exitCode === 0
+    ? 'xci: completato ✓'
+    : `xci: errore (exit ${exitCode})`;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod = await import('node-notifier' as string) as { default: { notify(opts: { title: string; message: string }): void } };
+    mod.default.notify({ title: 'xci', message });
+  } catch {
+    // node-notifier unavailable or OS unsupported — silent fallback
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Step header (D-08)                                                   */
 /* ------------------------------------------------------------------ */
