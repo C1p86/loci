@@ -220,6 +220,48 @@ So you always know which outer alias the current step belongs to. The
 `--from` flag accepts either the leaf name (`compile`) or the full path
 (`release > build > compile`) for resuming mid-sequence.
 
+### Prompt: Interactive Input in a Pipeline
+
+Use `kind: prompt` as an inline step in a sequential pipeline to pause execution and read a value from the user. The value is stored as a variable available to all subsequent steps.
+
+```yaml
+deploy:
+  description: Interactive deploy pipeline
+  steps:
+    - build
+    - kind: prompt
+      var: deploy.target
+      message: "Target environment:"
+      default: staging
+    - deploy-to-env
+
+deploy-to-env:
+  cmd: ["kubectl", "apply", "--context", "${deploy.target}", "-f", "k8s/"]
+```
+
+Fields:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `kind` | yes | Must be `"prompt"` |
+| `var` | yes | Variable name to store the input (dot-notation supported) |
+| `message` | no | Prompt message displayed to the user |
+| `default` | no | Value used when the user presses Enter without typing, or in non-interactive mode |
+
+The captured value is stored under both the original name (`deploy.target`) and its UPPER_UNDERSCORE equivalent (`DEPLOY_TARGET`) for use in child process env vars.
+
+**Non-interactive / CI mode:** when stdin is not a TTY (e.g. in CI pipelines), the `default` value is used automatically. If no `default` is set and stdin is not a TTY, the step fails with exit code 1 — the pipeline never hangs.
+
+**`--dry-run`:** the prompt step is displayed in the steps preview but no input is requested.
+
+```
+▶ running: deploy
+steps:
+  1. build
+  2. prompt → deploy.target "Target environment:" [default: staging]
+  3. deploy-to-env
+```
+
 ### Parallel Group
 
 Runs commands concurrently. Default `failMode: fast` kills remaining on first failure.
