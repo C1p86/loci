@@ -122,13 +122,7 @@ export function resetTerminalTitle(): void {
   }
 }
 
-export function beepCompletion(exitCode: number): void {
-  if (process.env['XCI_BEEP'] !== '1' || !process.stderr.isTTY) return;
-  process.stderr.write(exitCode === 0 ? '\x07' : '\x07\x07\x07');
-}
-
 export async function notifyCompletion(exitCode: number): Promise<void> {
-  if (process.env['XCI_NOTIFY'] !== '1') return;
   const message = exitCode === 0 ? 'xci: completato' : `xci: errore (exit ${exitCode})`;
   try {
     if (process.platform === 'win32') {
@@ -157,6 +151,7 @@ export async function notifyCompletion(exitCode: number): Promise<void> {
     // notification unavailable — silent fallback
   }
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Step header (D-08)                                                   */
