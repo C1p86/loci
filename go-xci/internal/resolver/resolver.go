@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"runtime"
 
-	"github.com/andrearuggeri/go-xci/internal/commands"
-	"github.com/andrearuggeri/go-xci/internal/config"
+	"github.com/andrearuggeri/xci/internal/commands"
+	"github.com/andrearuggeri/xci/internal/config"
 )
 
 // VAR_ASSIGN_RE matches KEY=VALUE steps in sequential definitions.

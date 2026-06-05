@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/andrearuggeri/go-xci/internal/commands"
-	"github.com/andrearuggeri/go-xci/internal/config"
-	"github.com/andrearuggeri/go-xci/internal/discovery"
+	"github.com/andrearuggeri/xci/internal/commands"
+	"github.com/andrearuggeri/xci/internal/config"
+	"github.com/andrearuggeri/xci/internal/discovery"
 )
 
 // Execute builds the root command, executes it, and returns the exit code.

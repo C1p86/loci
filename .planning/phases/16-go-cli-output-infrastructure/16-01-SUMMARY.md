@@ -108,6 +108,14 @@ None — no external service configuration required.
 - `go build ./...` passes — whole module builds without modification to call sites
 - Phase 17 can use `PrintStepCwd` directly for GOCLI-10 cwd display
 
+## Self-Check: PASSED
+
+- FOUND: go-xci/internal/output/output.go
+- FOUND: go-xci/internal/output/output_test.go
+- FOUND: go-xci/go.mod (with fatih/color v1.19.0)
+- FOUND: .planning/phases/16-go-cli-output-infrastructure/16-01-SUMMARY.md
+- Commits verified: 488da90, 7c5e720, 6fca7ec, b9f3011
+
 ---
 *Phase: 16-go-cli-output-infrastructure*
 *Completed: 2026-06-01*

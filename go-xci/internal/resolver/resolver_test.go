@@ -4,8 +4,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/andrearuggeri/go-xci/internal/commands"
-	"github.com/andrearuggeri/go-xci/internal/config"
+	"github.com/andrearuggeri/xci/internal/commands"
+	"github.com/andrearuggeri/xci/internal/config"
 )
 
 // makeConfig is a test helper to build a ResolvedConfig from a map.

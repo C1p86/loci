@@ -1,8 +1,8 @@
 package executor
 
 import (
-	"github.com/andrearuggeri/go-xci/internal/commands"
-	"github.com/andrearuggeri/go-xci/internal/resolver"
+	"github.com/andrearuggeri/xci/internal/commands"
+	"github.com/andrearuggeri/xci/internal/resolver"
 )
 
 // Run dispatches a resolved Plan to the appropriate executor.

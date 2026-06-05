@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/andrearuggeri/go-xci/cmd"
+	"github.com/andrearuggeri/xci/cmd"
 )
 
 func main() {
