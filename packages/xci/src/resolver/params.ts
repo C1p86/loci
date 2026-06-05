@@ -164,7 +164,10 @@ function collectAll(
     case 'sequential':
       // Steps that are inline commands (not alias refs) have placeholders
       for (const step of def.steps) {
-        if (VAR_ASSIGN_RE.test(step)) {
+        if (typeof step === 'object') {
+          // Prompt step: var is runtime-provided, no placeholders to scan here
+          continue;
+        } else if (VAR_ASSIGN_RE.test(step)) {
           // Variable assignment: KEY=VALUE — track placeholders in the value
           const eqIdx = step.indexOf('=');
           const value = step.substring(eqIdx + 1);
@@ -236,7 +239,13 @@ function collectCapturedVars(
 
   if (def.kind === 'sequential') {
     for (const step of def.steps) {
-      if (VAR_ASSIGN_RE.test(step)) {
+      if (typeof step === 'object') {
+        // Prompt step: var will be provided at runtime — treat as captured
+        if (step.kind === 'prompt') {
+          captured.add(step.var);
+          captured.add(step.var.toUpperCase().replace(/[.\-]/g, '_'));
+        }
+      } else if (VAR_ASSIGN_RE.test(step)) {
         const key = step.substring(0, step.indexOf('='));
         captured.add(key);
         captured.add(key.toUpperCase().replace(/[.\-]/g, '_'));
@@ -417,7 +426,7 @@ function collectLoopVars(
     }
   } else if (def.kind === 'sequential') {
     for (const step of def.steps) {
-      if (commands.has(step)) collectLoopVars(step, commands, loopVars, depth + 1);
+      if (typeof step === 'string' && commands.has(step)) collectLoopVars(step, commands, loopVars, depth + 1);
     }
   } else if (def.kind === 'parallel') {
     for (const entry of def.group) {
