@@ -122,11 +122,6 @@ export function resetTerminalTitle(): void {
   }
 }
 
-export function beepCompletion(exitCode: number): void {
-  if (process.env['XCI_BEEP'] !== '1' || !process.stderr.isTTY) return;
-  process.stderr.write(exitCode === 0 ? '\x07' : '\x07\x07\x07');
-}
-
 /* ------------------------------------------------------------------ */
 /* Step header (D-08)                                                   */
 /* ------------------------------------------------------------------ */

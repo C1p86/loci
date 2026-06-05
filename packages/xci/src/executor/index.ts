@@ -6,7 +6,7 @@ import { isAbsolute, resolve as resolvePath } from 'node:path';
 import type { ExecutionPlan, ExecutionResult, Executor, ExecutorOptions } from '../types.js';
 import { validateCapture } from './capture.js';
 import { writeIni, deleteIniKeys } from './ini.js';
-import { beepCompletion, printCaptureResult, printStepHeader, printStepPreview, printStepResult, resetTerminalTitle, setTerminalTitle } from './output.js';
+import { printCaptureResult, printStepHeader, printStepPreview, printStepResult, resetTerminalTitle, setTerminalTitle } from './output.js';
 import { runParallel } from './parallel.js';
 import { runSequential } from './sequential.js';
 import { runSingle, runSingleCapture } from './single.js';
@@ -106,7 +106,6 @@ export const executor: Executor = {
       }
     })();
 
-    beepCompletion(result.exitCode);
     return result;
   },
 };
