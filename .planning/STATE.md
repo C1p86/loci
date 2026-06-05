@@ -143,9 +143,10 @@ None
 | 260605-n67 | Fix all TypeScript compilation errors in packages/xci (zero tsc errors) | 2026-06-05 | 7ba2dad | [260605-n67-fix-all-typescript-compilation-errors-in](./quick/260605-n67-fix-all-typescript-compilation-errors-in/) |
 | 260605-of7 | Notify waiting for input on prompt step | 2026-06-05 | 8d41580 | [260605-of7-notify-waiting-for-input-on-prompt-step](./quick/260605-of7-notify-waiting-for-input-on-prompt-step/) |
 | 260605-pg5 | Fix CTRL+C exit code 130 handling — skip toast and askShowLog on SIGINT | 2026-06-05 | f8f744e | [260605-pg5-fix-ctrl-c-exit-code-130-handling-skip-t](./quick/260605-pg5-fix-ctrl-c-exit-code-130-handling-skip-t/) |
+| 260605-q1f | Add CLI-level multi-alias + composition (sequential and --parallel) | 2026-06-05 | 42448ae | [260605-q1f-add-cli-level-multi-alias-composition-wi](./quick/260605-q1f-add-cli-level-multi-alias-composition-wi/) |
 
 ## Session Continuity
 
 Last session: 2026-06-05
-Stopped at: Completed quick task 260605-pg5 — SIGINT exit 130 abort UX fix
+Stopped at: Completed quick task 260605-q1f — multi-alias + composition
 Resume: Phase 16 — Go CLI Output Infrastructure (`/gsd:plan-phase 16`)
