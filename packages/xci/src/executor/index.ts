@@ -106,7 +106,11 @@ export const executor: Executor = {
       }
     })();
 
-    await notifyCompletion(result.exitCode, options.projectName, options.alias);
+    // exit 130 = SIGINT (CTRL+C): user intentionally aborted. Do NOT fire a
+    // completion toast — there is nothing to notify about a deliberate abort.
+    if (result.exitCode !== 130) {
+      await notifyCompletion(result.exitCode, options.projectName, options.alias);
+    }
     return result;
   },
 };
