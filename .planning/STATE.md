@@ -140,9 +140,10 @@ None
 | 260605-mgy | Add cross-platform OS desktop notifications on xci completion via XCI_NOTIFY=1 | 2026-06-05 | c09d306 | [260605-mgy-aggiungere-notifiche-di-sistema-windows-](./quick/260605-mgy-aggiungere-notifiche-di-sistema-windows-/) |
 | 260605-mvt | Remove beepCompletion/XCI_BEEP, make OS notification always-on | 2026-06-05 | 387483a | [260605-mvt-rimuovere-beepcompletion-e-xci-beep-rend](./quick/260605-mvt-rimuovere-beepcompletion-e-xci-beep-rend/) |
 | 260605-n67 | Fix all TypeScript compilation errors in packages/xci (zero tsc errors) | 2026-06-05 | 7ba2dad | [260605-n67-fix-all-typescript-compilation-errors-in](./quick/260605-n67-fix-all-typescript-compilation-errors-in/) |
+| 260605-of7 | Notify waiting for input on prompt step | 2026-06-05 | 8d41580 | [260605-of7-notify-waiting-for-input-on-prompt-step](./quick/260605-of7-notify-waiting-for-input-on-prompt-step/) |
 
 ## Session Continuity
 
 Last session: 2026-06-05
-Stopped at: Completed quick task 260605-n67 — zero tsc errors
+Stopped at: Completed quick task 260605-of7 — notify waiting for input on prompt step
 Resume: Phase 16 — Go CLI Output Infrastructure (`/gsd:plan-phase 16`)
