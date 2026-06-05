@@ -12,7 +12,7 @@ import { SpawnError } from '../errors.js';
 const IS_WINDOWS = process.platform === 'win32';
 import { interpolateArgv } from '../resolver/interpolate.js';
 import type { ExecutionResult, SequentialStep } from '../types.js';
-import { validateCapture } from './capture.js';
+import { extractFromOutput, validateCapture } from './capture.js';
 import { writeIni, deleteIniKeys } from './ini.js';
 import { notifyWaitingForInput, printCaptureResult, printStepHeader, printStepPreview, printStepResult, resetTerminalTitle, setTerminalTitle } from './output.js';
 import { runSingle } from './single.js';
@@ -292,8 +292,8 @@ export async function runSequential(
         process.stdout.write(result.stdout + '\n');
       }
 
-      // Validate captured value
-      const validation = validateCapture(result.stdout, cap);
+      // Validate captured value (apply regex extraction first if configured)
+      const validation = validateCapture(extractFromOutput(result.stdout, cap), cap);
       const isVerbose = stepEnv['XCI_VERBOSE'] === '1';
       printCaptureResult(cap, validation, isVerbose);
 

@@ -431,10 +431,21 @@ function normalizeObject(
           throw new CommandSchemaError(aliasName, 'capture.assert must be a string or array of strings');
         }
       }
+      let regex: string | undefined;
+      if (captureObj.regex !== undefined) {
+        if (typeof captureObj.regex !== 'string') {
+          throw new CommandSchemaError(aliasName, 'capture.regex must be a string');
+        }
+        try { new RegExp(captureObj.regex); } catch {
+          throw new CommandSchemaError(aliasName, `capture.regex is not a valid regular expression: ${captureObj.regex}`);
+        }
+        regex = captureObj.regex;
+      }
       capture = {
         var: captureObj.var,
         ...(captureType !== undefined ? { type: captureType } : {}),
         ...(assert !== undefined ? { assert } : {}),
+        ...(regex !== undefined ? { regex } : {}),
       };
     } else {
       throw new CommandSchemaError(aliasName, 'capture must be a string or object with { var, type?, assert? }');

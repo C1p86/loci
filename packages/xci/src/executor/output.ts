@@ -761,6 +761,9 @@ export function printCaptureResult(
 
   if (verbose) {
     process.stderr.write(`${dim}  │${reset} type:  ${cap.type ?? 'string'}\n`);
+    if (cap.regex) {
+      process.stderr.write(`${dim}  │${reset} regex: ${cap.regex}\n`);
+    }
     if (cap.assert) {
       const asserts = typeof cap.assert === 'string' ? [cap.assert] : cap.assert;
       process.stderr.write(`${dim}  │${reset} assert: ${asserts.join(', ')}\n`);

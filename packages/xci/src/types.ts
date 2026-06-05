@@ -55,6 +55,7 @@ export interface CaptureConfig {
   readonly var: string;
   readonly type?: CaptureType;             // default: 'string'
   readonly assert?: string | readonly string[];  // e.g. "> 0", "not empty", [">=1", "<=100"]
+  readonly regex?: string;                 // extract first capture group from full output
 }
 
 /** Parameter definition for a command. */

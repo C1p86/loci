@@ -4,6 +4,24 @@
 
 import type { CaptureConfig } from '../types.js';
 
+/**
+ * Extract a value from stdout using the capture config's regex, if set.
+ * If regex is set, searches the full output and returns the first capture group
+ * (or full match if no groups). If no match, returns empty string.
+ * If regex is not set, returns the trimmed stdout as-is.
+ */
+export function extractFromOutput(stdout: string, config: CaptureConfig): string {
+  if (!config.regex) return stdout.trim();
+  try {
+    const re = new RegExp(config.regex);
+    const match = re.exec(stdout);
+    if (!match) return '';
+    return (match[1] !== undefined ? match[1] : match[0]).trim();
+  } catch {
+    return stdout.trim();
+  }
+}
+
 export interface CaptureValidationResult {
   valid: boolean;
   error?: string;

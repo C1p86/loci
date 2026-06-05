@@ -4,7 +4,7 @@
 
 import { isAbsolute, resolve as resolvePath } from 'node:path';
 import type { ExecutionPlan, ExecutionResult, Executor, ExecutorOptions } from '../types.js';
-import { validateCapture } from './capture.js';
+import { extractFromOutput, validateCapture } from './capture.js';
 import { writeIni, deleteIniKeys } from './ini.js';
 import { notifyCompletion, printCaptureResult, printStepHeader, printStepPreview, printStepResult, resetTerminalTitle, setTerminalTitle } from './output.js';
 import { runParallel } from './parallel.js';
@@ -48,7 +48,7 @@ export const executor: Executor = {
             if (captureResult.stdout.length > 0 && show) {
               process.stdout.write(captureResult.stdout + '\n');
             }
-            const validation = validateCapture(captureResult.stdout, plan.capture);
+            const validation = validateCapture(extractFromOutput(captureResult.stdout, plan.capture), plan.capture);
             const isVerbose = env['XCI_VERBOSE'] === '1';
             printCaptureResult(plan.capture, validation, isVerbose);
             if (!validation.valid) {

@@ -1,6 +1,6 @@
 {
   "name": "xci",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local CI — cross-platform command alias runner with layered YAML config",
   "type": "module",
   "license": "MIT",
