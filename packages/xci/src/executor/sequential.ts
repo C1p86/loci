@@ -14,7 +14,7 @@ import { interpolateArgv } from '../resolver/interpolate.js';
 import type { ExecutionResult, SequentialStep } from '../types.js';
 import { validateCapture } from './capture.js';
 import { writeIni, deleteIniKeys } from './ini.js';
-import { printCaptureResult, printStepHeader, printStepPreview, printStepResult, resetTerminalTitle, setTerminalTitle } from './output.js';
+import { notifyWaitingForInput, printCaptureResult, printStepHeader, printStepPreview, printStepResult, resetTerminalTitle, setTerminalTitle } from './output.js';
 import { runSingle } from './single.js';
 
 /**
@@ -191,6 +191,7 @@ export async function runSequential(
         }
       } else {
         const message = step.message ?? `Enter value for ${step.var}:`;
+        await notifyWaitingForInput(undefined, step.message);
         value = await promptUser(message);
         if (value === '' && step.default !== undefined) {
           value = step.default;
