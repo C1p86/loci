@@ -197,6 +197,8 @@ export interface ExecutorOptions {
   readonly tailLines?: number;   // show last N lines of output after each command (--short-log N)
   readonly fromStep?: string;    // start from this step label, skip earlier ones (--from)
   readonly secretValues?: ReadonlySet<string>; // redact these values from preview output
+  readonly alias?: string;       // command alias name — shown in completion notification
+  readonly projectName?: string; // project name — shown in completion notification
 }
 
 export interface Executor {

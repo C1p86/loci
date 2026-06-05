@@ -1,6 +1,6 @@
 // src/cli.ts
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import type { ReadStream } from 'node:tty';
 import { Command } from 'commander';
 import { configLoader, resolveMachineConfigDir } from './config/index.js';
@@ -538,6 +538,8 @@ function registerAliases(
             logFile,
             showOutput,
             secretValues,
+            alias,
+            projectName: basename(projectRoot),
             ...(tailLines !== undefined ? { tailLines } : {}),
             ...(fromStep !== undefined ? { fromStep } : {}),
           });

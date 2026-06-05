@@ -122,8 +122,10 @@ export function resetTerminalTitle(): void {
   }
 }
 
-export async function notifyCompletion(exitCode: number): Promise<void> {
-  const message = exitCode === 0 ? 'xci: completato' : `xci: errore (exit ${exitCode})`;
+export async function notifyCompletion(exitCode: number, projectName?: string, commandName?: string): Promise<void> {
+  const status = exitCode === 0 ? 'completato' : `errore (exit ${exitCode})`;
+  const title = projectName ?? 'xci';
+  const body = commandName ? `${commandName}: ${status}` : `xci: ${status}`;
   try {
     if (process.platform === 'win32') {
       // SnoreToast (node-notifier) requires AUMID registration on Windows 11 — use PowerShell WinRT instead
@@ -131,8 +133,8 @@ export async function notifyCompletion(exitCode: number): Promise<void> {
         "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null",
         "[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null",
         "$xml = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)",
-        `$xml.GetElementsByTagName('text').Item(0).AppendChild($xml.CreateTextNode('xci')) | Out-Null`,
-        `$xml.GetElementsByTagName('text').Item(1).AppendChild($xml.CreateTextNode('${message.replace(/'/g, "''")}')) | Out-Null`,
+        `$xml.GetElementsByTagName('text').Item(0).AppendChild($xml.CreateTextNode('${title.replace(/'/g, "''")}')) | Out-Null`,
+        `$xml.GetElementsByTagName('text').Item(1).AppendChild($xml.CreateTextNode('${body.replace(/'/g, "''")}')) | Out-Null`,
         "$toast = [Windows.UI.Notifications.ToastNotification]::new($xml)",
         "$app = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe'",
         "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($app).Show($toast)",
@@ -144,7 +146,7 @@ export async function notifyCompletion(exitCode: number): Promise<void> {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mod = await import('node-notifier' as string) as { default: { notify(opts: { title: string; message: string }, cb: () => void): void } };
       await new Promise<void>((resolve) => {
-        mod.default.notify({ title: 'xci', message }, resolve);
+        mod.default.notify({ title, message: body }, resolve);
       });
     }
   } catch {

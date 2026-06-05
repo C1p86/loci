@@ -106,7 +106,7 @@ export const executor: Executor = {
       }
     })();
 
-    await notifyCompletion(result.exitCode);
+    await notifyCompletion(result.exitCode, options.projectName, options.alias);
     return result;
   },
 };
