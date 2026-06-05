@@ -160,13 +160,27 @@ export async function runSequential(
       const startTime = Date.now();
       // quick-260421-g99: resolve file relative to step.cwd ?? default cwd.
       const stepCwd = step.cwd ?? cwd;
-      const filePath = isAbsolute(step.file) ? step.file : resolvePath(stepCwd, step.file);
+      const mergedValues = { ...env, ...capturedVars };
+      const rawFilePath = isAbsolute(step.file) ? step.file : resolvePath(stepCwd, step.file);
+      const filePath = interpolateArgv([rawFilePath], '(ini)', mergedValues)[0] ?? rawFilePath;
+      // Re-interpolate set values with capturedVars so runtime assignments like
+      // BuildEnv="Trailer" are expanded before writing to the ini file.
+      let resolvedSet: Record<string, Record<string, string>> | undefined;
+      if (step.set) {
+        resolvedSet = {};
+        for (const [section, keys] of Object.entries(step.set)) {
+          resolvedSet[section] = {};
+          for (const [k, v] of Object.entries(keys)) {
+            resolvedSet[section][k] = interpolateArgv([v], '(ini)', mergedValues)[0] ?? v;
+          }
+        }
+      }
       try {
-        if (step.set) writeIni(filePath, step.set, step.mode);
+        if (resolvedSet) writeIni(filePath, resolvedSet, step.mode);
         if (step.delete) deleteIniKeys(filePath, step.delete as Record<string, string[]>);
         process.stderr.write(`  ${filePath}\n`);
-        if (step.set) {
-          for (const [section, keys] of Object.entries(step.set)) {
+        if (resolvedSet) {
+          for (const [section, keys] of Object.entries(resolvedSet)) {
             for (const [k, v] of Object.entries(keys)) {
               process.stderr.write(`    [${section}] ${k}=${v}\n`);
             }
