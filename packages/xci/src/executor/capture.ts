@@ -59,7 +59,9 @@ export function validateCapture(raw: string, config: CaptureConfig): CaptureVali
     for (const assertion of assertions) {
       const result = evaluateAssertion(assertion, trimmed, numericValue);
       if (!result.pass) {
-        return { valid: false, error: result.reason, coerced: trimmed };
+        return result.reason !== undefined
+          ? { valid: false, error: result.reason, coerced: trimmed }
+          : { valid: false, coerced: trimmed };
       }
     }
   }
@@ -133,8 +135,8 @@ function evaluateAssertion(
   // Comparison operators: >= <= > < == !=
   const compMatch = /^(>=|<=|>|<|==|!=)\s*(.+)$/.exec(a);
   if (compMatch) {
-    const op = compMatch[1];
-    const rhs = compMatch[2].trim();
+    const op = compMatch[1]!;
+    const rhs = compMatch[2]!.trim();
 
     // Try numeric comparison if both sides are numbers
     if (numericValue !== undefined) {
@@ -153,10 +155,10 @@ function evaluateAssertion(
   const regexMatch = /^matches\s+\/(.+)\/([gimsuy]*)$/.exec(a);
   if (regexMatch) {
     try {
-      const re = new RegExp(regexMatch[1], regexMatch[2]);
+      const re = new RegExp(regexMatch[1]!, regexMatch[2]!);
       return re.test(value)
         ? { pass: true }
-        : { pass: false, reason: `"${value}" does not match /${regexMatch[1]}/${regexMatch[2]}` };
+        : { pass: false, reason: `"${value}" does not match /${regexMatch[1]!}/${regexMatch[2]!}` };
     } catch {
       return { pass: false, reason: `invalid regex in assertion: ${a}` };
     }

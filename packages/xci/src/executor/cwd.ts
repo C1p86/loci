@@ -14,8 +14,8 @@ function toAbs(cwd: string | undefined, projectRoot: string): string | undefined
 }
 
 function resolveStepCwd(step: SequentialStep, projectRoot: string): SequentialStep {
-  // 'set' steps never have cwd — pass through unchanged.
-  if (step.kind === 'set') return step;
+  // 'set' and 'prompt' steps never have cwd — pass through unchanged.
+  if (step.kind === 'set' || step.kind === 'prompt') return step;
   // Both 'ini' and the cmd variant (kind undefined or 'cmd') may carry cwd.
   const abs = toAbs(step.cwd, projectRoot);
   if (abs === undefined) return step;

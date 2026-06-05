@@ -74,7 +74,7 @@ export async function runSingleCapture(
     stdout: 'pipe',
     stderr: 'pipe',
     reject: false,
-  });
+  }) as unknown as ResultPromise;
 
   let interrupted = false;
   const sigintHandler = async () => {
@@ -86,8 +86,8 @@ export async function runSingleCapture(
   try {
     const result = await proc;
 
-    const stdout = result.stdout ?? '';
-    const stderr = result.stderr ?? '';
+    const stdout = (result.stdout as string | undefined) ?? '';
+    const stderr = (result.stderr as string | undefined) ?? '';
     if (logStream) {
       if (stdout) logStream.write(stdout + '\n');
       if (stderr) logStream.write(stderr + '\n');
@@ -138,7 +138,7 @@ export async function runSingle(
     stdout: useInherit ? 'inherit' : 'pipe',
     stderr: useInherit ? 'inherit' : 'pipe',
     reject: false,
-  });
+  }) as unknown as ResultPromise;
 
   // Real-time tail: keep last N lines and redraw them on each update
   const tailBuffer: string[] = [];

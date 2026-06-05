@@ -3,7 +3,7 @@
 // Parallel group execution with AbortController cancellation (T-04-04, T-04-05, EXE-05).
 
 import { createWriteStream } from 'node:fs';
-import { execa } from 'execa';
+import { execa, type Options } from 'execa';
 import { SpawnError } from '../errors.js';
 import type { ExecutionResult } from '../types.js';
 import { makeLineTransform, printParallelSummary, printStepPreview } from './output.js';
@@ -49,14 +49,15 @@ export async function runParallel(
     process.stderr.write(`[${alias}]\n`);
     printStepPreview(undefined, argv, secretValues, {
       verbose: env['XCI_VERBOSE'] === '1',
-      logFile,
+      ...(logFile !== undefined ? { logFile } : {}),
       cwd: effectiveCwd,
     });
   }
 
   // For failMode 'fast', wrap each promise so that on failure it immediately aborts the rest.
   const rawPromises = group.map(({ alias, argv, cwd: entryCwd }) => {
-    const [cmd, ...args] = argv;
+    const cmd = argv[0];
+    const args = argv.slice(1);
     if (!cmd) {
       return Promise.reject(new SpawnError('(empty command)', new Error('argv is empty')));
     }
@@ -71,15 +72,16 @@ export async function runParallel(
 
     // quick-260421-g99: per-entry cwd overrides the group default.
     const effectiveCwd = entryCwd ?? cwd;
-    return execa(cmd, args, {
+    const execaOpts: Options = {
       cwd: effectiveCwd,
-      env: mergedEnv,
-      stdout: stdoutDest.length > 0 ? stdoutDest : 'pipe',
-      stderr: stderrDest.length > 0 ? stderrDest : 'pipe',
+      env: mergedEnv as Record<string, string>,
+      stdout: stdoutDest.length > 0 ? (stdoutDest as Options['stdout']) : 'pipe',
+      stderr: stderrDest.length > 0 ? (stderrDest as Options['stderr']) : 'pipe',
       cancelSignal: signal,
       forceKillAfterDelay: 3000,
       reject: false,
-    }).then((value) => {
+    };
+    return execa(cmd, args as string[], execaOpts).then((value) => {
       // Write to log file if present
       if (logStream) {
         const out = value.stdout ?? '';

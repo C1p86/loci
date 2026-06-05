@@ -33,7 +33,7 @@ export function parseIni(content: string): IniData {
     // Section header
     const sectionMatch = /^\[(.+)\]$/.exec(line);
     if (sectionMatch) {
-      currentSection = sectionMatch[1];
+      currentSection = sectionMatch[1]!;
       if (!data[currentSection]) data[currentSection] = {};
       continue;
     }
@@ -41,10 +41,10 @@ export function parseIni(content: string): IniData {
     // Key=Value (including +Key=Value for UE array syntax)
     const kvMatch = /^(\+?[^=]+)=(.*)$/.exec(line);
     if (kvMatch && currentSection) {
-      const key = kvMatch[1].trim();
-      const value = kvMatch[2].trim();
+      const key = kvMatch[1]!.trim();
+      const value = kvMatch[2]!.trim();
       if (!data[currentSection]) data[currentSection] = {};
-      data[currentSection][key] = value;
+      data[currentSection]![key] = value;
     }
   }
 

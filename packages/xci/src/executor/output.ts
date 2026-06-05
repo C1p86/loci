@@ -228,7 +228,7 @@ function collectReferencedPlaceholders(def: CommandDef): Set<string> {
       scanArray(def.cmd);
       break;
     case 'sequential':
-      scanArray(def.steps);
+      scanArray(def.steps.filter((s): s is string => typeof s === 'string'));
       break;
     case 'parallel':
       scanArray(def.group);
@@ -416,7 +416,7 @@ function topLevelCwd(plan: ExecutionPlan): string | undefined {
       return plan.cwd;
     case 'sequential': {
       for (const step of plan.steps) {
-        if (step.kind === 'set') continue;
+        if (step.kind === 'set' || step.kind === 'prompt') continue;
         if (step.cwd !== undefined) return step.cwd;
       }
       return undefined;

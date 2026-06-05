@@ -31,8 +31,8 @@ export const executor: Executor = {
           // quick-260422-pnv: always pass cwd so the dark-yellow cwd line appears for single commands too.
           printStepPreview(undefined, plan.argv, secretValues, {
             verbose: env['XCI_VERBOSE'] === '1',
-            logFile,
-            cwd: effectiveCwd,
+            ...(logFile !== undefined ? { logFile } : {}),
+            ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
           });
           const startTime = Date.now();
 

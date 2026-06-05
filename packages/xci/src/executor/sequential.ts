@@ -266,7 +266,7 @@ export async function runSequential(
     printStepHeader(stepCmd, stepNum, totalSteps);
     printStepPreview(step.rawArgv, finalArgv, secretValues, {
       verbose: env['XCI_VERBOSE'] === '1',
-      logFile,
+      ...(logFile !== undefined ? { logFile } : {}),
       cwd: stepSpawnCwd,
     });
 
