@@ -549,7 +549,15 @@ function registerAliases(
             ...(tailLines !== undefined ? { tailLines } : {}),
             ...(fromStep !== undefined ? { fromStep } : {}),
           });
-      if (result.exitCode !== 0) {
+      if (result.exitCode === 130) {
+        // exit 130 = SIGINT (CTRL+C): user intentionally aborted. Skip the
+        // error-line dump and the "Show log?" prompt — they are noise on a
+        // deliberate abort. Still propagate 130 as the process exit code and
+        // confirm the abort on stderr (complements killAndWait's
+        // "[xci] Child process terminated." message).
+        process.exitCode = result.exitCode;
+        process.stderr.write('[xci] Abortito.\n');
+      } else if (result.exitCode !== 0) {
         process.exitCode = result.exitCode;
         // Surface error-matching lines (/error/i) BEFORE any askShowLog prompt so the
         // operator sees what went wrong without first accepting the prompt. Always on
