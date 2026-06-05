@@ -138,9 +138,10 @@ None
 | 260422-pnv | always print effective cwd for single/parallel commands and unconditionally in printRunHeader | 2026-04-22 | e79f2ac | [260422-pnv-always-print-cwd-single-parallel-and-run-head](./quick/260422-pnv-always-print-cwd-single-parallel-and-run-head/) |
 | 260531-sgb | Create Go CLI go-xci project — single-binary Go port of xci with cobra, 4-layer config, executor | 2026-05-31 | bf52c12 | [260531-sgb-crea-progetto-go-cli-go-xci-nella-cartel](./quick/260531-sgb-crea-progetto-go-cli-go-xci-nella-cartel/) |
 | 260605-mgy | Add cross-platform OS desktop notifications on xci completion via XCI_NOTIFY=1 | 2026-06-05 | c09d306 | [260605-mgy-aggiungere-notifiche-di-sistema-windows-](./quick/260605-mgy-aggiungere-notifiche-di-sistema-windows-/) |
+| 260605-mvt | Remove beepCompletion/XCI_BEEP, make OS notification always-on | 2026-06-05 | 387483a | [260605-mvt-rimuovere-beepcompletion-e-xci-beep-rend](./quick/260605-mvt-rimuovere-beepcompletion-e-xci-beep-rend/) |
 
 ## Session Continuity
 
 Last session: 2026-06-05T00:00:00Z
-Stopped at: Completed quick task 260605-mgy
+Stopped at: Completed quick task 260605-mvt
 Resume: Phase 16 — Go CLI Output Infrastructure (`/gsd:plan-phase 16`)
