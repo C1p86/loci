@@ -7,8 +7,8 @@ describe('agent/labels', () => {
     expect(labels.os).toBe(process.platform);
     expect(typeof labels.arch).toBe('string');
     expect(labels.node_version).toBe(process.version);
-    expect(typeof labels.hostname).toBe('string');
-    expect(labels.hostname.length).toBeGreaterThan(0);
+    expect(typeof labels['hostname']).toBe('string');
+    expect((labels['hostname'] as string).length).toBeGreaterThan(0);
   });
 
   it('merges custom key=value pairs', () => {

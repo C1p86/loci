@@ -1,6 +1,7 @@
 import ReconnectingWebSocket from 'reconnecting-websocket';
 import type { ErrorEvent } from 'reconnecting-websocket';
 import WS from 'ws';
+import type { CloseEvent } from 'ws';
 import type { AgentFrame } from './types.js';
 
 export interface AgentClientOptions {

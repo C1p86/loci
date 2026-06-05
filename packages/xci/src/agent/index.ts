@@ -43,20 +43,26 @@ function parseFlags(argv: readonly string[]): ParsedFlags {
       case '--agent':
         flags.agent = argv[++i] ?? '';
         break;
-      case '--token':
-        flags.token = argv[++i];
+      case '--token': {
+        const tv = argv[++i];
+        if (tv !== undefined) flags.token = tv;
         break;
+      }
       case '--label': {
         const v = argv[++i];
         if (v) flags.labels.push(v);
         break;
       }
-      case '--hostname':
-        flags.hostname = argv[++i];
+      case '--hostname': {
+        const hv = argv[++i];
+        if (hv !== undefined) flags.hostname = hv;
         break;
-      case '--config-dir':
-        flags.configDir = argv[++i];
+      }
+      case '--config-dir': {
+        const cv = argv[++i];
+        if (cv !== undefined) flags.configDir = cv;
         break;
+      }
       case '--max-concurrent': {
         const raw = argv[++i];
         const n = raw !== undefined ? parseInt(raw, 10) : NaN;
