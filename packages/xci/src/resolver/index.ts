@@ -137,9 +137,9 @@ function resolveToStepsLenient(
       return def.group.map((entry) => {
         if (commands.has(entry)) {
           const sub = resolveToStepsLenient(entry, commands, config, depth + 1, [...chain, entry], effectiveCwd);
-          if (sub.length === 1) return sub[0];
+          if (sub.length === 1) return sub[0]!;
           // Multi-step can't be flattened into a single parallel entry; return first
-          return sub[0];
+          return sub[0] ?? { argv: [], rawArgv: [], breadcrumb: [...chain] };
         }
         const tokens = tokenize(entry, aliasName);
         const argv = interpolateArgvLenient(tokens, config.values);

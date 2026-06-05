@@ -221,6 +221,7 @@ function printAliasDetails(
       process.stderr.write('  steps:\n');
       for (let i = 0; i < def.steps.length; i++) {
         const step = def.steps[i];
+        if (step === undefined || typeof step !== 'string') continue; // skip prompt steps and undefined
         const subDef = commands.get(step);
         const desc = subDef?.description ? ` — ${subDef.description}` : '';
         const kind = subDef ? ` (${subDef.kind})` : '';
@@ -313,9 +314,12 @@ function appendExtraArgs(plan: ExecutionPlan, extra: readonly string[]): Executi
       if (plan.steps.length === 0) return plan;
       const lastIdx = plan.steps.length - 1;
       const lastStep = plan.steps[lastIdx];
+      if (!lastStep) return plan;
       if (lastStep.kind === 'ini') return plan;
       const newSteps = plan.steps.map((s, i) =>
-        i === lastIdx && s.kind !== 'ini' ? { ...s, argv: [...s.argv, ...extra] } : s
+        i === lastIdx && s.kind !== 'ini' && s.kind !== 'set' && s.kind !== 'prompt'
+          ? { ...s, argv: [...s.argv, ...extra] }
+          : s
       );
       return { ...plan, steps: newSteps };
     }
@@ -366,15 +370,17 @@ function registerAliases(
       // re-derive the user args slice from parent.rawArgs (which keeps '--').
       // We strip the binary path, alias name, and xci-owned flags.
       const XCI_FLAGS = new Set(['--dry-run', '--verbose', '--log', '--no-log', '--ui', '--list', '--dry-run=true', '--verbose=true', '--log=true', '--ui=true', '--list=true']);
-      const rawArgs: readonly string[] = this.parent?.rawArgs ?? [];
+      const rawArgs: readonly string[] = (this.parent as Command & { rawArgs?: string[] })?.rawArgs ?? [];
       const aliasIdx = rawArgs.indexOf(alias);
       const afterAlias = aliasIdx >= 0 ? rawArgs.slice(aliasIdx + 1) : [...this.args];
       // Strip --short-log, --from and their values
       const filteredArgs: string[] = [];
       for (let i = 0; i < afterAlias.length; i++) {
-        if (afterAlias[i] === '--short-log' || afterAlias[i] === '--from') { i++; continue; }
-        if (afterAlias[i].startsWith('--short-log=') || afterAlias[i].startsWith('--from=')) continue;
-        filteredArgs.push(afterAlias[i]);
+        const arg = afterAlias[i];
+        if (arg === '--short-log' || arg === '--from') { i++; continue; }
+        if (arg === undefined) continue;
+        if (arg.startsWith('--short-log=') || arg.startsWith('--from=')) continue;
+        filteredArgs.push(arg);
       }
       const userArgs = filteredArgs.filter((a) => !XCI_FLAGS.has(a));
       const { overrides, passThrough } = parseCliOverrides(userArgs);
@@ -526,7 +532,15 @@ function registerAliases(
             cwd: projectRoot,
             env,
           } satisfies DashboardContext)
-        : await executor.run(finalPlan, { cwd: projectRoot, env, logFile, showOutput, tailLines, fromStep, secretValues });
+        : await executor.run(finalPlan, {
+            cwd: projectRoot,
+            env,
+            logFile,
+            showOutput,
+            secretValues,
+            ...(tailLines !== undefined ? { tailLines } : {}),
+            ...(fromStep !== undefined ? { fromStep } : {}),
+          });
       if (result.exitCode !== 0) {
         process.exitCode = result.exitCode;
         // Surface error-matching lines (/error/i) BEFORE any askShowLog prompt so the
@@ -635,7 +649,7 @@ function handleError(err: unknown, _program?: Command): number {
   if (commanderErr.code === 'commander.excessArguments') {
     // Try to extract alias name from commander message, then from raw process.argv
     const match = commanderErr.message?.match(/excess arguments?: (.+)/i);
-    let aliasName = match ? match[1].split(',')[0]?.trim().replace(/^'|'$/g, '') : undefined;
+    let aliasName = match ? match[1]?.split(',')[0]?.trim().replace(/^'|'$/g, '') : undefined;
     if (!aliasName) {
       // Fallback: first non-flag arg after the script path is likely the alias
       const args = process.argv.slice(2);

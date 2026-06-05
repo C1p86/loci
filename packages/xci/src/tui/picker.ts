@@ -49,6 +49,7 @@ function renderPicker(entries: PickerEntry[], selected: number): void {
   const visibleEntries = entries.slice(scrollTop, scrollTop + maxVisible);
   for (let i = 0; i < visibleEntries.length; i++) {
     const entry = visibleEntries[i];
+    if (!entry) continue;
     const idx = scrollTop + i;
     const isSelected = idx === selected;
     const pointer = isSelected ? `${color.cyan}${color.bold}❯ ` : '  ';
@@ -112,7 +113,7 @@ export function showPicker(commands: CommandMap): Promise<string | null> {
       if (key === '\r' || key === '\n') {
         cleanup();
         write('\n');
-        resolve(entries[selected].alias);
+        resolve(entries[selected]?.alias ?? null);
         return;
       }
 

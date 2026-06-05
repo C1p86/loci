@@ -225,7 +225,7 @@ function interpolateValues(values: Record<string, string>): Record<string, strin
   const resolving = new Set<string>(); // cycle detection
 
   function resolve(key: string): string {
-    if (Object.hasOwn(resolved, key)) return resolved[key];
+    if (Object.hasOwn(resolved, key)) return resolved[key] as string;
     if (resolving.has(key)) {
       throw new YamlParseError(
         '<config>',

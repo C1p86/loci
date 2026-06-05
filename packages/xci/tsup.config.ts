@@ -6,7 +6,7 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: str
 
 // Shared options that apply to all entries
 const sharedOptions = {
-  format: ['esm'] as const,
+  format: ['esm'] as import('tsup').Format[],
   target: 'node20.5' as const,
   outDir: 'dist',
   outExtension: () => ({ js: '.mjs' }),

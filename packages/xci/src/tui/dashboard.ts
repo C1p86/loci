@@ -89,7 +89,7 @@ function renderFrame(): void {
     let leftPlain = '';
     let leftStyled = '';
     if (row < commands.length) {
-      const cmd = commands[row];
+      const cmd = commands[row]!;
       const exitSuffix = cmd.exitCode !== undefined && cmd.status === 'failed'
         ? ` (${cmd.exitCode})` : '';
       // Icon takes 1 char visually; build plain text first for padding
@@ -110,7 +110,7 @@ function renderFrame(): void {
     let rightStyled = '';
     const logIdx = logScrollOffset + row;
     if (logIdx < logLines.length) {
-      rightStyled = ' ' + pad(logLines[logIdx], rightWidth - 1);
+      rightStyled = ' ' + pad(logLines[logIdx]!, rightWidth - 1);
     } else {
       rightStyled = ' '.repeat(rightWidth);
     }
@@ -317,6 +317,7 @@ async function execSequential(
 
   for (let i = 0; i < plan.steps.length; i++) {
     const step = plan.steps[i];
+    if (!step) continue;
 
     // Handle variable assignment steps
     if (step.kind === 'set') {
@@ -555,7 +556,7 @@ async function executePlan(
   lastExitCode = 0;
   flushRender();
 
-  let result: ExecutionResult;
+  let result: ExecutionResult = { exitCode: 0 };
   switch (plan.kind) {
     case 'single':
       result = await execSingle(plan, cwd, env);
@@ -566,6 +567,9 @@ async function executePlan(
     case 'parallel':
       result = await execParallel(plan, cwd, env);
       break;
+    default:
+      // ini plans not handled in TUI dashboard; return success
+      result = { exitCode: 0 };
   }
 
   isExecuting = false;
@@ -805,7 +809,7 @@ function showInlinePicker(aliases: string[]): Promise<string | null> {
       if (key === '\r' || key === '\n') {
         stdin.removeListener('data', onKey);
         flushRender();
-        resolveP(aliases[selected]);
+        resolveP(aliases[selected] ?? null);
         return;
       }
 

@@ -52,11 +52,13 @@ function extractPlaceholdersWithLocations(text: string, filePath: string): Map<s
   const lines = text.split('\n');
   for (let lineNum = 0; lineNum < lines.length; lineNum++) {
     const lineText = lines[lineNum];
+    if (lineText === undefined) continue;
     let m: RegExpExecArray | null;
     const re = new RegExp(PLACEHOLDER_RE.source, 'g');
     while ((m = re.exec(lineText)) !== null) {
       if (m.index > 0 && lineText[m.index - 1] === '$') continue;
       const key = m[1];
+      if (key === undefined) continue;
       const bracketIdx = key.indexOf('[');
       const base = bracketIdx > 0 ? key.slice(0, bracketIdx) : key;
       const usages = vars.get(base) ?? [];
@@ -150,13 +152,13 @@ function buildNestedObject(vars: string[]): Record<string, unknown> {
     const parts = varName.split('.');
     let current = obj;
     for (let i = 0; i < parts.length - 1; i++) {
-      const part = parts[i];
+      const part = parts[i]!;
       if (!current[part] || typeof current[part] !== 'object') {
         current[part] = {};
       }
       current = current[part] as Record<string, unknown>;
     }
-    const leaf = parts[parts.length - 1];
+    const leaf = parts[parts.length - 1]!;
     if (!Object.hasOwn(current, leaf)) {
       current[leaf] = '';
     }

@@ -127,8 +127,8 @@ function collectAll(
         declared.set(name, {
           name,
           required: param.required === true,
-          default: param.default,
-          description: param.description,
+          ...(param.default !== undefined ? { default: param.default } : {}),
+          ...(param.description !== undefined ? { description: param.description } : {}),
           requiredBy: param.required ? [aliasName] : [],
         });
       }
@@ -340,7 +340,7 @@ export function validateParams(
     missing.push({
       name,
       requiredBy: [...aliases],
-      description: param?.description,
+      ...(param?.description !== undefined ? { description: param.description } : {}),
     });
   }
 
@@ -397,7 +397,7 @@ export function getParamNames(
     const param = declared.get(name);
     result.push({
       name,
-      description: param?.description,
+      ...(param?.description !== undefined ? { description: param.description } : {}),
       required: param ? param.required : true, // undeclared = implicitly required
       hasDefault: param?.default !== undefined,
     });
