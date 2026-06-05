@@ -950,6 +950,12 @@ async function main(argv: readonly string[]): Promise<number> {
     return 1;
   }
 
+  // --version / -V must work even if commands.yml has errors.
+  if (argv.includes('--version') || argv.includes('-V')) {
+    process.stdout.write(`${XCI_VERSION}\n`);
+    return 0;
+  }
+
   // Load config and commands
   let config: ResolvedConfig;
   let commands: CommandMap;

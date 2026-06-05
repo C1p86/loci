@@ -16,6 +16,25 @@ npm i -g xci
 
 Requires Node.js >= 20.5.0. Works on Windows, Linux, and macOS.
 
+### Install from source (development)
+
+Prerequisites: Node.js >= 20.5.0, pnpm >= 10.
+
+```bash
+git clone https://github.com/your-org/xci.git
+cd xci
+pnpm install        # install all dependencies first
+pnpm install-local  # build + install xci globally
+```
+
+Verify:
+
+```bash
+xci --version
+```
+
+`pnpm install-local` builds the TypeScript sources with `tsup` and runs `npm install -g ./packages/xci`. Re-run it after pulling new changes.
+
 ## Quickstart
 
 ```bash
