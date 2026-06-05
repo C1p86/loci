@@ -19,7 +19,7 @@ const CLI = resolve(process.cwd(), 'dist/cli.mjs');
 function runCli(args: readonly string[]): { stdout: string; stderr: string; code: number } {
   const result = spawnSync(process.execPath, [CLI, ...args], {
     encoding: 'utf8',
-    env: { ...process.env, NO_COLOR: '1' },
+    env: { ...process.env, NO_COLOR: '1', CI: '1' },
   });
   return {
     stdout: result.stdout ?? '',
@@ -58,7 +58,7 @@ function runCliInDir(
   const result = spawnSync(process.execPath, [CLI, ...args], {
     encoding: 'utf8',
     cwd: dir,
-    env: { ...process.env, ...extraEnv, NO_COLOR: '1' },
+    env: { ...process.env, ...extraEnv, NO_COLOR: '1', CI: '1' },
   });
   return { stdout: result.stdout ?? '', stderr: result.stderr ?? '', code: result.status ?? -1 };
 }

@@ -345,6 +345,199 @@ function appendExtraArgs(plan: ExecutionPlan, extra: readonly string[]): Executi
 }
 
 /* ------------------------------------------------------------------ */
+/* RunAliasFlags + runAlias() core helper                               */
+/* ------------------------------------------------------------------ */
+
+interface RunAliasFlags {
+  dryRun?: boolean;
+  verbose?: boolean;
+  log?: boolean;
+  shortLog?: string | undefined;
+  ui?: boolean;
+  list?: boolean;
+  fromStep?: string | undefined;
+}
+
+/**
+ * Core per-alias execution logic, extracted so both the single-alias action
+ * handler and the multi-alias + pre-parser can delegate to it.
+ *
+ * @param extraArgs  Raw user args AFTER the alias name (KEY=VALUE overrides +
+ *                   pass-through args). parseCliOverrides is called inside.
+ * @returns          Exit code (0 = success). Caller decides process.exitCode.
+ */
+async function runAlias(
+  alias: string,
+  def: CommandDef,
+  extraArgs: readonly string[],
+  commands: CommandMap,
+  config: ResolvedConfig,
+  projectRoot: string,
+  flags: RunAliasFlags,
+): Promise<number> {
+  const isDryRun = flags.dryRun === true;
+  const isVerbose = flags.verbose === true;
+  const isLog = flags.log === true;
+  const isUi = flags.ui === true;
+  const isList = flags.list === true;
+  const fromStep = flags.fromStep;
+
+  const parsedTail = flags.shortLog ? Number.parseInt(flags.shortLog, 10) : undefined;
+  // Default: short-log 10. --log/--verbose: full output. --short-log 0: silent.
+  const showOutput = isVerbose || isLog;
+  const tailLines = showOutput ? undefined : (parsedTail ?? 10);
+
+  // --list: show command details, sub-steps, and params
+  if (isList) {
+    printAliasDetails(alias, def, commands, config, projectRoot);
+    return 0;
+  }
+
+  const { overrides, passThrough } = parseCliOverrides(extraArgs);
+
+  // Built-in variables always available for interpolation and as env vars.
+  const builtins: Record<string, string> = {
+    'xci.project.path': projectRoot,
+    'XCI_PROJECT_PATH': projectRoot,
+  };
+
+  // Merge: config values < builtins < CLI overrides
+  const mergedValues = { ...config.values, ...builtins, ...overrides };
+
+  // Validate params: apply defaults, check required params across the full chain
+  const effectiveValues = validateParams(alias, commands, mergedValues);
+  const effectiveConfig: ResolvedConfig = { ...config, values: effectiveValues };
+
+  // Resolve the execution plan using effective config (includes builtins + overrides + param defaults)
+  const rawPlan = resolver.resolve(alias, commands, effectiveConfig);
+  // quick-260421-g99: rewrite every relative cwd to absolute against projectRoot before execution.
+  const plan = resolveAbsoluteCwds(rawPlan, projectRoot);
+
+  // Run header — only for real execution (skip dry-run, skip TUI which owns stderr).
+  if (!isDryRun && !isUi) {
+    printRunHeader(alias, def, plan, effectiveValues, config.secretKeys);
+  }
+
+  // Build env vars: include both original keys (for ${placeholder} interpolation in
+  // sequential steps) and UPPER_UNDERSCORE keys (for child process env vars).
+  const env: Record<string, string> = { ...effectiveValues, ...buildEnvVars(effectiveValues) };
+  if (isVerbose) env['XCI_VERBOSE'] = '1';
+  const secretValues = buildSecretValues(config);
+
+  // Verbose trace (D-28, D-26, D-30) — always to stderr
+  if (isVerbose) {
+    const configFiles: { path: string; found: boolean }[] = [];
+    let machineConfigsDir: string | undefined;
+    let machineSource: 'env' | 'home' | undefined;
+    try {
+      const res = resolveMachineConfigDir();
+      if (res.dir) {
+        machineConfigsDir = res.dir;
+        machineSource = res.source;
+      }
+    } catch {
+      // configLoader.load would have thrown first; safe to swallow here.
+    }
+    if (machineConfigsDir) {
+      const annotation = machineSource === 'env' ? '[from env]' : '[from home fallback]';
+      process.stderr.write(`[xci] NOTE: machine config source: ${annotation} ${machineConfigsDir}\n`);
+      configFiles.push({ path: join(machineConfigsDir, 'commands.yml'), found: existsSync(join(machineConfigsDir, 'commands.yml')) });
+      configFiles.push({ path: join(machineConfigsDir, 'secrets.yml'), found: existsSync(join(machineConfigsDir, 'secrets.yml')) });
+      const mSecretsDir = join(machineConfigsDir, 'secrets');
+      if (existsSync(mSecretsDir)) {
+        for (const f of listYamlFilesRecursive(mSecretsDir)) {
+          configFiles.push({ path: f, found: true });
+        }
+      }
+      const mCommandsDir = join(machineConfigsDir, 'commands');
+      if (existsSync(mCommandsDir)) {
+        for (const f of listYamlFilesRecursive(mCommandsDir)) {
+          configFiles.push({ path: f, found: true });
+        }
+      }
+    }
+    // Project files
+    configFiles.push(
+      { path: join(projectRoot, '.xci', 'config.yml'), found: existsSync(join(projectRoot, '.xci', 'config.yml')) },
+      { path: join(projectRoot, '.xci', 'secrets.yml'), found: existsSync(join(projectRoot, '.xci', 'secrets.yml')) },
+      { path: join(projectRoot, '.xci', 'local.yml'), found: existsSync(join(projectRoot, '.xci', 'local.yml')) },
+    );
+    // Project secrets/ directory
+    const projSecretsDir = join(projectRoot, '.xci', 'secrets');
+    if (existsSync(projSecretsDir)) {
+      for (const f of listYamlFilesRecursive(projSecretsDir)) {
+        configFiles.push({ path: f, found: true });
+      }
+    }
+    const redactedEnv = redactSecrets(env, config.secretKeys);
+    printVerboseTrace(projectRoot, configFiles, redactedEnv, config.secretKeys);
+    printVerboseCommand(def, plan, secretValues);
+  }
+
+  // Dry-run (D-27, D-30) — print and return without executing
+  if (isDryRun) {
+    printDryRun(plan, secretValues, effectiveValues, config.secretKeys);
+    return 0;
+  }
+
+  // Append pass-through args to the plan's argv
+  const finalPlan = passThrough.length > 0 ? appendExtraArgs(plan, passThrough) : plan;
+
+  // Create log file
+  const logFile = createLogFile(projectRoot, alias);
+
+  // Execute — use TUI dashboard only when --ui is explicitly requested
+  const result = isUi && isTTY()
+    ? await runWithDashboard(finalPlan, projectRoot, env, {
+        commandMap: commands,
+        config: effectiveConfig,
+        cwd: projectRoot,
+        env,
+      } satisfies DashboardContext)
+    : await executor.run(finalPlan, {
+        cwd: projectRoot,
+        env,
+        logFile,
+        showOutput,
+        secretValues,
+        alias,
+        projectName: basename(projectRoot),
+        ...(tailLines !== undefined ? { tailLines } : {}),
+        ...(fromStep !== undefined ? { fromStep } : {}),
+      });
+
+  if (result.exitCode === 130) {
+    // exit 130 = SIGINT (CTRL+C): user intentionally aborted. Skip the
+    // error-line dump and the "Show log?" prompt — they are noise on a
+    // deliberate abort. Still propagate 130 as the process exit code and
+    // confirm the abort on stderr (complements killAndWait's
+    // "[xci] Child process terminated." message).
+    process.stderr.write('[xci] Abortito.\n');
+    return result.exitCode;
+  }
+
+  if (result.exitCode !== 0) {
+    // Surface error-matching lines (/error/i) BEFORE any askShowLog prompt so the
+    // operator sees what went wrong without first accepting the prompt. Always on
+    // when the command failed; no flag gates this. Silent fallback if the log file
+    // is missing/unreadable — askShowLog still offers the full log as a backup.
+    try {
+      const content = readFileSync(logFile, 'utf8');
+      printErrorLines(content, logFile);
+    } catch {
+      // intentional: missing/unreadable log file — do not disturb the flow.
+    }
+    // On error, offer to show the log (if output was hidden)
+    if (!showOutput) {
+      const show = await askShowLog(logFile);
+      if (show) printLogFile(logFile);
+    }
+  }
+
+  return result.exitCode;
+}
+
+/* ------------------------------------------------------------------ */
 /* registerAliases (D-16, D-23, CLI-01, CLI-05)                         */
 /* ------------------------------------------------------------------ */
 
@@ -389,7 +582,6 @@ function registerAliases(
         filteredArgs.push(arg);
       }
       const userArgs = filteredArgs.filter((a) => !XCI_FLAGS.has(a));
-      const { overrides, passThrough } = parseCliOverrides(userArgs);
 
       // With passThroughOptions(), xci flags (--dry-run, --verbose) placed after positional
       // args are not parsed by commander and end up in afterAlias. Merge both sources.
@@ -409,10 +601,6 @@ function registerAliases(
           if (slEq) shortLogValue = slEq.split('=')[1];
         }
       }
-      const parsedTail = shortLogValue ? Number.parseInt(shortLogValue, 10) : undefined;
-      // Default: short-log 10. --log/--verbose: full output. --short-log 0: silent.
-      const showOutput = isVerbose || isLog;
-      const tailLines = showOutput ? undefined : (parsedTail ?? 10);
 
       const isList = (options as Record<string, unknown>).list === true || afterAlias.includes('--list');
 
@@ -428,153 +616,16 @@ function registerAliases(
         }
       }
 
-      // --list: show command details, sub-steps, and params
-      if (isList) {
-        printAliasDetails(alias, def, commands, config, projectRoot);
-        return;
-      }
-
-      // Built-in variables always available for interpolation and as env vars.
-      // Registered in both dot-notation and UPPER_UNDERSCORE so users can write
-      // either ${xci.project.path} or ${XCI_PROJECT_PATH} in commands.yml.
-      const builtins: Record<string, string> = {
-        'xci.project.path': projectRoot,
-        'XCI_PROJECT_PATH': projectRoot,
-      };
-
-      // Merge: config values < builtins < CLI overrides
-      const mergedValues = { ...config.values, ...builtins, ...overrides };
-
-      // Validate params: apply defaults, check required params across the full chain
-      const effectiveValues = validateParams(alias, commands, mergedValues);
-      const effectiveConfig: ResolvedConfig = { ...config, values: effectiveValues };
-
-      // Resolve the execution plan using effective config (includes builtins + overrides + param defaults)
-      const rawPlan = resolver.resolve(alias, commands, effectiveConfig);
-      // quick-260421-g99: rewrite every relative cwd to absolute against projectRoot before execution.
-      const plan = resolveAbsoluteCwds(rawPlan, projectRoot);
-
-      // Run header — only for real execution (skip dry-run, skip TUI which owns stderr).
-      if (!isDryRun && !isUi) {
-        printRunHeader(alias, def, plan, effectiveValues, config.secretKeys);
-      }
-
-      // Build env vars: include both original keys (for ${placeholder} interpolation in
-      // sequential steps) and UPPER_UNDERSCORE keys (for child process env vars).
-      const env: Record<string, string> = { ...effectiveValues, ...buildEnvVars(effectiveValues) };
-      if (isVerbose) env['XCI_VERBOSE'] = '1';
-      const secretValues = buildSecretValues(config);
-
-      // Verbose trace (D-28, D-26, D-30) — always to stderr
-      if (isVerbose) {
-        const configFiles: { path: string; found: boolean }[] = [];
-        // Machine configs directory — resolved via shared helper (env var or ~/.xci/ fallback).
-        // Wrap in try so a stale throw never crashes the verbose trace: by the time we get here
-        // configLoader.load has already succeeded, so the helper cannot throw in practice.
-        let machineConfigsDir: string | undefined;
-        let machineSource: 'env' | 'home' | undefined;
-        try {
-          const res = resolveMachineConfigDir();
-          if (res.dir) {
-            machineConfigsDir = res.dir;
-            machineSource = res.source;
-          }
-        } catch {
-          // configLoader.load would have thrown first; safe to swallow here.
-        }
-        if (machineConfigsDir) {
-          const annotation = machineSource === 'env' ? '[from env]' : '[from home fallback]';
-          process.stderr.write(`[xci] NOTE: machine config source: ${annotation} ${machineConfigsDir}\n`);
-          configFiles.push({ path: join(machineConfigsDir, 'commands.yml'), found: existsSync(join(machineConfigsDir, 'commands.yml')) });
-          configFiles.push({ path: join(machineConfigsDir, 'secrets.yml'), found: existsSync(join(machineConfigsDir, 'secrets.yml')) });
-          const mSecretsDir = join(machineConfigsDir, 'secrets');
-          if (existsSync(mSecretsDir)) {
-            for (const f of listYamlFilesRecursive(mSecretsDir)) {
-              configFiles.push({ path: f, found: true });
-            }
-          }
-          const mCommandsDir = join(machineConfigsDir, 'commands');
-          if (existsSync(mCommandsDir)) {
-            for (const f of listYamlFilesRecursive(mCommandsDir)) {
-              configFiles.push({ path: f, found: true });
-            }
-          }
-        }
-        // Project files
-        configFiles.push(
-          { path: join(projectRoot, '.xci', 'config.yml'), found: existsSync(join(projectRoot, '.xci', 'config.yml')) },
-          { path: join(projectRoot, '.xci', 'secrets.yml'), found: existsSync(join(projectRoot, '.xci', 'secrets.yml')) },
-          { path: join(projectRoot, '.xci', 'local.yml'), found: existsSync(join(projectRoot, '.xci', 'local.yml')) },
-        );
-        // Project secrets/ directory
-        const projSecretsDir = join(projectRoot, '.xci', 'secrets');
-        if (existsSync(projSecretsDir)) {
-          for (const f of listYamlFilesRecursive(projSecretsDir)) {
-            configFiles.push({ path: f, found: true });
-          }
-        }
-        const redactedEnv = redactSecrets(env, config.secretKeys);
-        printVerboseTrace(projectRoot, configFiles, redactedEnv, config.secretKeys);
-        printVerboseCommand(def, plan, secretValues);
-      }
-
-      // Dry-run (D-27, D-30) — print and return without executing
-      if (isDryRun) {
-        printDryRun(plan, secretValues, effectiveValues, config.secretKeys);
-        return;
-      }
-
-      // Append pass-through args to the plan's argv
-      const finalPlan = passThrough.length > 0 ? appendExtraArgs(plan, passThrough) : plan;
-
-      // Create log file
-      const logFile = createLogFile(projectRoot, alias);
-
-      // Execute — use TUI dashboard only when --ui is explicitly requested
-      const result = isUi && isTTY()
-        ? await runWithDashboard(finalPlan, projectRoot, env, {
-            commandMap: commands,
-            config: effectiveConfig,
-            cwd: projectRoot,
-            env,
-          } satisfies DashboardContext)
-        : await executor.run(finalPlan, {
-            cwd: projectRoot,
-            env,
-            logFile,
-            showOutput,
-            secretValues,
-            alias,
-            projectName: basename(projectRoot),
-            ...(tailLines !== undefined ? { tailLines } : {}),
-            ...(fromStep !== undefined ? { fromStep } : {}),
-          });
-      if (result.exitCode === 130) {
-        // exit 130 = SIGINT (CTRL+C): user intentionally aborted. Skip the
-        // error-line dump and the "Show log?" prompt — they are noise on a
-        // deliberate abort. Still propagate 130 as the process exit code and
-        // confirm the abort on stderr (complements killAndWait's
-        // "[xci] Child process terminated." message).
-        process.exitCode = result.exitCode;
-        process.stderr.write('[xci] Abortito.\n');
-      } else if (result.exitCode !== 0) {
-        process.exitCode = result.exitCode;
-        // Surface error-matching lines (/error/i) BEFORE any askShowLog prompt so the
-        // operator sees what went wrong without first accepting the prompt. Always on
-        // when the command failed; no flag gates this. Silent fallback if the log file
-        // is missing/unreadable — askShowLog still offers the full log as a backup.
-        try {
-          const content = readFileSync(logFile, 'utf8');
-          printErrorLines(content, logFile);
-        } catch {
-          // intentional: missing/unreadable log file — do not disturb the flow.
-        }
-        // On error, offer to show the log (if output was hidden)
-        if (!showOutput) {
-          const show = await askShowLog(logFile);
-          if (show) printLogFile(logFile);
-        }
-      }
+      const exitCode = await runAlias(alias, def, userArgs, commands, config, projectRoot, {
+        dryRun: isDryRun,
+        verbose: isVerbose,
+        log: isLog,
+        shortLog: shortLogValue,
+        ui: isUi,
+        list: isList,
+        fromStep,
+      });
+      if (exitCode !== 0) process.exitCode = exitCode;
     });
   }
 }

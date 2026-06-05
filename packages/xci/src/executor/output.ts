@@ -123,6 +123,7 @@ export function resetTerminalTitle(): void {
 }
 
 export async function notifyCompletion(exitCode: number, projectName?: string, commandName?: string): Promise<void> {
+  if (process.env.CI) return;
   const status = exitCode === 0 ? 'completato' : `errore (exit ${exitCode})`;
   const title = projectName ?? 'xci';
   const body = commandName ? `${commandName}: ${status}` : `xci: ${status}`;
@@ -155,6 +156,7 @@ export async function notifyCompletion(exitCode: number, projectName?: string, c
 }
 
 export async function notifyWaitingForInput(projectName?: string, promptMessage?: string): Promise<void> {
+  if (process.env.CI) return;
   const title = projectName ?? 'xci';
   const body = `⏸ ${promptMessage ?? 'in attesa di input'}`;
   try {
