@@ -1077,6 +1077,152 @@ async function main(argv: readonly string[]): Promise<number> {
   // Register dynamic alias sub-commands
   registerAliases(program, commands, config, projectRoot);
 
+  // ------------------------------------------------------------------
+  // Multi-alias + composition pre-parser
+  // Detects `xci [--parallel] a [args] + b [args] + ...` patterns and
+  // short-circuits program.parseAsync to run aliases sequentially or
+  // concurrently. Non-composition invocations fall through unchanged.
+  // ------------------------------------------------------------------
+  {
+    const userArgv = argv.slice(2);
+
+    // Detect a standalone '+' token that appears after at least one
+    // positional (non-flag, non-'+') token, so `+` as a flag value
+    // is never misinterpreted.
+    const plusIdx = userArgv.indexOf('+');
+    const hasComposition = plusIdx > 0
+      && userArgv.slice(0, plusIdx).some((t) => !t.startsWith('-') && t !== '+');
+
+    if (hasComposition) {
+      // Extract top-level --parallel flag and remove it from the token
+      // stream so it is never forwarded to individual segments.
+      const parallel = userArgv.includes('--parallel');
+      const tokens = userArgv.filter((t) => t !== '--parallel');
+
+      // Split tokens on '+' into segments: each is [aliasName, ...extraArgs]
+      const segments: string[][] = [];
+      let cur: string[] = [];
+      for (const t of tokens) {
+        if (t === '+') { segments.push(cur); cur = []; }
+        else cur.push(t);
+      }
+      segments.push(cur);
+
+      // Validate: every segment must have at least one token (the alias name)
+      for (const seg of segments) {
+        if (seg.length === 0) {
+          process.stderr.write('error [CLI_UNKNOWN_ALIAS]: empty segment in + composition (check for double + or trailing +)\n');
+          process.stderr.write('  suggestion: Run `xci --list` to see available aliases\n');
+          return 50;
+        }
+      }
+
+      // Resolve run-level flags ONCE from the full token stream so they apply
+      // to all segments. Strip them from per-segment extraArgs.
+      const RUN_LEVEL_FLAGS = new Set([
+        '--dry-run', '--verbose', '--log', '--no-log', '--ui', '--list',
+        '--dry-run=true', '--verbose=true', '--log=true', '--ui=true', '--list=true',
+      ]);
+      const isDryRun = tokens.includes('--dry-run');
+      const isVerbose = tokens.includes('--verbose');
+      const isLog = tokens.includes('--log');
+      const isUi = tokens.includes('--ui');
+      const isList = tokens.includes('--list');
+
+      // --short-log <N> or --short-log=N
+      let shortLogValue: string | undefined;
+      const slIdx = tokens.indexOf('--short-log');
+      if (slIdx >= 0 && slIdx + 1 < tokens.length) {
+        shortLogValue = tokens[slIdx + 1];
+      } else {
+        const slEq = tokens.find((t) => t.startsWith('--short-log='));
+        if (slEq) shortLogValue = slEq.split('=')[1];
+      }
+
+      // --from <step> or --from=<step>
+      let fromStep: string | undefined;
+      const fromIdx = tokens.indexOf('--from');
+      if (fromIdx >= 0 && fromIdx + 1 < tokens.length) {
+        fromStep = tokens[fromIdx + 1];
+      } else {
+        const fromEq = tokens.find((t) => t.startsWith('--from='));
+        if (fromEq) fromStep = fromEq.split('=')[1];
+      }
+
+      const compositionFlags: RunAliasFlags = {
+        dryRun: isDryRun,
+        verbose: isVerbose,
+        log: isLog,
+        shortLog: shortLogValue,
+        ui: isUi,
+        list: isList,
+        fromStep,
+      };
+
+      // Tokens to strip from per-segment extraArgs (run-level flags + --short-log/--from values)
+      const stripSet = new Set<string>(RUN_LEVEL_FLAGS);
+      if (shortLogValue) {
+        stripSet.add('--short-log');
+        stripSet.add(shortLogValue);
+        stripSet.add(`--short-log=${shortLogValue}`);
+      }
+      if (fromStep) {
+        stripSet.add('--from');
+        stripSet.add(fromStep);
+        stripSet.add(`--from=${fromStep}`);
+      }
+
+      // Early validation: all alias names must exist BEFORE any execution starts
+      for (const seg of segments) {
+        const aliasName = seg[0] as string;
+        if (!commands.has(aliasName)) {
+          process.stderr.write(`error [CLI_UNKNOWN_ALIAS]: Unknown alias: "${aliasName}"\n`);
+          process.stderr.write('  suggestion: Run `xci --list` to see available aliases\n');
+          return 50;
+        }
+      }
+
+      // Build per-segment [alias, def, extraArgs] tuples
+      const segmentTuples = segments.map((seg) => {
+        const aliasName = seg[0] as string;
+        const def = commands.get(aliasName)!;
+        // extraArgs: everything after the alias name, minus run-level flags
+        const rawExtra = seg.slice(1);
+        // Strip run-level flag tokens and their value tokens from extraArgs.
+        // We need to be careful about --short-log/--from whose value is the
+        // NEXT token, so we skip in pairs.
+        const extraArgs: string[] = [];
+        for (let i = 0; i < rawExtra.length; i++) {
+          const t = rawExtra[i];
+          if (t === undefined) continue;
+          if (t === '--short-log' || t === '--from') { i++; continue; }
+          if (t.startsWith('--short-log=') || t.startsWith('--from=')) continue;
+          if (RUN_LEVEL_FLAGS.has(t)) continue;
+          extraArgs.push(t);
+        }
+        return { aliasName, def, extraArgs };
+      });
+
+      if (parallel) {
+        // Run all segments concurrently; wait for all; return first non-zero (by segment order)
+        const codes = await Promise.all(
+          segmentTuples.map(({ aliasName, def, extraArgs }) =>
+            runAlias(aliasName, def, extraArgs, commands, config, projectRoot, compositionFlags)
+          )
+        );
+        const firstFail = codes.find((c) => c !== 0);
+        return firstFail ?? 0;
+      } else {
+        // Sequential: stop on first non-zero exit
+        for (const { aliasName, def, extraArgs } of segmentTuples) {
+          const code = await runAlias(aliasName, def, extraArgs, commands, config, projectRoot, compositionFlags);
+          if (code !== 0) return code;
+        }
+        return 0;
+      }
+    }
+  }
+
   // D-20: no-args shows alias list; D-21: --list option triggers alias list.
   // With --ui in a TTY: show interactive picker, let user select and execute.
   // Without --ui or in non-TTY: print plain alias list.
