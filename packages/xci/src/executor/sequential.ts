@@ -13,6 +13,7 @@ const IS_WINDOWS = process.platform === 'win32';
 import { interpolateArgv } from '../resolver/interpolate.js';
 import type { ExecutionResult, SequentialStep } from '../types.js';
 import { extractFromOutput, validateCapture } from './capture.js';
+import { assertCwdExists } from './cwd.js';
 import { writeIni, deleteIniKeys } from './ini.js';
 import { notifyWaitingForInput, printCaptureResult, printStepHeader, printStepPreview, printStepResult, resetTerminalTitle, setTerminalTitle } from './output.js';
 import { runSingle } from './single.js';
@@ -29,6 +30,7 @@ async function runAndCapture(
 ): Promise<{ exitCode: number; stdout: string }> {
   const [cmd, ...args] = argv;
   if (!cmd) throw new SpawnError('(empty command)', new Error('argv is empty'));
+  assertCwdExists(cwd);
 
   const logStream = logFile ? createWriteStream(logFile, { flags: 'a' }) : undefined;
 

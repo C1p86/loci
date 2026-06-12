@@ -8,6 +8,7 @@ import { createWriteStream, type WriteStream } from 'node:fs';
 import { execa, type ResultPromise } from 'execa';
 import { SpawnError } from '../errors.js';
 import type { ExecutionResult } from '../types.js';
+import { assertCwdExists } from './cwd.js';
 
 const IS_WINDOWS = process.platform === 'win32';
 const FORCE_KILL_DELAY = 5000;
@@ -64,6 +65,7 @@ export async function runSingleCapture(
 ): Promise<{ exitCode: number; stdout: string }> {
   const [cmd, ...args] = argv;
   if (!cmd) throw new SpawnError('(empty command)', new Error('argv is empty'));
+  assertCwdExists(cwd);
 
   let logStream: WriteStream | undefined;
   if (logFile) logStream = createWriteStream(logFile, { flags: 'a' });
@@ -124,6 +126,7 @@ export async function runSingle(
 ): Promise<ExecutionResult> {
   const [cmd, ...args] = argv;
   if (!cmd) throw new SpawnError('(empty command)', new Error('argv is empty'));
+  assertCwdExists(cwd);
 
   let logStream: WriteStream | undefined;
   if (logFile) logStream = createWriteStream(logFile, { flags: 'a' });

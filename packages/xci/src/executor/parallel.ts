@@ -6,6 +6,7 @@ import { createWriteStream } from 'node:fs';
 import { execa, type Options } from 'execa';
 import { SpawnError } from '../errors.js';
 import type { ExecutionResult } from '../types.js';
+import { assertCwdExists } from './cwd.js';
 import { makeLineTransform, printParallelSummary, printStepPreview } from './output.js';
 
 type SettledResult = { exitCode: number; canceled: boolean };
@@ -72,6 +73,7 @@ export async function runParallel(
 
     // quick-260421-g99: per-entry cwd overrides the group default.
     const effectiveCwd = entryCwd ?? cwd;
+    assertCwdExists(effectiveCwd);
     const execaOpts: Options = {
       cwd: effectiveCwd,
       env: mergedEnv as Record<string, string>,
