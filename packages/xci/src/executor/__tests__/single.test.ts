@@ -1,5 +1,8 @@
 // src/executor/__tests__/single.test.ts
 
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { SpawnError } from '../../errors.js';
 import { runSingle } from '../single.js';
@@ -39,13 +42,19 @@ describe('runSingle', () => {
   });
 
   it('passes cwd to the child process', async () => {
-    const tmpDir = '/tmp';
-    const result = await runSingle(
-      [process.execPath, '-e', `process.exit(process.cwd() === '${tmpDir}' ? 0 : 1)`],
-      tmpDir,
-      {},
-    );
-    expect(result.exitCode).toBe(0);
+    // Use a real, existing directory (cwd is now validated before spawn) so the
+    // test is portable across platforms — a hardcoded '/tmp' does not exist on Windows.
+    const tmpDir = mkdtempSync(join(tmpdir(), 'xci-single-cwd-'));
+    try {
+      const result = await runSingle(
+        [process.execPath, '-e', `process.exit(process.cwd() === ${JSON.stringify(tmpDir)} ? 0 : 1)`],
+        tmpDir,
+        {},
+      );
+      expect(result.exitCode).toBe(0);
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   it('throws SpawnError for empty argv', async () => {
