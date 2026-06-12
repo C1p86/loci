@@ -154,7 +154,9 @@ export class CommandSchemaError extends CommandError {
 }
 
 export class MissingParamsError extends CommandError {
-  constructor(missing: ReadonlyArray<{ name: string; requiredBy: readonly string[]; description?: string }>) {
+  constructor(
+    missing: ReadonlyArray<{ name: string; requiredBy: readonly string[]; description?: string }>,
+  ) {
     const lines = missing.map((p) => {
       const desc = p.description ? ` — ${p.description}` : '';
       return `  ${p.name} (required by: ${p.requiredBy.join(', ')})${desc}`;
@@ -197,6 +199,18 @@ export class SpawnError extends ExecutorError {
       cause,
       suggestion: 'Check the command exists in PATH',
     });
+  }
+}
+
+export class CwdMissingError extends ExecutorError {
+  public readonly path: string;
+  constructor(cwd: string) {
+    super(`Working directory does not exist: ${cwd}`, {
+      code: 'EXE_CWD_MISSING',
+      suggestion:
+        'This directory likely comes from an alias `cwd:`. It exists on some machines but not this one — set it per-machine (e.g. in your machine/local config) or create the directory.',
+    });
+    this.path = cwd;
   }
 }
 

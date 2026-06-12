@@ -4,8 +4,26 @@
 // Relative paths become projectRoot-relative. Absolute paths pass through. Undefined stays undefined.
 // Called by cli.ts between resolver.resolve() and executor.run() (quick-260421-g99).
 
+import { statSync } from 'node:fs';
 import { isAbsolute, resolve as resolvePath } from 'node:path';
+import { CwdMissingError } from '../errors.js';
 import type { ExecutionPlan, SequentialStep } from '../types.js';
+
+/**
+ * Throw CwdMissingError if a defined, non-empty cwd does not exist (or is not a directory).
+ * No-op when cwd is undefined/empty — an absent cwd inherits process.cwd(), always valid.
+ * Cross-platform (node:fs); cheap enough to keep within the cold-start budget.
+ */
+export function assertCwdExists(cwd: string | undefined): void {
+  if (cwd === undefined || cwd === '') return;
+  let isDir = false;
+  try {
+    isDir = statSync(cwd).isDirectory();
+  } catch {
+    isDir = false; // ENOENT or unreadable → treat as missing
+  }
+  if (!isDir) throw new CwdMissingError(cwd);
+}
 
 function toAbs(cwd: string | undefined, projectRoot: string): string | undefined {
   if (cwd === undefined) return undefined;
