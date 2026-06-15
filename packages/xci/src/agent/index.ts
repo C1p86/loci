@@ -8,6 +8,8 @@ import { parse } from 'yaml';
 import { AgentModeArgsError } from '../errors.js';
 import { parseYaml } from '../dsl/index.js';
 import { printErrorLines } from '../log-errors.js';
+import { interpolateArgvLenient } from '../resolver/interpolate.js';
+import { tokenize } from '../commands/tokenize.js';
 import { AgentClient } from './client.js';
 import {
   credentialPath,
@@ -16,9 +18,10 @@ import {
   saveCredential,
 } from './credential.js';
 import { detectLabels } from './labels.js';
-import { spawnTask } from './runner.js';
+import { spawnTask, type RunHandle } from './runner.js';
 import { createAgentState } from './state.js';
 import type { AgentFrame, RunState, TaskSnapshot } from './types.js';
+import type { PromptStepDef } from '../types.js';
 import { normalizeAgentUrl } from './url.js';
 
 interface ParsedFlags {
@@ -133,14 +136,17 @@ function loadLocalSecrets(cwd: string): Record<string, string> {
   }
 }
 
+type TaskYaml =
+  | { kind: 'single'; argv: readonly string[] }
+  | { kind: 'sequential'; steps: readonly (string | PromptStepDef)[] }
+  | { unsupported: string };
+
 /**
- * Parse yaml_definition string into argv.
+ * Parse yaml_definition into a task descriptor.
  * Consumes the shared DSL parser so the agent sees exactly what the server validated on save.
- * Agent supports SINGLE-ALIAS tasks with kind=single only.
+ * Supports SINGLE-ALIAS tasks with kind=single or kind=sequential.
  */
-function parseYamlToArgv(
-  yamlDef: string,
-): { argv: readonly string[] } | { unsupported: string } {
+function parseTaskYaml(yamlDef: string): TaskYaml {
   const result = parseYaml(yamlDef);
   if (result.errors.length > 0) {
     const first = result.errors[0];
@@ -158,16 +164,19 @@ function parseYamlToArgv(
   if (!entry) {
     return { unsupported: 'task YAML has no alias defined' };
   }
-  const [aliasName, def] = entry;
-  if (def.kind !== 'single') {
-    return {
-      unsupported: `alias '${aliasName}' is kind=${def.kind} — agent supports kind=single only`,
-    };
+  const [aliasName, def] = entry as [string, { kind: string; cmd?: readonly string[]; steps?: readonly (string | PromptStepDef)[] }];
+  if (def.kind === 'single') {
+    if (!def.cmd || def.cmd.length === 0) {
+      return { unsupported: `alias '${aliasName}' has empty cmd` };
+    }
+    return { kind: 'single', argv: def.cmd };
   }
-  if (def.cmd.length === 0) {
-    return { unsupported: `alias '${aliasName}' has empty cmd` };
+  if (def.kind === 'sequential') {
+    return { kind: 'sequential', steps: def.steps ?? [] };
   }
-  return { argv: def.cmd };
+  return {
+    unsupported: `alias '${aliasName}' is kind=${def.kind} — agent supports kind=single and kind=sequential`,
+  };
 }
 
 export async function runAgent(argv: readonly string[]): Promise<number> {
@@ -254,11 +263,11 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
       return;
     }
 
-    // Parse yaml_definition → argv
-    const parseResult = parseYamlToArgv(frame.task_snapshot.yaml_definition);
-    if ('unsupported' in parseResult) {
+    // Parse yaml_definition → task descriptor (single or sequential)
+    const taskYaml = parseTaskYaml(frame.task_snapshot.yaml_definition);
+    if ('unsupported' in taskYaml) {
       process.stderr.write(
-        `[agent] rejecting dispatch ${frame.run_id}: ${parseResult.unsupported}\n`,
+        `[agent] rejecting dispatch ${frame.run_id}: ${taskYaml.unsupported}\n`,
       );
       client.send({
         type: 'result',
@@ -268,7 +277,6 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
       });
       return;
     }
-    const { argv: taskArgv } = parseResult;
 
     // SEC-06: load agent-local secrets; agent-local WINS on collision
     const localSecrets = loadLocalSecrets(process.cwd());
@@ -289,57 +297,173 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
     let outputBuffer = '';
     const MAX_OUTPUT_BUFFER = 2 * 1024 * 1024; // 2MB
 
-    // Spawn task
-    const handle = spawnTask(frame.run_id, {
-      argv: taskArgv,
-      cwd: process.cwd(),
-      env: mergedEnv,
-      redactionValues,
-      onChunk: (stream, data, seq) => {
-        // Buffer first (already-redacted data per runner.ts:161 — no re-redaction needed).
-        // Head-trim keeps the most recent output when a chatty producer exceeds the cap.
-        outputBuffer += data;
-        if (outputBuffer.length > MAX_OUTPUT_BUFFER) {
-          outputBuffer = outputBuffer.slice(-MAX_OUTPUT_BUFFER);
-        }
-        // Echo to agent's local terminal (data is already redacted in runner.ts:161)
-        if (stream === 'stdout') {
-          process.stdout.write(data);
-        } else {
-          process.stderr.write(data);
-        }
-        client?.send({
-          type: 'log_chunk',
-          run_id: frame.run_id,
-          seq,
-          stream,
-          data,
-          ts: new Date().toISOString(),
-        });
+    if (taskYaml.kind === 'single') {
+      // Spawn task
+      const handle = spawnTask(frame.run_id, {
+        argv: taskYaml.argv,
+        cwd: process.cwd(),
+        env: mergedEnv,
+        redactionValues,
+        onChunk: (stream, data, seq) => {
+          outputBuffer += data;
+          if (outputBuffer.length > MAX_OUTPUT_BUFFER) {
+            outputBuffer = outputBuffer.slice(-MAX_OUTPUT_BUFFER);
+          }
+          if (stream === 'stdout') {
+            process.stdout.write(data);
+          } else {
+            process.stderr.write(data);
+          }
+          client?.send({
+            type: 'log_chunk',
+            run_id: frame.run_id,
+            seq,
+            stream,
+            data,
+            ts: new Date().toISOString(),
+          });
+        },
+        onExit: (exit_code, duration_ms, cancelled) => {
+          if (exit_code !== 0) {
+            printErrorLines(outputBuffer, frame.run_id);
+          }
+          outputBuffer = '';
+          state.runningRuns.delete(frame.run_id);
+          client?.send({
+            type: 'result',
+            run_id: frame.run_id,
+            exit_code,
+            duration_ms,
+            ...(cancelled ? { cancelled: true } : {}),
+          });
+        },
+      });
+
+      state.runningRuns.set(frame.run_id, {
+        handle,
+        startedAt: new Date().toISOString(),
+        taskSnapshot: frame.task_snapshot,
+      });
+      return;
+    }
+
+    // Sequential execution: run steps in order, stop on first failure.
+    // capturedVars are passed as env vars to each step so later steps can read them.
+    const startTime = Date.now();
+    let outerSeq = 0;
+    const capturedVars: Record<string, string> = {};
+    let cancelCurrentStep: (() => Promise<void>) | null = null;
+    let seqCancelled = false;
+
+    const VAR_ASSIGN_RE = /^([A-Za-z_][A-Za-z0-9_.]*)=([\s\S]*)$/;
+
+    const seqHandle: RunHandle = {
+      runId: frame.run_id,
+      cancelled: false,
+      async cancel(): Promise<void> {
+        seqHandle.cancelled = true;
+        seqCancelled = true;
+        if (cancelCurrentStep) await cancelCurrentStep();
       },
-      onExit: (exit_code, duration_ms, cancelled) => {
-        // Surface /error/i lines BEFORE cleanup + result frame so the agent operator
-        // sees the failure cause on the agent host immediately on non-zero exit.
-        if (exit_code !== 0) {
-          printErrorLines(outputBuffer, frame.run_id);
-        }
-        outputBuffer = ''; // release memory
-        state.runningRuns.delete(frame.run_id);
-        client?.send({
-          type: 'result',
-          run_id: frame.run_id,
-          exit_code,
-          duration_ms,
-          ...(cancelled ? { cancelled: true } : {}),
-        });
-      },
-    });
+    };
 
     state.runningRuns.set(frame.run_id, {
-      handle,
+      handle: seqHandle,
       startedAt: new Date().toISOString(),
       taskSnapshot: frame.task_snapshot,
     });
+
+    void (async () => {
+      let exitCode = 0;
+
+      for (const step of taskYaml.steps) {
+        if (seqCancelled) { exitCode = -1; break; }
+
+        if (typeof step !== 'string') {
+          // PromptStepDef — use default in non-interactive agent mode
+          if (step.default !== undefined) {
+            capturedVars[step.var] = step.default;
+            capturedVars[step.var.toUpperCase().replace(/[.\-]/g, '_')] = step.default;
+          } else {
+            const msg = `[agent] prompt step '${step.var}' requires input but has no default\n`;
+            process.stderr.write(msg);
+            client?.send({ type: 'log_chunk', run_id: frame.run_id, seq: outerSeq++, stream: 'stderr', data: msg, ts: new Date().toISOString() });
+            exitCode = 1;
+          }
+          break;
+        }
+
+        // Variable assignment step: KEY=value
+        const assignMatch = VAR_ASSIGN_RE.exec(step);
+        if (assignMatch) {
+          const key = assignMatch[1] as string;
+          const rawValue = assignMatch[2] as string;
+          const mergedValues = { ...mergedEnv, ...capturedVars };
+          const value = interpolateArgvLenient([rawValue], mergedValues)[0] ?? rawValue;
+          capturedVars[key] = value;
+          capturedVars[key.toUpperCase().replace(/[.\-]/g, '_')] = value;
+          continue;
+        }
+
+        // Inline command step: tokenize and spawn
+        let stepArgv: readonly string[];
+        try {
+          stepArgv = tokenize(step, frame.task_snapshot.name);
+        } catch (err) {
+          const msg = `[agent] step tokenize error: ${(err as Error).message}\n`;
+          process.stderr.write(msg);
+          client?.send({ type: 'log_chunk', run_id: frame.run_id, seq: outerSeq++, stream: 'stderr', data: msg, ts: new Date().toISOString() });
+          exitCode = 1;
+          break;
+        }
+        if (stepArgv.length === 0) continue;
+
+        const stepEnv = { ...mergedEnv, ...capturedVars };
+
+        const stepResult = await new Promise<{ exitCode: number; cancelled: boolean }>((resolve) => {
+          const stepHandle = spawnTask(frame.run_id, {
+            argv: stepArgv,
+            cwd: process.cwd(),
+            env: stepEnv,
+            redactionValues,
+            onChunk: (stream, data) => {
+              outputBuffer += data;
+              if (outputBuffer.length > MAX_OUTPUT_BUFFER) outputBuffer = outputBuffer.slice(-MAX_OUTPUT_BUFFER);
+              if (stream === 'stdout') process.stdout.write(data);
+              else process.stderr.write(data);
+              client?.send({ type: 'log_chunk', run_id: frame.run_id, seq: outerSeq++, stream, data, ts: new Date().toISOString() });
+            },
+            onExit: (code, _dur, cancelled) => {
+              cancelCurrentStep = null;
+              resolve({ exitCode: code, cancelled });
+            },
+          });
+          cancelCurrentStep = () => stepHandle.cancel();
+        });
+
+        if (stepResult.cancelled) {
+          seqCancelled = true;
+          seqHandle.cancelled = true;
+          exitCode = stepResult.exitCode;
+          break;
+        }
+        if (stepResult.exitCode !== 0) {
+          exitCode = stepResult.exitCode;
+          break;
+        }
+      }
+
+      if (exitCode !== 0 && !seqCancelled) printErrorLines(outputBuffer, frame.run_id);
+      outputBuffer = '';
+      state.runningRuns.delete(frame.run_id);
+      client?.send({
+        type: 'result',
+        run_id: frame.run_id,
+        exit_code: exitCode,
+        duration_ms: Date.now() - startTime,
+        ...(seqHandle.cancelled ? { cancelled: true } : {}),
+      });
+    })();
   }
 
   async function handleCancel(frame: {
