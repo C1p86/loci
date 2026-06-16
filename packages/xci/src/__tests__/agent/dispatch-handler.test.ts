@@ -554,3 +554,57 @@ it('dispatch: sequential task cancel → result with cancelled=true', async () =
   expect(results.length).toBeGreaterThanOrEqual(1);
   expect((results[0] as { cancelled?: boolean }).cancelled).toBe(true);
 }, 20_000);
+
+// -------------------------------------------------------------------------
+// Test 16: alias-level cwd → command runs in that directory
+// -------------------------------------------------------------------------
+it('dispatch: task cwd → command runs in the declared working directory', async () => {
+  const { server: srv } = await spawnAgent({ authenticate: true });
+
+  const workDir = join(tmpDir, 'workspace-dir');
+  await mkdir(workDir, { recursive: true });
+
+  // Single-quoted YAML scalar keeps Windows backslashes literal; workDir is runtime data.
+  const yamlDef = [
+    'show-cwd:',
+    `  cwd: '${workDir}'`,
+    '  cmd:',
+    '    - node',
+    '    - -e',
+    '    - process.stdout.write(process.cwd())',
+  ].join('\n');
+
+  srv.send(makeDispatchFrame('run-cwd-ok', yamlDef));
+
+  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-cwd-ok');
+  expect(results.length).toBeGreaterThanOrEqual(1);
+  expect((results[0] as { exit_code: number }).exit_code).toBe(0);
+
+  const output = srv.frames()
+    .filter((f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-cwd-ok')
+    .map((f) => (f as { data: string }).data)
+    .join('');
+  expect(output).toContain('workspace-dir');
+}, 15_000);
+
+// -------------------------------------------------------------------------
+// Test 17: nonexistent cwd → rejected with a clear error (not a cryptic OS spawn failure)
+// -------------------------------------------------------------------------
+it('dispatch: nonexistent cwd → result exit_code=-1 with a clear error message', async () => {
+  const { server: srv } = await spawnAgent({ authenticate: true });
+
+  const missing = join(tmpDir, 'definitely-does-not-exist');
+  const yamlDef = ['show:', `  cwd: '${missing}'`, '  cmd: echo hi'].join('\n');
+
+  srv.send(makeDispatchFrame('run-cwd-missing', yamlDef));
+
+  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-cwd-missing');
+  expect(results.length).toBeGreaterThanOrEqual(1);
+  expect((results[0] as { exit_code: number }).exit_code).toBe(-1);
+
+  const output = srv.frames()
+    .filter((f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-cwd-missing')
+    .map((f) => (f as { data: string }).data)
+    .join('');
+  expect(output).toContain('does not exist');
+}, 15_000);
