@@ -35,8 +35,11 @@ export interface UprojectEditResult {
  *     If absent and an enable op adds one, the array is created.
  *   - enable: if entry exists → set Enabled:true (warn if already true);
  *             if absent → push { Name, Enabled: true }.
- *   - disable: if entry exists → set Enabled:false (preserve other fields);
- *              if absent → warn "plugin X not found (disable skipped)", no error.
+ *   - disable: if entry exists → set Enabled:false (warn if already false, preserve
+ *              other fields); if absent → push { Name, Enabled: false } (creating the
+ *              Plugins array if needed). UE engine plugins enabled by default are not
+ *              listed in the .uproject, so disabling them requires adding an explicit
+ *              { Name, Enabled: false } entry.
  *   - remove: if present → delete entry from Plugins;
  *             if absent → warn "plugin X not found (remove skipped)", no error.
  *   - set: assign each key on the top-level object. Existing key order is preserved
@@ -77,15 +80,20 @@ export function applyUprojectEdits(
     if (plugins.disable) {
       for (const name of plugins.disable) {
         if (!Array.isArray(result.Plugins)) {
-          warnings.push(`plugin "${name}" not found (disable skipped)`);
-          continue;
+          result.Plugins = [];
         }
         const list = result.Plugins as UprojectPlugin[];
         const idx = list.findIndex((p) => p.Name === name);
         if (idx >= 0) {
-          list[idx] = { ...list[idx]!, Enabled: false };
+          if (list[idx]!.Enabled === false) {
+            warnings.push(`plugin "${name}" is already disabled`);
+          } else {
+            list[idx] = { ...list[idx]!, Enabled: false };
+          }
         } else {
-          warnings.push(`plugin "${name}" not found (disable skipped)`);
+          // Engine plugins enabled by default aren't listed — add an explicit
+          // disabled entry so the plugin is actually turned off.
+          list.push({ Name: name, Enabled: false });
         }
       }
     }

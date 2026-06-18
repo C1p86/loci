@@ -1087,24 +1087,27 @@ describe.skipIf(!existsSync(CLI))('uproject command kind (quick-260618-h1d)', ()
     expect(paper2d?.Enabled).toBe(false);
   });
 
-  it('absent disable emits a stderr warning but exits 0 (not an error)', () => {
+  it('disabling an absent plugin appends a disabled entry and exits 0', () => {
     const dir = trackDir(
       createTempProject({
         '.xci/commands.yml': [
-          'test-warn:',
+          'test-disable-absent:',
           '  uproject: MyGame.uproject',
           '  plugins:',
           '    disable:',
-          '      - NonExistentPlugin',
+          '      - MetaXrUtilsLibrary',
         ].join('\n'),
         '.xci/config.yml': '',
         'MyGame.uproject': sampleUproject,
       }),
     );
-    const { stderr, code } = runCliInDir(dir, ['test-warn']);
+    const { code } = runCliInDir(dir, ['test-disable-absent']);
     expect(code).toBe(0);
-    expect(stderr).toContain('NonExistentPlugin');
-    expect(stderr.toLowerCase()).toContain('not found');
+    const updated = JSON.parse(readFileSync(join(dir, 'MyGame.uproject'), 'utf8'));
+    const entry = (updated.Plugins as Array<Record<string, unknown>>).find(
+      (p) => p.Name === 'MetaXrUtilsLibrary',
+    );
+    expect(entry).toEqual({ Name: 'MetaXrUtilsLibrary', Enabled: false });
   });
 
   it('already-enabled plugin emits idempotency warning on stderr but exits 0', () => {

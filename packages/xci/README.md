@@ -361,17 +361,19 @@ At least one operation (`plugins.enable`, `plugins.disable`, `plugins.remove`, o
 | Operation | Behavior |
 |-----------|----------|
 | `enable: [Name, …]` | Sets `Enabled: true` on the matching entry in the `Plugins` array. If the plugin is **not** present, a new entry `{ "Name": "…", "Enabled": true }` is appended (the `Plugins` array is created if missing). |
-| `disable: [Name, …]` | Sets `Enabled: false` on the matching entry. Other fields on that entry are preserved. |
+| `disable: [Name, …]` | Sets `Enabled: false` on the matching entry (other fields preserved). If the plugin is **not** present, a new entry `{ "Name": "…", "Enabled": false }` is appended. This is required to turn off engine plugins that are enabled by default and therefore not listed in the `.uproject`. |
 | `remove: [Name, …]` | Deletes the matching entry from the `Plugins` array entirely. |
 
 `set` assigns each key on the top-level object (e.g. `EngineAssociation`, `Description`, `MarketplaceURL`). Existing keys are updated in place; new keys are appended. Key order of existing fields is never reordered.
 
 #### Warnings, not errors
 
-Missing or redundant operations are **warnings on stderr** — they never fail the run (exit code stays `0`):
+Redundant operations are **warnings on stderr** — they never fail the run (exit code stays `0`):
 
-- Disabling or removing a plugin that is **not** in the array → warning, skipped.
-- Enabling or adding a plugin that is **already present / already enabled** → warning, no-op.
+- Enabling a plugin that is **already enabled**, or disabling one that is **already disabled** → warning, no-op.
+- Removing a plugin that is **not** in the array → warning, skipped.
+
+Enabling or disabling a plugin that is simply **not listed** is *not* a warning — the entry is created (`Enabled: true` or `Enabled: false` respectively), since that is how you turn engine-default plugins on or off.
 
 This makes aliases idempotent: re-running `ue-setup` after the file is already configured succeeds quietly with warnings instead of failing.
 

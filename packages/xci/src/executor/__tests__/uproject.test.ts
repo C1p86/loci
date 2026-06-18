@@ -118,27 +118,36 @@ describe('applyUprojectEdits — disable', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  it('disable absent plugin → warning emitted, no throw, plugin not added', () => {
-    const input = makeUprojectWithPlugins([{ Name: 'SomePlugin', Enabled: true }]);
+  it('disable already-disabled plugin → stays false, warning emitted (idempotency)', () => {
+    const input = makeUprojectWithPlugins([{ Name: 'AlreadyOff', Enabled: false }]);
     const { json, warnings } = applyUprojectEdits(input, {
-      plugins: { disable: ['NonExistent'] },
+      plugins: { disable: ['AlreadyOff'] },
     });
     const plugins = json.Plugins as Array<Record<string, unknown>>;
-    expect(plugins).toHaveLength(1); // no new entry added
+    expect(plugins[0]?.Enabled).toBe(false);
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('NonExistent');
-    expect(warnings[0]).toContain('not found');
-    expect(warnings[0]).toContain('disable skipped');
+    expect(warnings[0]).toContain('already disabled');
   });
 
-  it('disable absent plugin when Plugins array is missing → warning, no throw', () => {
+  it('disable absent plugin → appends { Name, Enabled: false }, no warning', () => {
+    const input = makeUprojectWithPlugins([{ Name: 'SomePlugin', Enabled: true }]);
+    const { json, warnings } = applyUprojectEdits(input, {
+      plugins: { disable: ['MetaXrUtilsLibrary'] },
+    });
+    const plugins = json.Plugins as Array<Record<string, unknown>>;
+    expect(plugins).toHaveLength(2); // new disabled entry added
+    expect(plugins[1]).toEqual({ Name: 'MetaXrUtilsLibrary', Enabled: false });
+    expect(warnings).toHaveLength(0);
+  });
+
+  it('disable absent plugin when Plugins array is missing → creates array with disabled entry', () => {
     const input = makeUproject(); // no Plugins
     const { json, warnings } = applyUprojectEdits(input, {
-      plugins: { disable: ['Missing'] },
+      plugins: { disable: ['MetaXrUtilsLibrary'] },
     });
-    expect(json.Plugins).toBeUndefined();
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('Missing');
+    const plugins = json.Plugins as Array<Record<string, unknown>>;
+    expect(plugins).toEqual([{ Name: 'MetaXrUtilsLibrary', Enabled: false }]);
+    expect(warnings).toHaveLength(0);
   });
 });
 
