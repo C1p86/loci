@@ -474,3 +474,137 @@ it('--max-concurrent: parsed correctly; 3 dispatches accepted with maxConcurrent
   const errors = srv.frames().filter((f) => f.type === 'error');
   expect(errors.filter((e) => (e as { code: string }).code === 'AGENT_AT_CAPACITY').length).toBe(0);
 }, 15_000);
+
+// -------------------------------------------------------------------------
+// Test 13: sequential task — steps run in order, combined log_chunks, exit_code=0
+// -------------------------------------------------------------------------
+it('dispatch: sequential task → steps run in order, all log_chunks arrive, result exit_code=0', async () => {
+  const { server: srv } = await spawnAgent({ authenticate: true });
+
+  const seqYaml = [
+    'build:',
+    '  steps:',
+    '    - node -e "process.stdout.write(\'step1\\n\')"',
+    '    - node -e "process.stdout.write(\'step2\\n\')"',
+  ].join('\n');
+
+  srv.send(makeDispatchFrame('run-seq', seqYaml));
+
+  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-seq');
+  expect(results.length).toBeGreaterThanOrEqual(1);
+  expect((results[0] as { exit_code: number }).exit_code).toBe(0);
+
+  const logChunks = srv.frames().filter(
+    (f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-seq',
+  );
+  const output = logChunks.map((c) => (c as { data: string }).data).join('');
+  expect(output).toContain('step1');
+  expect(output).toContain('step2');
+
+  // seq numbers must be strictly increasing (no step-restart from 0)
+  const seqs = logChunks.map((c) => (c as { seq: number }).seq);
+  for (let i = 1; i < seqs.length; i++) {
+    expect(seqs[i]!).toBeGreaterThan(seqs[i - 1]!);
+  }
+}, 15_000);
+
+// -------------------------------------------------------------------------
+// Test 14: sequential task — first step fails → stops early, exit_code=1
+// -------------------------------------------------------------------------
+it('dispatch: sequential task — first step failure stops execution', async () => {
+  const { server: srv } = await spawnAgent({ authenticate: true });
+
+  const seqYaml = [
+    'build:',
+    '  steps:',
+    '    - node -e "process.exit(1)"',
+    '    - node -e "process.stdout.write(\'should-not-run\\n\')"',
+  ].join('\n');
+
+  srv.send(makeDispatchFrame('run-seq-fail', seqYaml));
+
+  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-seq-fail');
+  expect((results[0] as { exit_code: number }).exit_code).toBe(1);
+
+  const output = srv.frames()
+    .filter((f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-seq-fail')
+    .map((c) => (c as { data: string }).data).join('');
+  expect(output).not.toContain('should-not-run');
+}, 15_000);
+
+// -------------------------------------------------------------------------
+// Test 15: sequential task — cancel mid-execution → cancelled=true
+// -------------------------------------------------------------------------
+it('dispatch: sequential task cancel → result with cancelled=true', async () => {
+  const { server: srv } = await spawnAgent({ authenticate: true });
+
+  const seqYaml = [
+    'build:',
+    '  steps:',
+    '    - node -e "setTimeout(()=>{},30000)"',
+    '    - node -e "process.stdout.write(\'should-not-run\\n\')"',
+  ].join('\n');
+
+  srv.send(makeDispatchFrame('run-seq-cancel', seqYaml));
+  await srv.waitFrames(1, (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-seq-cancel');
+
+  srv.send({ type: 'cancel', run_id: 'run-seq-cancel', reason: 'manual' });
+
+  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-seq-cancel', 12_000);
+  expect(results.length).toBeGreaterThanOrEqual(1);
+  expect((results[0] as { cancelled?: boolean }).cancelled).toBe(true);
+}, 20_000);
+
+// -------------------------------------------------------------------------
+// Test 16: alias-level cwd → command runs in that directory
+// -------------------------------------------------------------------------
+it('dispatch: task cwd → command runs in the declared working directory', async () => {
+  const { server: srv } = await spawnAgent({ authenticate: true });
+
+  const workDir = join(tmpDir, 'workspace-dir');
+  await mkdir(workDir, { recursive: true });
+
+  // Single-quoted YAML scalar keeps Windows backslashes literal; workDir is runtime data.
+  const yamlDef = [
+    'show-cwd:',
+    `  cwd: '${workDir}'`,
+    '  cmd:',
+    '    - node',
+    '    - -e',
+    '    - process.stdout.write(process.cwd())',
+  ].join('\n');
+
+  srv.send(makeDispatchFrame('run-cwd-ok', yamlDef));
+
+  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-cwd-ok');
+  expect(results.length).toBeGreaterThanOrEqual(1);
+  expect((results[0] as { exit_code: number }).exit_code).toBe(0);
+
+  const output = srv.frames()
+    .filter((f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-cwd-ok')
+    .map((f) => (f as { data: string }).data)
+    .join('');
+  expect(output).toContain('workspace-dir');
+}, 15_000);
+
+// -------------------------------------------------------------------------
+// Test 17: nonexistent cwd → rejected with a clear error (not a cryptic OS spawn failure)
+// -------------------------------------------------------------------------
+it('dispatch: nonexistent cwd → result exit_code=-1 with a clear error message', async () => {
+  const { server: srv } = await spawnAgent({ authenticate: true });
+
+  const missing = join(tmpDir, 'definitely-does-not-exist');
+  const yamlDef = ['show:', `  cwd: '${missing}'`, '  cmd: echo hi'].join('\n');
+
+  srv.send(makeDispatchFrame('run-cwd-missing', yamlDef));
+
+  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-cwd-missing');
+  expect(results.length).toBeGreaterThanOrEqual(1);
+  expect((results[0] as { exit_code: number }).exit_code).toBe(-1);
+
+  const output = srv.frames()
+    .filter((f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-cwd-missing')
+    .map((f) => (f as { data: string }).data)
+    .join('');
+  expect(output).toContain('does not exist');
+}, 15_000);
