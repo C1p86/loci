@@ -145,9 +145,10 @@ None
 | 260605-pg5 | Fix CTRL+C exit code 130 handling — skip toast and askShowLog on SIGINT | 2026-06-05 | f8f744e | [260605-pg5-fix-ctrl-c-exit-code-130-handling-skip-t](./quick/260605-pg5-fix-ctrl-c-exit-code-130-handling-skip-t/) |
 | 260605-q1f | Add CLI-level multi-alias + composition (sequential and --parallel) | 2026-06-05 | 42448ae | [260605-q1f-add-cli-level-multi-alias-composition-wi](./quick/260605-q1f-add-cli-level-multi-alias-composition-wi/) |
 | 260612-lbn | Validate cwd exists before spawning child process (CwdMissingError) | 2026-06-12 | aa9ff20 | [260612-lbn-validate-cwd-exists-before-spawning-chil](./quick/260612-lbn-validate-cwd-exists-before-spawning-chil/) |
+| 260618-h1d | Add `uproject` command kind to xci DSL — Unreal Engine .uproject JSON editing (enable/disable/remove plugins, set fields) | 2026-06-18 | 08bbeac | [260618-h1d-aggiungere-command-kind-uproject-alla-ds](./quick/260618-h1d-aggiungere-command-kind-uproject-alla-ds/) |
 
 ## Session Continuity
 
-Last session: 2026-06-12
-Stopped at: Completed quick task 260612-lbn — validate cwd exists before spawning child process
+Last session: 2026-06-18
+Stopped at: Completed quick task 260618-h1d — add uproject command kind to xci DSL
 Resume: Phase 16 — Go CLI Output Infrastructure (`/gsd:plan-phase 16`)
