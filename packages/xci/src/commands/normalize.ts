@@ -140,6 +140,79 @@ function normalizeObject(
   obj: Record<string, unknown>,
   _filePath: string,
 ): CommandDef {
+  // Check for uproject (Unreal Engine .uproject file manipulation)
+  if (Object.hasOwn(obj, 'uproject')) {
+    const rawFile = obj.uproject;
+    if (typeof rawFile !== 'string') {
+      throw new CommandSchemaError(aliasName, 'uproject must be a string (path to .uproject file)');
+    }
+
+    // Validate plugins (optional): { enable?, disable?, remove? } — each is string[]
+    let plugins: { enable?: readonly string[]; disable?: readonly string[]; remove?: readonly string[] } | undefined;
+    if (obj.plugins !== undefined) {
+      if (typeof obj.plugins !== 'object' || obj.plugins === null || Array.isArray(obj.plugins)) {
+        throw new CommandSchemaError(aliasName, 'uproject plugins must be an object with optional enable/disable/remove arrays');
+      }
+      const rawPlugins = obj.plugins as Record<string, unknown>;
+      const enable = rawPlugins.enable !== undefined
+        ? validateStringArray(aliasName, rawPlugins.enable, 'plugins.enable')
+        : undefined;
+      const disable = rawPlugins.disable !== undefined
+        ? validateStringArray(aliasName, rawPlugins.disable, 'plugins.disable')
+        : undefined;
+      const remove = rawPlugins.remove !== undefined
+        ? validateStringArray(aliasName, rawPlugins.remove, 'plugins.remove')
+        : undefined;
+      plugins = {
+        ...(enable !== undefined ? { enable } : {}),
+        ...(disable !== undefined ? { disable } : {}),
+        ...(remove !== undefined ? { remove } : {}),
+      };
+    }
+
+    // Validate set (optional): Record<string, string> — every value must be a string
+    let set: Record<string, string> | undefined;
+    if (obj.set !== undefined) {
+      if (typeof obj.set !== 'object' || obj.set === null || Array.isArray(obj.set)) {
+        throw new CommandSchemaError(aliasName, 'uproject set must be an object of { key: value }');
+      }
+      set = {};
+      for (const [k, v] of Object.entries(obj.set as Record<string, unknown>)) {
+        if (typeof v !== 'string') {
+          throw new CommandSchemaError(aliasName, `uproject set["${k}"] must be a string`);
+        }
+        set[k] = v;
+      }
+    }
+
+    // At-least-one-op rule: must have plugins.enable/disable/remove OR set
+    const hasPluginOps =
+      (plugins?.enable && plugins.enable.length > 0) ||
+      (plugins?.disable && plugins.disable.length > 0) ||
+      (plugins?.remove && plugins.remove.length > 0);
+    const hasSet = set && Object.keys(set).length > 0;
+    if (!hasPluginOps && !hasSet) {
+      throw new CommandSchemaError(
+        aliasName,
+        'uproject must have at least one of: plugins.enable, plugins.disable, plugins.remove, set',
+      );
+    }
+
+    const description = typeof obj.description === 'string' ? obj.description : undefined;
+    const params = normalizeParams(aliasName, obj.params);
+    const cwd = parseCwd(aliasName, obj);
+
+    return {
+      kind: 'uproject',
+      file: rawFile,
+      ...(plugins !== undefined ? { plugins } : {}),
+      ...(set !== undefined ? { set } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(params !== undefined ? { params } : {}),
+      ...(cwd !== undefined ? { cwd } : {}),
+    };
+  }
+
   // Check for ini (file manipulation)
   if (Object.hasOwn(obj, 'ini')) {
     const raw = obj.ini;

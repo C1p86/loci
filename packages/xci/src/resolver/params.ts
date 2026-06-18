@@ -208,6 +208,16 @@ function collectAll(
         }
       }
       break;
+
+    case 'uproject':
+      trackUsage(extractPlaceholders(def.file));
+      if (def.set) {
+        for (const v of Object.values(def.set)) {
+          trackUsage(extractPlaceholders(v));
+        }
+      }
+      // Plugin names are literals — not tracked as placeholders
+      break;
   }
 
   // Recurse into sub-aliases for sequential/parallel (handled above via return)

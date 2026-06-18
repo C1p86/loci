@@ -210,6 +210,25 @@ function resolveToStepsLenient(
         breadcrumb: [...chain],
       }];
     }
+
+    case 'uproject': {
+      const file = interpolateArgvLenient([def.file], config.values)[0] ?? def.file;
+      let set: Record<string, string> | undefined;
+      if (def.set) {
+        set = {};
+        for (const [k, v] of Object.entries(def.set)) {
+          set[k] = interpolateArgvLenient([v], config.values)[0] ?? v;
+        }
+      }
+      return [{
+        kind: 'uproject' as const,
+        file,
+        ...(def.plugins ? { plugins: def.plugins } : {}),
+        ...(set ? { set } : {}),
+        ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+        breadcrumb: [...chain],
+      }];
+    }
   }
 }
 
@@ -407,6 +426,25 @@ function resolveAlias(
         mode: def.mode ?? 'overwrite',
         ...(set ? { set } : {}),
         ...(def.delete ? { delete: def.delete } : {}),
+        ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+      };
+    }
+
+    case 'uproject': {
+      // Interpolate file path and set values
+      const file = interpolateArgv([def.file], aliasName, config.values)[0] ?? def.file;
+      let set: Record<string, string> | undefined;
+      if (def.set) {
+        set = {};
+        for (const [k, v] of Object.entries(def.set)) {
+          set[k] = interpolateArgv([v], aliasName, config.values)[0] ?? v;
+        }
+      }
+      return {
+        kind: 'uproject',
+        file,
+        ...(def.plugins ? { plugins: def.plugins } : {}),
+        ...(set ? { set } : {}),
         ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
       };
     }

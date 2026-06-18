@@ -112,6 +112,19 @@ export type CommandDef =
       readonly description?: string;
       readonly params?: Readonly<Record<string, ParamDef>>;
       readonly cwd?: string; // working directory — relative to projectRoot, absolute path, or ${placeholder}. Inherited by child aliases when they don't declare their own.
+    }
+  | {
+      readonly kind: 'uproject';
+      readonly file: string;                   // path to .uproject file (supports ${var})
+      readonly plugins?: {
+        readonly enable?: readonly string[];   // plugin names to enable
+        readonly disable?: readonly string[];  // plugin names to disable
+        readonly remove?: readonly string[];   // plugin names to remove
+      };
+      readonly set?: Readonly<Record<string, string>>; // top-level .uproject fields to set
+      readonly description?: string;
+      readonly params?: Readonly<Record<string, ParamDef>>;
+      readonly cwd?: string; // working directory — relative to projectRoot, absolute path, or ${placeholder}. Inherited by child aliases when they don't declare their own.
     };
 
 export type CommandMap = ReadonlyMap<string, CommandDef>;
@@ -142,6 +155,18 @@ export type SequentialStep =
       readonly delete?: Readonly<Record<string, readonly string[]>>;
       readonly cwd?: string;                     // effective working directory (absolute after resolveAbsoluteCwds)
       readonly breadcrumb?: readonly string[];  // path of containing alias names (quick-260421-kbl)
+    }
+  | {
+      readonly kind: 'uproject';
+      readonly file: string;
+      readonly plugins?: {
+        readonly enable?: readonly string[];
+        readonly disable?: readonly string[];
+        readonly remove?: readonly string[];
+      };
+      readonly set?: Readonly<Record<string, string>>;
+      readonly cwd?: string;                     // effective working directory (absolute after resolveAbsoluteCwds)
+      readonly breadcrumb?: readonly string[];  // path of containing alias names
     }
   | {
       readonly kind: 'set';
@@ -175,6 +200,17 @@ export type ExecutionPlan =
       readonly mode: 'overwrite' | 'merge';
       readonly set?: Readonly<Record<string, Readonly<Record<string, string>>>>;
       readonly delete?: Readonly<Record<string, readonly string[]>>;
+      readonly cwd?: string;
+    }
+  | {
+      readonly kind: 'uproject';
+      readonly file: string;
+      readonly plugins?: {
+        readonly enable?: readonly string[];
+        readonly disable?: readonly string[];
+        readonly remove?: readonly string[];
+      };
+      readonly set?: Readonly<Record<string, string>>;
       readonly cwd?: string;
     };
 
