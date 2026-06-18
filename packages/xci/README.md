@@ -385,7 +385,7 @@ This makes aliases idempotent: re-running `ue-setup` after the file is already c
 #### Formatting & interpolation
 
 - The file is written back with **2-space indentation and a trailing newline** (UE's conventional format). It uses native JSON only.
-- `${placeholder}` is interpolated in the `uproject` path and in every `set` value (from config, CLI params, or captured variables). Plugin names are taken literally.
+- `${placeholder}` is interpolated in the `uproject` path and in every `set` value (from config, CLI params, built-ins like `${xci.project.path}`, or captured variables). Plugin names are taken literally.
 
 ```yaml
 ue-engine:
@@ -396,6 +396,22 @@ ue-engine:
 
 ```bash
 xci ue-engine ue_version=5.4
+```
+
+The path can be driven entirely by a variable — for example to pick which `.uproject` to edit at call time. Placeholders that appear **only** in the path still participate in parameter validation, so a `required` param is enforced even when nothing else references it:
+
+```yaml
+ue-configure:
+  uproject: "configs/${game}.uproject"   # path selected by a CLI param
+  params:
+    game: required
+  plugins:
+    disable: [Paper2D]
+```
+
+```bash
+xci ue-configure game=Alpha       # edits configs/Alpha.uproject
+xci ue-configure                  # error: missing required parameter "game"
 ```
 
 #### Dry run
