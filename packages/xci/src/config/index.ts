@@ -230,7 +230,9 @@ function interpolateValues(values: Record<string, string>): Record<string, strin
       throw new YamlParseError(
         '<config>',
         undefined,
-        new Error(`Circular interpolation: "${key}" references itself through ${[...resolving].join(' → ')}`),
+        new Error(
+          `Circular interpolation: "${key}" references itself through ${[...resolving].join(' → ')}`,
+        ),
       );
     }
     const raw = values[key];
@@ -337,8 +339,14 @@ export const configLoader: ConfigLoader = {
     }
 
     // Machine config + secrets: load from root + <project>/ subdirectory of the resolved machine dir
-    const machineConfigLayers: Array<{ values: Record<string, string>; layer: ConfigLayer } | null> = [];
-    const machineSecretLayers: Array<{ values: Record<string, string>; layer: ConfigLayer } | null> = [];
+    const machineConfigLayers: Array<{
+      values: Record<string, string>;
+      layer: ConfigLayer;
+    } | null> = [];
+    const machineSecretLayers: Array<{
+      values: Record<string, string>;
+      layer: ConfigLayer;
+    } | null> = [];
     if (machineDir) {
       const machineDirs = [machineDir];
       if (projectName) {
@@ -349,16 +357,24 @@ export const configLoader: ConfigLoader = {
           process.stderr.write(`[xci] NOTE: machine project dir not found: ${projDir}\n`);
         }
       } else {
-        process.stderr.write(`[xci] NOTE: "project" not set in config.yml — skipping project-specific machine config\n`);
+        process.stderr.write(
+          `[xci] NOTE: "project" not set in config.yml — skipping project-specific machine config\n`,
+        );
       }
       let machineFilesLoaded = 0;
       for (const dir of machineDirs) {
         // Machine config.yml
         const mcFile = readLayer(join(dir, 'config.yml'), 'machine');
-        if (mcFile) { machineConfigLayers.push(mcFile); machineFilesLoaded++; }
+        if (mcFile) {
+          machineConfigLayers.push(mcFile);
+          machineFilesLoaded++;
+        }
         // Machine secrets
         const msFile = readLayer(join(dir, 'secrets.yml'), 'secrets');
-        if (msFile) { machineSecretLayers.push(msFile); machineFilesLoaded++; }
+        if (msFile) {
+          machineSecretLayers.push(msFile);
+          machineFilesLoaded++;
+        }
         const msDir = join(dir, 'secrets');
         if (isDirectory(msDir)) {
           for (const f of listYamlFilesRecursive(msDir)) {
@@ -368,15 +384,19 @@ export const configLoader: ConfigLoader = {
         }
       }
       if (machineFilesLoaded === 0) {
-        const label = resolution.source === 'home'
-          ? '~/.xci/ (home fallback)'
-          : `XCI_MACHINE_CONFIGS="${machineDir}"`;
+        const label =
+          resolution.source === 'home'
+            ? '~/.xci/ (home fallback)'
+            : `XCI_MACHINE_CONFIGS="${machineDir}"`;
         process.stderr.write(`[xci] NOTE: ${label} — no config/secrets files found\n`);
       }
     }
 
     // Project secrets: .xci/secrets.yml + .xci/secrets/ (recursive)
-    const projectSecretLayers: Array<{ values: Record<string, string>; layer: ConfigLayer } | null> = [];
+    const projectSecretLayers: Array<{
+      values: Record<string, string>;
+      layer: ConfigLayer;
+    } | null> = [];
     const secretsResult = readLayer(secretsPath, 'secrets');
     if (secretsResult) projectSecretLayers.push(secretsResult);
     if (isDirectory(secretsDir)) {
@@ -386,10 +406,10 @@ export const configLoader: ConfigLoader = {
     }
 
     const layers = [
-      ...machineConfigLayers,    // machine config (lowest priority)
+      ...machineConfigLayers, // machine config (lowest priority)
       readLayer(projectPath, 'project'),
-      ...machineSecretLayers,    // machine secrets
-      ...projectSecretLayers,    // project secrets
+      ...machineSecretLayers, // machine secrets
+      ...projectSecretLayers, // project secrets
       readLayer(localPath, 'local'),
     ];
 
@@ -397,7 +417,9 @@ export const configLoader: ConfigLoader = {
     if (secretsResult !== null) {
       if (isSecretTrackedByGit(cwd)) {
         process.stderr.write(
-          formatWarning('[xci] WARNING: .xci/secrets.yml is tracked by git. Run: git rm --cached .xci/secrets.yml') + '\n',
+          formatWarning(
+            '[xci] WARNING: .xci/secrets.yml is tracked by git. Run: git rm --cached .xci/secrets.yml',
+          ) + '\n',
         );
       }
     }

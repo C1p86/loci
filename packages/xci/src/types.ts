@@ -53,16 +53,16 @@ export type CaptureType = 'string' | 'int' | 'float' | 'json';
 
 export interface CaptureConfig {
   readonly var: string;
-  readonly type?: CaptureType;             // default: 'string'
-  readonly assert?: string | readonly string[];  // e.g. "> 0", "not empty", [">=1", "<=100"]
-  readonly regex?: string;                 // extract first capture group from full output
+  readonly type?: CaptureType; // default: 'string'
+  readonly assert?: string | readonly string[]; // e.g. "> 0", "not empty", [">=1", "<=100"]
+  readonly regex?: string; // extract first capture group from full output
 }
 
 /** Parameter definition for a command. */
 export interface ParamDef {
-  readonly required?: boolean;              // default: false
-  readonly default?: string;                // default value if not provided
-  readonly description?: string;            // human-readable description
+  readonly required?: boolean; // default: false
+  readonly default?: string; // default value if not provided
+  readonly description?: string; // human-readable description
 }
 
 /** Union type matching the commands.yml schema after parse + validation. */
@@ -93,11 +93,11 @@ export type CommandDef =
     }
   | {
       readonly kind: 'for_each';
-      readonly var: string;                    // loop variable name
+      readonly var: string; // loop variable name
       readonly in: readonly string[] | string; // values to iterate over — array of strings OR a single "${VAR}" placeholder (CSV-split at resolve time)
-      readonly mode: 'steps' | 'parallel';     // sequential or parallel execution
-      readonly cmd?: readonly string[];        // inline command (uses ${var})
-      readonly run?: string;                   // alias reference
+      readonly mode: 'steps' | 'parallel'; // sequential or parallel execution
+      readonly cmd?: readonly string[]; // inline command (uses ${var})
+      readonly run?: string; // alias reference
       readonly description?: string;
       readonly failMode?: 'fast' | 'complete'; // for parallel mode
       readonly params?: Readonly<Record<string, ParamDef>>;
@@ -105,21 +105,21 @@ export type CommandDef =
     }
   | {
       readonly kind: 'ini';
-      readonly file: string;                   // path to INI file (supports ${var})
-      readonly mode?: 'overwrite' | 'merge';   // default: overwrite
+      readonly file: string; // path to INI file (supports ${var})
+      readonly mode?: 'overwrite' | 'merge'; // default: overwrite
       readonly set?: Readonly<Record<string, Readonly<Record<string, string>>>>; // section → key → value
-      readonly delete?: Readonly<Record<string, readonly string[]>>;             // section → keys to delete
+      readonly delete?: Readonly<Record<string, readonly string[]>>; // section → keys to delete
       readonly description?: string;
       readonly params?: Readonly<Record<string, ParamDef>>;
       readonly cwd?: string; // working directory — relative to projectRoot, absolute path, or ${placeholder}. Inherited by child aliases when they don't declare their own.
     }
   | {
       readonly kind: 'uproject';
-      readonly file: string;                   // path to .uproject file (supports ${var})
+      readonly file: string; // path to .uproject file (supports ${var})
       readonly plugins?: {
-        readonly enable?: readonly string[];   // plugin names to enable
-        readonly disable?: readonly string[];  // plugin names to disable
-        readonly remove?: readonly string[];   // plugin names to remove
+        readonly enable?: readonly string[]; // plugin names to enable
+        readonly disable?: readonly string[]; // plugin names to disable
+        readonly remove?: readonly string[]; // plugin names to remove
       };
       readonly set?: Readonly<Record<string, string>>; // top-level .uproject fields to set
       readonly description?: string;
@@ -139,13 +139,13 @@ export interface CommandsLoader {
 
 export type SequentialStep =
   | {
-      readonly kind?: 'cmd';                    // default — omit for backward compat
-      readonly label?: string;                  // alias name for display in step headers
-      readonly argv: readonly string[];          // interpolated argv (best-effort at plan time)
-      readonly rawArgv?: readonly string[];      // pre-interpolation tokens (for deferred interpolation with captured vars)
+      readonly kind?: 'cmd'; // default — omit for backward compat
+      readonly label?: string; // alias name for display in step headers
+      readonly argv: readonly string[]; // interpolated argv (best-effort at plan time)
+      readonly rawArgv?: readonly string[]; // pre-interpolation tokens (for deferred interpolation with captured vars)
       readonly capture?: CaptureConfig;
-      readonly cwd?: string;                     // effective working directory (absolute after resolveAbsoluteCwds)
-      readonly breadcrumb?: readonly string[];  // path of containing alias names, e.g. ["release","build","compile"] (quick-260421-kbl)
+      readonly cwd?: string; // effective working directory (absolute after resolveAbsoluteCwds)
+      readonly breadcrumb?: readonly string[]; // path of containing alias names, e.g. ["release","build","compile"] (quick-260421-kbl)
     }
   | {
       readonly kind: 'ini';
@@ -153,8 +153,8 @@ export type SequentialStep =
       readonly mode: 'overwrite' | 'merge';
       readonly set?: Readonly<Record<string, Readonly<Record<string, string>>>>;
       readonly delete?: Readonly<Record<string, readonly string[]>>;
-      readonly cwd?: string;                     // effective working directory (absolute after resolveAbsoluteCwds)
-      readonly breadcrumb?: readonly string[];  // path of containing alias names (quick-260421-kbl)
+      readonly cwd?: string; // effective working directory (absolute after resolveAbsoluteCwds)
+      readonly breadcrumb?: readonly string[]; // path of containing alias names (quick-260421-kbl)
     }
   | {
       readonly kind: 'uproject';
@@ -165,13 +165,13 @@ export type SequentialStep =
         readonly remove?: readonly string[];
       };
       readonly set?: Readonly<Record<string, string>>;
-      readonly cwd?: string;                     // effective working directory (absolute after resolveAbsoluteCwds)
-      readonly breadcrumb?: readonly string[];  // path of containing alias names
+      readonly cwd?: string; // effective working directory (absolute after resolveAbsoluteCwds)
+      readonly breadcrumb?: readonly string[]; // path of containing alias names
     }
   | {
       readonly kind: 'set';
-      readonly vars: Readonly<Record<string, string>>;   // variable assignments (raw, may contain ${placeholders})
-      readonly breadcrumb?: readonly string[];  // path of containing alias names (quick-260421-kbl)
+      readonly vars: Readonly<Record<string, string>>; // variable assignments (raw, may contain ${placeholders})
+      readonly breadcrumb?: readonly string[]; // path of containing alias names (quick-260421-kbl)
     }
   | {
       readonly kind: 'prompt';
@@ -182,7 +182,12 @@ export type SequentialStep =
     };
 
 export type ExecutionPlan =
-  | { readonly kind: 'single'; readonly argv: readonly string[]; readonly capture?: CaptureConfig; readonly cwd?: string }
+  | {
+      readonly kind: 'single';
+      readonly argv: readonly string[];
+      readonly capture?: CaptureConfig;
+      readonly cwd?: string;
+    }
   | { readonly kind: 'sequential'; readonly steps: readonly SequentialStep[] }
   | {
       readonly kind: 'parallel';
@@ -190,7 +195,7 @@ export type ExecutionPlan =
         readonly alias: string;
         readonly argv: readonly string[];
         readonly cwd?: string;
-        readonly breadcrumb?: readonly string[];  // path of containing alias names (quick-260421-kbl)
+        readonly breadcrumb?: readonly string[]; // path of containing alias names (quick-260421-kbl)
       }[];
       readonly failMode: 'fast' | 'complete'; // resolved with default 'fast'
     }
@@ -229,12 +234,12 @@ export interface ExecutionResult {
 export interface ExecutorOptions {
   readonly cwd: string;
   readonly env: Record<string, string>;
-  readonly logFile?: string;     // path to log file (always written)
+  readonly logFile?: string; // path to log file (always written)
   readonly showOutput?: boolean; // pipe output to terminal (default: false)
-  readonly tailLines?: number;   // show last N lines of output after each command (--short-log N)
-  readonly fromStep?: string;    // start from this step label, skip earlier ones (--from)
+  readonly tailLines?: number; // show last N lines of output after each command (--short-log N)
+  readonly fromStep?: string; // start from this step label, skip earlier ones (--from)
   readonly secretValues?: ReadonlySet<string>; // redact these values from preview output
-  readonly alias?: string;       // command alias name — shown in completion notification
+  readonly alias?: string; // command alias name — shown in completion notification
   readonly projectName?: string; // project name — shown in completion notification
 }
 

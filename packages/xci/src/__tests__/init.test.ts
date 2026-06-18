@@ -63,11 +63,7 @@ describe('runInit() — unit tests', () => {
   });
 
   it('skips .gitignore entries that are already present', () => {
-    writeFileSync(
-      join(tmpDir, '.gitignore'),
-      '.xci/secrets.yml\n.xci/local.yml\n',
-      'utf8',
-    );
+    writeFileSync(join(tmpDir, '.gitignore'), '.xci/secrets.yml\n.xci/local.yml\n', 'utf8');
 
     runInit(tmpDir);
 

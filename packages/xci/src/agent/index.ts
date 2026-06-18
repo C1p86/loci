@@ -164,7 +164,15 @@ function parseTaskYaml(yamlDef: string): TaskYaml {
   if (!entry) {
     return { unsupported: 'task YAML has no alias defined' };
   }
-  const [aliasName, def] = entry as [string, { kind: string; cmd?: readonly string[]; steps?: readonly (string | PromptStepDef)[]; cwd?: string }];
+  const [aliasName, def] = entry as [
+    string,
+    {
+      kind: string;
+      cmd?: readonly string[];
+      steps?: readonly (string | PromptStepDef)[];
+      cwd?: string;
+    },
+  ];
   if (def.kind === 'single') {
     if (!def.cmd || def.cmd.length === 0) {
       return { unsupported: `alias '${aliasName}' has empty cmd` };
@@ -172,7 +180,11 @@ function parseTaskYaml(yamlDef: string): TaskYaml {
     return { kind: 'single', argv: def.cmd, ...(def.cwd !== undefined ? { cwd: def.cwd } : {}) };
   }
   if (def.kind === 'sequential') {
-    return { kind: 'sequential', steps: def.steps ?? [], ...(def.cwd !== undefined ? { cwd: def.cwd } : {}) };
+    return {
+      kind: 'sequential',
+      steps: def.steps ?? [],
+      ...(def.cwd !== undefined ? { cwd: def.cwd } : {}),
+    };
   }
   return {
     unsupported: `alias '${aliasName}' is kind=${def.kind} — agent supports kind=single and kind=sequential`,
@@ -238,9 +250,7 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
 
     // D-16: drain check
     if (state.draining) {
-      process.stderr.write(
-        `[agent] rejecting dispatch ${frame.run_id}: agent is draining\n`,
-      );
+      process.stderr.write(`[agent] rejecting dispatch ${frame.run_id}: agent is draining\n`);
       client.send({
         type: 'result',
         run_id: frame.run_id,
@@ -267,9 +277,7 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
     // Parse yaml_definition → task descriptor (single or sequential)
     const taskYaml = parseTaskYaml(frame.task_snapshot.yaml_definition);
     if ('unsupported' in taskYaml) {
-      process.stderr.write(
-        `[agent] rejecting dispatch ${frame.run_id}: ${taskYaml.unsupported}\n`,
-      );
+      process.stderr.write(`[agent] rejecting dispatch ${frame.run_id}: ${taskYaml.unsupported}\n`);
       client.send({
         type: 'result',
         run_id: frame.run_id,
@@ -302,7 +310,14 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
       if (!cwdOk) {
         const msg = `[agent] rejecting dispatch ${frame.run_id}: working directory does not exist or is not a directory: ${abs}\n`;
         process.stderr.write(msg);
-        client.send({ type: 'log_chunk', run_id: frame.run_id, seq: 0, stream: 'stderr', data: msg, ts: new Date().toISOString() });
+        client.send({
+          type: 'log_chunk',
+          run_id: frame.run_id,
+          seq: 0,
+          stream: 'stderr',
+          data: msg,
+          ts: new Date().toISOString(),
+        });
         client.send({ type: 'result', run_id: frame.run_id, exit_code: -1, duration_ms: 0 });
         return;
       }
@@ -409,7 +424,10 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
       let exitCode = 0;
 
       for (const step of taskYaml.steps) {
-        if (seqCancelled) { exitCode = -1; break; }
+        if (seqCancelled) {
+          exitCode = -1;
+          break;
+        }
 
         if (typeof step !== 'string') {
           // PromptStepDef — use default in non-interactive agent mode
@@ -419,7 +437,14 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
           } else {
             const msg = `[agent] prompt step '${step.var}' requires input but has no default\n`;
             process.stderr.write(msg);
-            client?.send({ type: 'log_chunk', run_id: frame.run_id, seq: outerSeq++, stream: 'stderr', data: msg, ts: new Date().toISOString() });
+            client?.send({
+              type: 'log_chunk',
+              run_id: frame.run_id,
+              seq: outerSeq++,
+              stream: 'stderr',
+              data: msg,
+              ts: new Date().toISOString(),
+            });
             exitCode = 1;
           }
           break;
@@ -444,7 +469,14 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
         } catch (err) {
           const msg = `[agent] step tokenize error: ${(err as Error).message}\n`;
           process.stderr.write(msg);
-          client?.send({ type: 'log_chunk', run_id: frame.run_id, seq: outerSeq++, stream: 'stderr', data: msg, ts: new Date().toISOString() });
+          client?.send({
+            type: 'log_chunk',
+            run_id: frame.run_id,
+            seq: outerSeq++,
+            stream: 'stderr',
+            data: msg,
+            ts: new Date().toISOString(),
+          });
           exitCode = 1;
           break;
         }
@@ -452,26 +484,36 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
 
         const stepEnv = { ...mergedEnv, ...capturedVars };
 
-        const stepResult = await new Promise<{ exitCode: number; cancelled: boolean }>((resolve) => {
-          const stepHandle = spawnTask(frame.run_id, {
-            argv: stepArgv,
-            cwd: effectiveCwd,
-            env: stepEnv,
-            redactionValues,
-            onChunk: (stream, data) => {
-              outputBuffer += data;
-              if (outputBuffer.length > MAX_OUTPUT_BUFFER) outputBuffer = outputBuffer.slice(-MAX_OUTPUT_BUFFER);
-              if (stream === 'stdout') process.stdout.write(data);
-              else process.stderr.write(data);
-              client?.send({ type: 'log_chunk', run_id: frame.run_id, seq: outerSeq++, stream, data, ts: new Date().toISOString() });
-            },
-            onExit: (code, _dur, cancelled) => {
-              cancelCurrentStep = null;
-              resolve({ exitCode: code, cancelled });
-            },
-          });
-          cancelCurrentStep = () => stepHandle.cancel();
-        });
+        const stepResult = await new Promise<{ exitCode: number; cancelled: boolean }>(
+          (resolve) => {
+            const stepHandle = spawnTask(frame.run_id, {
+              argv: stepArgv,
+              cwd: effectiveCwd,
+              env: stepEnv,
+              redactionValues,
+              onChunk: (stream, data) => {
+                outputBuffer += data;
+                if (outputBuffer.length > MAX_OUTPUT_BUFFER)
+                  outputBuffer = outputBuffer.slice(-MAX_OUTPUT_BUFFER);
+                if (stream === 'stdout') process.stdout.write(data);
+                else process.stderr.write(data);
+                client?.send({
+                  type: 'log_chunk',
+                  run_id: frame.run_id,
+                  seq: outerSeq++,
+                  stream,
+                  data,
+                  ts: new Date().toISOString(),
+                });
+              },
+              onExit: (code, _dur, cancelled) => {
+                cancelCurrentStep = null;
+                resolve({ exitCode: code, cancelled });
+              },
+            });
+            cancelCurrentStep = () => stepHandle.cancel();
+          },
+        );
 
         if (stepResult.cancelled) {
           seqCancelled = true;
@@ -559,7 +601,9 @@ export async function runAgent(argv: readonly string[]): Promise<number> {
           if (entry.action === 'abandon') {
             const run = state.runningRuns.get(entry.run_id);
             if (run) {
-              process.stderr.write(`[agent] abandoning run ${entry.run_id} per server reconciliation\n`);
+              process.stderr.write(
+                `[agent] abandoning run ${entry.run_id} per server reconciliation\n`,
+              );
               void run.handle.cancel();
             }
           }

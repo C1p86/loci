@@ -15,7 +15,9 @@ type Color = 'white' | 'gray' | 'black';
  */
 function getAliasRefs(def: CommandDef, commands: CommandMap): readonly string[] {
   if (def.kind === 'sequential') {
-    return def.steps.filter((step): step is string => typeof step === 'string' && commands.has(step));
+    return def.steps.filter(
+      (step): step is string => typeof step === 'string' && commands.has(step),
+    );
   }
   if (def.kind === 'parallel') {
     return def.group.filter((entry) => commands.has(entry));

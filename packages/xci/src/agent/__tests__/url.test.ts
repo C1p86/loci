@@ -11,20 +11,20 @@ describe('normalizeAgentUrl', () => {
     ['localhost:3000', 'ws://localhost:3000/ws/agent'],
     ['ws://localhost:3000/ws/agent', 'ws://localhost:3000/ws/agent'],
     ['http://localhost:3000/', 'ws://localhost:3000/ws/agent'],
-    [
-      'https://proxy.example.com/custom/agent/path',
-      'wss://proxy.example.com/custom/agent/path',
-    ],
+    ['https://proxy.example.com/custom/agent/path', 'wss://proxy.example.com/custom/agent/path'],
   ])('normalizes %s → %s', (input, expected) => {
     expect(normalizeAgentUrl(input)).toBe(expected);
   });
 
-  it.each([[''], ['   '], ['file:///etc/passwd'], ['javascript:alert(1)'], ['not a url']])(
-    'rejects invalid input %j',
-    (bad) => {
-      expect(() => normalizeAgentUrl(bad)).toThrow(AgentModeArgsError);
-    },
-  );
+  it.each([
+    [''],
+    ['   '],
+    ['file:///etc/passwd'],
+    ['javascript:alert(1)'],
+    ['not a url'],
+  ])('rejects invalid input %j', (bad) => {
+    expect(() => normalizeAgentUrl(bad)).toThrow(AgentModeArgsError);
+  });
 
   it('error message includes valid-form hint', () => {
     try {

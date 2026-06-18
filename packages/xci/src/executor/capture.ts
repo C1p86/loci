@@ -105,16 +105,12 @@ function evaluateAssertion(
 
   // "not empty"
   if (a === 'not empty') {
-    return value.length > 0
-      ? { pass: true }
-      : { pass: false, reason: 'value is empty' };
+    return value.length > 0 ? { pass: true } : { pass: false, reason: 'value is empty' };
   }
 
   // "not null" (same as not empty for captured stdout)
   if (a === 'not null') {
-    return value.length > 0
-      ? { pass: true }
-      : { pass: false, reason: 'value is null/empty' };
+    return value.length > 0 ? { pass: true } : { pass: false, reason: 'value is null/empty' };
   }
 
   // "valid json"
@@ -188,27 +184,42 @@ function evaluateAssertion(
 function numericCompare(op: string, lhs: number, rhs: number, expr: string): AssertResult {
   let pass = false;
   switch (op) {
-    case '>':  pass = lhs > rhs; break;
-    case '<':  pass = lhs < rhs; break;
-    case '>=': pass = lhs >= rhs; break;
-    case '<=': pass = lhs <= rhs; break;
-    case '==': pass = lhs === rhs; break;
-    case '!=': pass = lhs !== rhs; break;
+    case '>':
+      pass = lhs > rhs;
+      break;
+    case '<':
+      pass = lhs < rhs;
+      break;
+    case '>=':
+      pass = lhs >= rhs;
+      break;
+    case '<=':
+      pass = lhs <= rhs;
+      break;
+    case '==':
+      pass = lhs === rhs;
+      break;
+    case '!=':
+      pass = lhs !== rhs;
+      break;
   }
-  return pass
-    ? { pass: true }
-    : { pass: false, reason: `assertion failed: ${lhs} ${expr}` };
+  return pass ? { pass: true } : { pass: false, reason: `assertion failed: ${lhs} ${expr}` };
 }
 
 function stringCompare(op: string, lhs: string, rhs: string, expr: string): AssertResult {
   let pass = false;
   switch (op) {
-    case '==': pass = lhs === rhs; break;
-    case '!=': pass = lhs !== rhs; break;
+    case '==':
+      pass = lhs === rhs;
+      break;
+    case '!=':
+      pass = lhs !== rhs;
+      break;
     default:
-      return { pass: false, reason: `operator "${op}" requires numeric values, got string "${lhs}"` };
+      return {
+        pass: false,
+        reason: `operator "${op}" requires numeric values, got string "${lhs}"`,
+      };
   }
-  return pass
-    ? { pass: true }
-    : { pass: false, reason: `assertion failed: "${lhs}" ${expr}` };
+  return pass ? { pass: true } : { pass: false, reason: `assertion failed: "${lhs}" ${expr}` };
 }

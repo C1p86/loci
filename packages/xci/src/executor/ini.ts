@@ -103,10 +103,7 @@ export function writeIni(
 /**
  * Delete keys from an INI file. If a section becomes empty, it's removed.
  */
-export function deleteIniKeys(
-  filePath: string,
-  deletions: Record<string, string[]>,
-): void {
+export function deleteIniKeys(filePath: string, deletions: Record<string, string[]>): void {
   if (!existsSync(filePath)) return;
 
   const existing = readFileSync(filePath, 'utf8');

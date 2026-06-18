@@ -19,7 +19,10 @@ const PLACEHOLDER_RE = /\$\$\{[^}]+\}|\$\{([^}]+)\}/g;
  * then navigate the remaining path (e.g. [0].BuildId).
  * Returns the resolved string value, or undefined if not resolvable.
  */
-function resolveJsonPath(key: string, values: Readonly<Record<string, string>>): string | undefined {
+function resolveJsonPath(
+  key: string,
+  values: Readonly<Record<string, string>>,
+): string | undefined {
   // Find the split point: first '[' or '.' that separates base var from JSON path
   const bracketIdx = key.indexOf('[');
   const dotIdx = key.indexOf('.');
@@ -298,10 +301,7 @@ function interpolateTokenLenientOnce(
  * Lenient interpolation: resolve known placeholders, leave unknown ones as ${key}.
  * Multi-pass: resolves innermost ${} first, then outer ${} in subsequent passes.
  */
-function interpolateTokenLenient(
-  token: string,
-  values: Readonly<Record<string, string>>,
-): string {
+function interpolateTokenLenient(token: string, values: Readonly<Record<string, string>>): string {
   let result = token.replace(/\$\$\{([^}]+)\}/g, `${ESCAPE_SENTINEL}{$1}`);
   for (let pass = 0; pass < 5; pass++) {
     const next = resolveInnermost(result, '(lenient)', values, false);

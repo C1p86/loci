@@ -17,7 +17,7 @@ interface CollectedParam {
   required: boolean;
   default?: string;
   description?: string;
-  requiredBy: string[];  // alias names that reference this param
+  requiredBy: string[]; // alias names that reference this param
 }
 
 /** Find the matching close brace for an open brace at position `open` (where text[open] === '{').
@@ -139,7 +139,10 @@ function collectAll(
   const trackUsage = (names: string[]) => {
     for (const name of names) {
       let set = usedBy.get(name);
-      if (!set) { set = new Set(); usedBy.set(name, set); }
+      if (!set) {
+        set = new Set();
+        usedBy.set(name, set);
+      }
       set.add(aliasName);
     }
   };
@@ -380,7 +383,12 @@ export function getParamNames(
   const loopVars = new Set<string>();
   collectLoopVars(aliasName, commands, loopVars, 0);
 
-  const result: Array<{ name: string; description?: string; required: boolean; hasDefault: boolean }> = [];
+  const result: Array<{
+    name: string;
+    description?: string;
+    required: boolean;
+    hasDefault: boolean;
+  }> = [];
 
   for (const [name] of usedBy) {
     // Skip if already provided by config, captures, or loop vars
@@ -436,7 +444,8 @@ function collectLoopVars(
     }
   } else if (def.kind === 'sequential') {
     for (const step of def.steps) {
-      if (typeof step === 'string' && commands.has(step)) collectLoopVars(step, commands, loopVars, depth + 1);
+      if (typeof step === 'string' && commands.has(step))
+        collectLoopVars(step, commands, loopVars, depth + 1);
     }
   } else if (def.kind === 'parallel') {
     for (const entry of def.group) {

@@ -5,7 +5,7 @@
 // Locally: `npm run build && npm test`
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -193,7 +193,7 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
     const dir = trackDir(
       createTempProject({
         '.xci/commands.yml':
-          "hello:\n  cmd: [\"node\", \"-e\", \"process.stdout.write('hello-xci')\"]\n",
+          'hello:\n  cmd: ["node", "-e", "process.stdout.write(\'hello-xci\')"]\n',
         '.xci/config.yml': '',
       }),
     );
@@ -259,8 +259,7 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('CLI-07, D-28: --verbose shows config trace on stderr and executes', () => {
     const dir = trackDir(
       createTempProject({
-        '.xci/commands.yml':
-          "greet:\n  cmd: [\"node\", \"-e\", \"process.stdout.write('hi')\"]\n",
+        '.xci/commands.yml': 'greet:\n  cmd: ["node", "-e", "process.stdout.write(\'hi\')"]\n',
         '.xci/config.yml': '',
       }),
     );
@@ -279,8 +278,7 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('D-26: --verbose shows project root in stderr', () => {
     const dir = trackDir(
       createTempProject({
-        '.xci/commands.yml':
-          "greet:\n  cmd: [\"node\", \"-e\", \"process.stdout.write('hi')\"]\n",
+        '.xci/commands.yml': 'greet:\n  cmd: ["node", "-e", "process.stdout.write(\'hi\')"]\n',
         '.xci/config.yml': '',
       }),
     );
@@ -296,8 +294,7 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('D-29: --verbose --dry-run shows both traces on stderr, no execution', () => {
     const dir = trackDir(
       createTempProject({
-        '.xci/commands.yml':
-          "greet:\n  cmd: [\"node\", \"-e\", \"process.stdout.write('hi')\"]\n",
+        '.xci/commands.yml': 'greet:\n  cmd: ["node", "-e", "process.stdout.write(\'hi\')"]\n',
         '.xci/config.yml': '',
       }),
     );
@@ -319,8 +316,7 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
       createTempProject({
         '.xci/commands.yml': 'showargs:\n  cmd: ["node", "print-args.mjs"]\n',
         '.xci/config.yml': '',
-        'print-args.mjs':
-          "process.stdout.write(JSON.stringify(process.argv.slice(2)) + '\\n');\n",
+        'print-args.mjs': "process.stdout.write(JSON.stringify(process.argv.slice(2)) + '\\n');\n",
       }),
     );
     const { stdout, code } = runCliInDir(dir, ['showargs', '--log', '--', '--foo', 'bar']);
@@ -352,8 +348,7 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('CLI-04, D-22: per-alias --help shows description and command type', () => {
     const dir = trackDir(
       createTempProject({
-        '.xci/commands.yml':
-          'build:\n  cmd: ["echo", "x"]\n  description: "Builds it"\n',
+        '.xci/commands.yml': 'build:\n  cmd: ["echo", "x"]\n  description: "Builds it"\n',
         '.xci/config.yml': '',
       }),
     );
@@ -454,7 +449,11 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
           '.xci/config.yml': 'registry: default-registry\n',
         }),
       );
-      const { stdout, code } = runCliInDir(dir, ['deploy', 'registry=http://localhost:5000', '--log']);
+      const { stdout, code } = runCliInDir(dir, [
+        'deploy',
+        'registry=http://localhost:5000',
+        '--log',
+      ]);
       expect(code).toBe(0);
       expect(stdout).toContain('http://localhost:5000');
     });
@@ -504,7 +503,8 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
         createTempProject({
           '.xci/commands.yml': 'showargs:\n  cmd: ["node", "print-args.mjs"]\n',
           '.xci/config.yml': '',
-          'print-args.mjs': "process.stdout.write(JSON.stringify(process.argv.slice(2)) + '\\n');\n",
+          'print-args.mjs':
+            "process.stdout.write(JSON.stringify(process.argv.slice(2)) + '\\n');\n",
         }),
       );
       const { stdout, code } = runCliInDir(dir, ['showargs', '--log', '--', 'baz=x']);
@@ -518,7 +518,8 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
         createTempProject({
           '.xci/commands.yml': 'showargs:\n  cmd: ["node", "print-args.mjs"]\n',
           '.xci/config.yml': '',
-          'print-args.mjs': "process.stdout.write(JSON.stringify(process.argv.slice(2)) + '\\n');\n",
+          'print-args.mjs':
+            "process.stdout.write(JSON.stringify(process.argv.slice(2)) + '\\n');\n",
         }),
       );
       const { stdout, code } = runCliInDir(dir, ['showargs', 'not-an-override', '--log']);
@@ -534,7 +535,11 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
           '.xci/config.yml': 'registry: default\n',
         }),
       );
-      const { stderr, code } = runCliInDir(dir, ['deploy', 'registry=http://localhost', '--dry-run']);
+      const { stderr, code } = runCliInDir(dir, [
+        'deploy',
+        'registry=http://localhost',
+        '--dry-run',
+      ]);
       expect(code).toBe(0);
       expect(stderr).toContain('http://localhost');
     });
@@ -573,8 +578,7 @@ describe('xci CLI (E2E via spawnSync on dist/cli.mjs)', () => {
   it('${xci.project.path} works in --dry-run without errors', () => {
     const dir = trackDir(
       createTempProject({
-        '.xci/commands.yml':
-          'show-interp:\n  cmd: ["echo", "${xci.project.path}"]\n',
+        '.xci/commands.yml': 'show-interp:\n  cmd: ["echo", "${xci.project.path}"]\n',
         '.xci/config.yml': '',
       }),
     );
@@ -901,11 +905,13 @@ describe.skipIf(!existsSync(CLI))('multi-alias composition (+ separator)', () =>
     const markerFile = join(dir, 'ok2-ran.txt');
     // ok2 in our commands doesn't write a marker, so we rely on the fact that
     // sequential stops: substitute ok2 with marker alias for this test
-    const cmdsWithMarker = compositionCommands + [
-      'marker-ok2:',
-      '  cmd: ["node", "-e", "require(\'fs\').writeFileSync(process.env.MARKER2, \'x\')"]',
-      '',
-    ].join('\n');
+    const cmdsWithMarker =
+      compositionCommands +
+      [
+        'marker-ok2:',
+        '  cmd: ["node", "-e", "require(\'fs\').writeFileSync(process.env.MARKER2, \'x\')"]',
+        '',
+      ].join('\n');
     const dir2 = trackDir(
       createTempProject({
         '.xci/commands.yml': cmdsWithMarker,
@@ -1008,11 +1014,217 @@ describe.skipIf(!existsSync(CLI))('multi-alias composition (+ separator)', () =>
       }),
     );
     const markerFile = join(dir, 'writer-ran.txt');
-    const { stderr, code } = runCliInDir(dir, ['writer', '+', 'nonexistent'], { MARKER: markerFile });
+    const { stderr, code } = runCliInDir(dir, ['writer', '+', 'nonexistent'], {
+      MARKER: markerFile,
+    });
     expect(code).toBe(50);
     expect(stderr).toContain('Unknown alias: "nonexistent"');
     // writer must NOT have run — early validation precedes execution
     expect(existsSync(markerFile)).toBe(false);
+  });
+});
+
+/* ================================================================
+ * quick-260618-h1d: uproject command kind e2e tests
+ * ================================================================ */
+
+describe.skipIf(!existsSync(CLI))('uproject command kind (quick-260618-h1d)', () => {
+  const sampleUproject =
+    JSON.stringify(
+      {
+        FileVersion: 3,
+        EngineAssociation: '5.3',
+        Category: '',
+        Description: '',
+        Plugins: [
+          { Name: 'EnhancedInput', Enabled: false },
+          { Name: 'Paper2D', Enabled: true },
+        ],
+      },
+      null,
+      2,
+    ) + '\n';
+
+  it('enables absent plugin, disables existing plugin, sets field, exits 0', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          'edit-uproject:',
+          '  description: Test uproject command',
+          '  uproject: MyGame.uproject',
+          '  plugins:',
+          '    enable:',
+          '      - EnhancedInput',
+          '      - NewPlugin',
+          '    disable:',
+          '      - Paper2D',
+          '  set:',
+          '    EngineAssociation: "5.4"',
+        ].join('\n'),
+        '.xci/config.yml': '',
+        'MyGame.uproject': sampleUproject,
+      }),
+    );
+    const { code } = runCliInDir(dir, ['edit-uproject']);
+    expect(code).toBe(0);
+
+    // Re-read and parse the uproject
+    const updated = JSON.parse(readFileSync(join(dir, 'MyGame.uproject'), 'utf8'));
+
+    // EngineAssociation was set
+    expect(updated.EngineAssociation).toBe('5.4');
+
+    // EnhancedInput should be enabled
+    const enhanced = updated.Plugins.find((p: { Name: string }) => p.Name === 'EnhancedInput');
+    expect(enhanced?.Enabled).toBe(true);
+
+    // NewPlugin should have been added
+    const newPlugin = updated.Plugins.find((p: { Name: string }) => p.Name === 'NewPlugin');
+    expect(newPlugin?.Enabled).toBe(true);
+
+    // Paper2D should be disabled
+    const paper2d = updated.Plugins.find((p: { Name: string }) => p.Name === 'Paper2D');
+    expect(paper2d?.Enabled).toBe(false);
+  });
+
+  it('absent disable emits a stderr warning but exits 0 (not an error)', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          'test-warn:',
+          '  uproject: MyGame.uproject',
+          '  plugins:',
+          '    disable:',
+          '      - NonExistentPlugin',
+        ].join('\n'),
+        '.xci/config.yml': '',
+        'MyGame.uproject': sampleUproject,
+      }),
+    );
+    const { stderr, code } = runCliInDir(dir, ['test-warn']);
+    expect(code).toBe(0);
+    expect(stderr).toContain('NonExistentPlugin');
+    expect(stderr.toLowerCase()).toContain('not found');
+  });
+
+  it('already-enabled plugin emits idempotency warning on stderr but exits 0', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          'test-idempotent:',
+          '  uproject: MyGame.uproject',
+          '  plugins:',
+          '    enable:',
+          '      - Paper2D',
+        ].join('\n'),
+        '.xci/config.yml': '',
+        'MyGame.uproject': sampleUproject,
+      }),
+    );
+    const { stderr, code } = runCliInDir(dir, ['test-idempotent']);
+    expect(code).toBe(0);
+    expect(stderr).toContain('already enabled');
+  });
+
+  it('--dry-run prints plan and does NOT modify the .uproject file', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          'edit-uproject:',
+          '  uproject: MyGame.uproject',
+          '  plugins:',
+          '    enable:',
+          '      - NewPlugin',
+          '  set:',
+          '    EngineAssociation: "5.4"',
+        ].join('\n'),
+        '.xci/config.yml': '',
+        'MyGame.uproject': sampleUproject,
+      }),
+    );
+    const { stderr, code } = runCliInDir(dir, ['edit-uproject', '--dry-run']);
+    expect(code).toBe(0);
+    expect(stderr).toContain('[dry-run]');
+    expect(stderr).toContain('uproject');
+
+    // File must be unchanged
+    const content = readFileSync(join(dir, 'MyGame.uproject'), 'utf8');
+    expect(content).toBe(sampleUproject);
+  });
+
+  it('output file keeps 2-space indentation and trailing newline', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          'edit-uproject:',
+          '  uproject: MyGame.uproject',
+          '  set:',
+          '    EngineAssociation: "5.4"',
+        ].join('\n'),
+        '.xci/config.yml': '',
+        'MyGame.uproject': sampleUproject,
+      }),
+    );
+    const { code } = runCliInDir(dir, ['edit-uproject']);
+    expect(code).toBe(0);
+
+    const content = readFileSync(join(dir, 'MyGame.uproject'), 'utf8');
+    // 2-space indent
+    expect(content).toContain('  "FileVersion"');
+    // trailing newline
+    expect(content.endsWith('\n')).toBe(true);
+    expect(content.endsWith('\n\n')).toBe(false);
+  });
+
+  it('--list shows uproject type and file', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          'edit-uproject:',
+          '  description: Edit the uproject',
+          '  uproject: MyGame.uproject',
+          '  set:',
+          '    EngineAssociation: "5.4"',
+        ].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const { stderr, code } = runCliInDir(dir, ['edit-uproject', '--list']);
+    expect(code).toBe(0);
+    expect(stderr).toContain('uproject');
+    expect(stderr).toContain('MyGame.uproject');
+  });
+
+  it('--help shows uproject type', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          'edit-uproject:',
+          '  description: Edit the uproject',
+          '  uproject: MyGame.uproject',
+          '  set:',
+          '    EngineAssociation: "5.4"',
+        ].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const { stdout, code } = runCliInDir(dir, ['edit-uproject', '--help']);
+    expect(code).toBe(0);
+    expect(stdout).toContain('Command type: uproject');
+    expect(stdout).toContain('MyGame.uproject');
+  });
+
+  it('uproject kind with no operations throws schema error (exit non-zero)', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': ['bad-uproject:', '  uproject: MyGame.uproject'].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const { stderr, code } = runCliInDir(dir, []);
+    // Schema error on load — non-zero exit
+    expect(code).not.toBe(0);
+    expect(stderr.toLowerCase()).toContain('uproject');
   });
 });
 

@@ -134,14 +134,17 @@ describe('validateParams — ${placeholder} inside cwd surfaces as missing param
 
   it('for_each kind: ${DEPLOY_DIR} in cwd surfaces as missing', () => {
     const commands: CommandMap = new Map<string, CommandDef>([
-      ['fe', {
-        kind: 'for_each',
-        var: 'x',
-        in: ['a'],
-        mode: 'steps',
-        cmd: ['echo', '${x}'],
-        cwd: '${DEPLOY_DIR}',
-      }],
+      [
+        'fe',
+        {
+          kind: 'for_each',
+          var: 'x',
+          in: ['a'],
+          mode: 'steps',
+          cmd: ['echo', '${x}'],
+          cwd: '${DEPLOY_DIR}',
+        },
+      ],
     ]);
     let captured: unknown;
     try {
@@ -155,12 +158,15 @@ describe('validateParams — ${placeholder} inside cwd surfaces as missing param
 
   it('ini kind: ${DEPLOY_DIR} in cwd surfaces as missing', () => {
     const commands: CommandMap = new Map<string, CommandDef>([
-      ['cfg', {
-        kind: 'ini',
-        file: 'x.ini',
-        set: { Sec: { k: 'v' } },
-        cwd: '${DEPLOY_DIR}',
-      }],
+      [
+        'cfg',
+        {
+          kind: 'ini',
+          file: 'x.ini',
+          set: { Sec: { k: 'v' } },
+          cwd: '${DEPLOY_DIR}',
+        },
+      ],
     ]);
     let captured: unknown;
     try {

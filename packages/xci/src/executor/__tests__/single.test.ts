@@ -9,27 +9,19 @@ import { runSingle } from '../single.js';
 
 describe('runSingle', () => {
   it('spawns a command successfully and returns exitCode 0', async () => {
-    const result = await runSingle(
-      [process.execPath, '-e', 'process.exit(0)'],
-      process.cwd(),
-      {},
-    );
+    const result = await runSingle([process.execPath, '-e', 'process.exit(0)'], process.cwd(), {});
     expect(result.exitCode).toBe(0);
   });
 
   it('returns the child process exit code on non-zero exit', async () => {
-    const result = await runSingle(
-      [process.execPath, '-e', 'process.exit(42)'],
-      process.cwd(),
-      {},
-    );
+    const result = await runSingle([process.execPath, '-e', 'process.exit(42)'], process.cwd(), {});
     expect(result.exitCode).toBe(42);
   });
 
   it('throws SpawnError when command does not exist', async () => {
-    await expect(
-      runSingle(['__xci_nonexistent_command_xyz__'], process.cwd(), {}),
-    ).rejects.toThrow(SpawnError);
+    await expect(runSingle(['__xci_nonexistent_command_xyz__'], process.cwd(), {})).rejects.toThrow(
+      SpawnError,
+    );
   });
 
   it('passes env vars to the child process', async () => {
@@ -47,7 +39,11 @@ describe('runSingle', () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'xci-single-cwd-'));
     try {
       const result = await runSingle(
-        [process.execPath, '-e', `process.exit(process.cwd() === ${JSON.stringify(tmpDir)} ? 0 : 1)`],
+        [
+          process.execPath,
+          '-e',
+          `process.exit(process.cwd() === ${JSON.stringify(tmpDir)} ? 0 : 1)`,
+        ],
         tmpDir,
         {},
       );

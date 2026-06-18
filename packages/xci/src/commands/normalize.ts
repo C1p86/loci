@@ -4,7 +4,15 @@
 // Converts the flexible user-facing YAML shapes into the strict CommandDef union.
 
 import { CommandSchemaError } from '../errors.js';
-import type { CaptureConfig, CaptureType, CommandDef, CommandMap, ParamDef, PlatformOverrides, PromptStepDef } from '../types.js';
+import type {
+  CaptureConfig,
+  CaptureType,
+  CommandDef,
+  CommandMap,
+  ParamDef,
+  PlatformOverrides,
+  PromptStepDef,
+} from '../types.js';
 import { tokenize } from './tokenize.js';
 
 /**
@@ -75,7 +83,10 @@ function normalizeParams(
 ): Readonly<Record<string, ParamDef>> | undefined {
   if (raw === undefined) return undefined;
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
-    throw new CommandSchemaError(aliasName, 'params must be an object of { paramName: { required?, default?, description? } }');
+    throw new CommandSchemaError(
+      aliasName,
+      'params must be an object of { paramName: { required?, default?, description? } }',
+    );
   }
   const result: Record<string, ParamDef> = {};
   for (const [name, def] of Object.entries(raw as Record<string, unknown>)) {
@@ -113,7 +124,10 @@ function normalizeParams(
       result[name] = param;
       continue;
     }
-    throw new CommandSchemaError(aliasName, `params.${name} must be "required", a default value string, or an object { required?, default?, description? }`);
+    throw new CommandSchemaError(
+      aliasName,
+      `params.${name} must be "required", a default value string, or an object { required?, default?, description? }`,
+    );
   }
   return Object.keys(result).length > 0 ? result : undefined;
 }
@@ -148,21 +162,29 @@ function normalizeObject(
     }
 
     // Validate plugins (optional): { enable?, disable?, remove? } — each is string[]
-    let plugins: { enable?: readonly string[]; disable?: readonly string[]; remove?: readonly string[] } | undefined;
+    let plugins:
+      | { enable?: readonly string[]; disable?: readonly string[]; remove?: readonly string[] }
+      | undefined;
     if (obj.plugins !== undefined) {
       if (typeof obj.plugins !== 'object' || obj.plugins === null || Array.isArray(obj.plugins)) {
-        throw new CommandSchemaError(aliasName, 'uproject plugins must be an object with optional enable/disable/remove arrays');
+        throw new CommandSchemaError(
+          aliasName,
+          'uproject plugins must be an object with optional enable/disable/remove arrays',
+        );
       }
       const rawPlugins = obj.plugins as Record<string, unknown>;
-      const enable = rawPlugins.enable !== undefined
-        ? validateStringArray(aliasName, rawPlugins.enable, 'plugins.enable')
-        : undefined;
-      const disable = rawPlugins.disable !== undefined
-        ? validateStringArray(aliasName, rawPlugins.disable, 'plugins.disable')
-        : undefined;
-      const remove = rawPlugins.remove !== undefined
-        ? validateStringArray(aliasName, rawPlugins.remove, 'plugins.remove')
-        : undefined;
+      const enable =
+        rawPlugins.enable !== undefined
+          ? validateStringArray(aliasName, rawPlugins.enable, 'plugins.enable')
+          : undefined;
+      const disable =
+        rawPlugins.disable !== undefined
+          ? validateStringArray(aliasName, rawPlugins.disable, 'plugins.disable')
+          : undefined;
+      const remove =
+        rawPlugins.remove !== undefined
+          ? validateStringArray(aliasName, rawPlugins.remove, 'plugins.remove')
+          : undefined;
       plugins = {
         ...(enable !== undefined ? { enable } : {}),
         ...(disable !== undefined ? { disable } : {}),
@@ -232,17 +254,26 @@ function normalizeObject(
     let set: Record<string, Record<string, string>> | undefined;
     if (ini.set !== undefined) {
       if (typeof ini.set !== 'object' || ini.set === null || Array.isArray(ini.set)) {
-        throw new CommandSchemaError(aliasName, 'ini.set must be an object of { section: { key: value } }');
+        throw new CommandSchemaError(
+          aliasName,
+          'ini.set must be an object of { section: { key: value } }',
+        );
       }
       set = {};
       for (const [section, keys] of Object.entries(ini.set as Record<string, unknown>)) {
         if (typeof keys !== 'object' || keys === null || Array.isArray(keys)) {
-          throw new CommandSchemaError(aliasName, `ini.set["${section}"] must be an object of { key: value }`);
+          throw new CommandSchemaError(
+            aliasName,
+            `ini.set["${section}"] must be an object of { key: value }`,
+          );
         }
         set[section] = {};
         for (const [k, v] of Object.entries(keys as Record<string, unknown>)) {
           if (typeof v !== 'string') {
-            throw new CommandSchemaError(aliasName, `ini.set["${section}"]["${k}"] must be a string`);
+            throw new CommandSchemaError(
+              aliasName,
+              `ini.set["${section}"]["${k}"] must be a string`,
+            );
           }
           set[section][k] = v;
         }
@@ -253,12 +284,18 @@ function normalizeObject(
     let del: Record<string, string[]> | undefined;
     if (ini.delete !== undefined) {
       if (typeof ini.delete !== 'object' || ini.delete === null || Array.isArray(ini.delete)) {
-        throw new CommandSchemaError(aliasName, 'ini.delete must be an object of { section: [keys] }');
+        throw new CommandSchemaError(
+          aliasName,
+          'ini.delete must be an object of { section: [keys] }',
+        );
       }
       del = {};
       for (const [section, keys] of Object.entries(ini.delete as Record<string, unknown>)) {
         if (!Array.isArray(keys)) {
-          throw new CommandSchemaError(aliasName, `ini.delete["${section}"] must be an array of key names`);
+          throw new CommandSchemaError(
+            aliasName,
+            `ini.delete["${section}"] must be an array of key names`,
+          );
         }
         del[section] = keys as string[];
       }
@@ -288,7 +325,10 @@ function normalizeObject(
   if (Object.hasOwn(obj, 'for_each')) {
     const raw = obj.for_each;
     if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
-      throw new CommandSchemaError(aliasName, 'for_each must be an object with { var, in, cmd|run }');
+      throw new CommandSchemaError(
+        aliasName,
+        'for_each must be an object with { var, in, cmd|run }',
+      );
     }
     const fe = raw as Record<string, unknown>;
     if (typeof fe.var !== 'string') {
@@ -304,11 +344,17 @@ function normalizeObject(
       inField = fe.in as readonly string[];
     } else if (typeof fe.in === 'string') {
       if (!/\$\{[^}]+\}/.test(fe.in)) {
-        throw new CommandSchemaError(aliasName, 'for_each.in as string must reference a variable via ${...}');
+        throw new CommandSchemaError(
+          aliasName,
+          'for_each.in as string must reference a variable via ${...}',
+        );
       }
       inField = fe.in;
     } else {
-      throw new CommandSchemaError(aliasName, 'for_each.in must be an array of strings OR a "${var}" placeholder string');
+      throw new CommandSchemaError(
+        aliasName,
+        'for_each.in must be an array of strings OR a "${var}" placeholder string',
+      );
     }
     const mode = fe.mode ?? 'steps';
     if (mode !== 'steps' && mode !== 'parallel') {
@@ -368,7 +414,10 @@ function normalizeObject(
       } else if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
         const stepObj = item as Record<string, unknown>;
         if (stepObj.kind !== 'prompt') {
-          throw new CommandSchemaError(aliasName, `inline step objects must have kind: "prompt", got "${String(stepObj.kind)}"`);
+          throw new CommandSchemaError(
+            aliasName,
+            `inline step objects must have kind: "prompt", got "${String(stepObj.kind)}"`,
+          );
         }
         if (typeof stepObj.var !== 'string' || stepObj.var.length === 0) {
           throw new CommandSchemaError(aliasName, 'prompt step must have a non-empty "var" string');
@@ -386,7 +435,10 @@ function normalizeObject(
           ...(stepObj.default !== undefined ? { default: stepObj.default as string } : {}),
         });
       } else {
-        throw new CommandSchemaError(aliasName, `steps must contain strings or prompt objects, got ${item === null ? 'null' : typeof item}`);
+        throw new CommandSchemaError(
+          aliasName,
+          `steps must contain strings or prompt objects, got ${item === null ? 'null' : typeof item}`,
+        );
       }
     }
     const description = typeof obj.description === 'string' ? obj.description : undefined;
@@ -485,7 +537,10 @@ function normalizeObject(
       let captureType: CaptureType | undefined;
       if (captureObj.type !== undefined) {
         if (typeof captureObj.type !== 'string' || !validTypes.includes(captureObj.type)) {
-          throw new CommandSchemaError(aliasName, `capture.type must be one of: ${validTypes.join(', ')}`);
+          throw new CommandSchemaError(
+            aliasName,
+            `capture.type must be one of: ${validTypes.join(', ')}`,
+          );
         }
         captureType = captureObj.type as CaptureType;
       }
@@ -496,12 +551,18 @@ function normalizeObject(
         } else if (Array.isArray(captureObj.assert)) {
           for (const a of captureObj.assert) {
             if (typeof a !== 'string') {
-              throw new CommandSchemaError(aliasName, 'capture.assert array must contain only strings');
+              throw new CommandSchemaError(
+                aliasName,
+                'capture.assert array must contain only strings',
+              );
             }
           }
           assert = captureObj.assert as string[];
         } else {
-          throw new CommandSchemaError(aliasName, 'capture.assert must be a string or array of strings');
+          throw new CommandSchemaError(
+            aliasName,
+            'capture.assert must be a string or array of strings',
+          );
         }
       }
       let regex: string | undefined;
@@ -509,8 +570,13 @@ function normalizeObject(
         if (typeof captureObj.regex !== 'string') {
           throw new CommandSchemaError(aliasName, 'capture.regex must be a string');
         }
-        try { new RegExp(captureObj.regex); } catch {
-          throw new CommandSchemaError(aliasName, `capture.regex is not a valid regular expression: ${captureObj.regex}`);
+        try {
+          new RegExp(captureObj.regex);
+        } catch {
+          throw new CommandSchemaError(
+            aliasName,
+            `capture.regex is not a valid regular expression: ${captureObj.regex}`,
+          );
         }
         regex = captureObj.regex;
       }
@@ -521,7 +587,10 @@ function normalizeObject(
         ...(regex !== undefined ? { regex } : {}),
       };
     } else {
-      throw new CommandSchemaError(aliasName, 'capture must be a string or object with { var, type?, assert? }');
+      throw new CommandSchemaError(
+        aliasName,
+        'capture must be a string or object with { var, type?, assert? }',
+      );
     }
   }
 

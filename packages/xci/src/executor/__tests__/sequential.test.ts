@@ -43,11 +43,7 @@ describe('runSequential', () => {
 
   it('prints a step header before each step', async () => {
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    await runSequential(
-      [{ argv: [process.execPath, '-e', 'process.exit(0)'] }],
-      process.cwd(),
-      {},
-    );
+    await runSequential([{ argv: [process.execPath, '-e', 'process.exit(0)'] }], process.cwd(), {});
     expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('\u25b6'));
     stderrSpy.mockRestore();
   });
@@ -212,7 +208,10 @@ describe('runSequential', () => {
       [
         { kind: 'prompt', var: 'env', default: 'prod' },
         // print the captured variable to stdout so we can assert it
-        { argv: [process.execPath, '-e', 'process.stdout.write(process.env.ENV ?? "")'], rawArgv: ['node', '-e', 'process.stdout.write(process.env.ENV ?? "")'] },
+        {
+          argv: [process.execPath, '-e', 'process.stdout.write(process.env.ENV ?? "")'],
+          rawArgv: ['node', '-e', 'process.stdout.write(process.env.ENV ?? "")'],
+        },
       ],
       process.cwd(),
       {},
@@ -228,11 +227,7 @@ describe('runSequential', () => {
 
   it('prompt step label is prompt:<var>', async () => {
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    await runSequential(
-      [{ kind: 'prompt', var: 'my.var', default: 'x' }],
-      process.cwd(),
-      {},
-    );
+    await runSequential([{ kind: 'prompt', var: 'my.var', default: 'x' }], process.cwd(), {});
     const output = stderrSpy.mock.calls.map((c) => String(c[0])).join('');
     expect(output).toContain('prompt:my.var');
     stderrSpy.mockRestore();

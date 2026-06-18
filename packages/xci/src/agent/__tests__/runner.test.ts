@@ -33,9 +33,7 @@ describe('redactLine', () => {
   });
 
   it('replaces all values in the line', () => {
-    expect(redactLine('token=abc123 key=xyz789', ['abc123', 'xyz789'])).toBe(
-      'token=*** key=***',
-    );
+    expect(redactLine('token=abc123 key=xyz789', ['abc123', 'xyz789'])).toBe('token=*** key=***');
   });
 });
 
@@ -109,46 +107,41 @@ describe('splitChunk', () => {
 });
 
 describe('spawnTask integration with redactionValues', () => {
-  it(
-    'emits redacted chunks; no secret substring appears anywhere; seq contiguous from 0',
-    async () => {
-      const received: Array<{ stream: string; data: string; seq: number }> = [];
+  it('emits redacted chunks; no secret substring appears anywhere; seq contiguous from 0', async () => {
+    const received: Array<{ stream: string; data: string; seq: number }> = [];
 
-      await new Promise<void>((resolve) => {
-        spawnTask('run-test-1', {
-          argv: [
-            process.execPath,
-            '-e',
-            'process.stdout.write("secret-abc".repeat(2000));',
-          ],
-          cwd: process.cwd(),
-          env: process.env as Record<string, string>,
-          redactionValues: ['secret-abc'],
-          onChunk: (stream, data, seq) => received.push({ stream, data, seq }),
-          onExit: () => resolve(),
-        });
+    await new Promise<void>((resolve) => {
+      spawnTask('run-test-1', {
+        argv: [process.execPath, '-e', 'process.stdout.write("secret-abc".repeat(2000));'],
+        cwd: process.cwd(),
+        env: process.env as Record<string, string>,
+        redactionValues: ['secret-abc'],
+        onChunk: (stream, data, seq) => received.push({ stream, data, seq }),
+        onExit: () => resolve(),
       });
+    });
 
-      // No emitted chunk should contain the raw secret
-      expect(
-        received.every((r) => !r.data.includes('secret-abc')),
-        `Secret found in chunks: ${received.filter((r) => r.data.includes('secret-abc')).map((r) => r.data.slice(0, 80)).join(' | ')}`,
-      ).toBe(true);
+    // No emitted chunk should contain the raw secret
+    expect(
+      received.every((r) => !r.data.includes('secret-abc')),
+      `Secret found in chunks: ${received
+        .filter((r) => r.data.includes('secret-abc'))
+        .map((r) => r.data.slice(0, 80))
+        .join(' | ')}`,
+    ).toBe(true);
 
-      // All chunks should contain only *** (the replacement)
-      const allData = received.map((r) => r.data).join('');
-      expect(allData).not.toContain('secret-abc');
+    // All chunks should contain only *** (the replacement)
+    const allData = received.map((r) => r.data).join('');
+    expect(allData).not.toContain('secret-abc');
 
-      // Seq numbers must be contiguous starting from 0
-      for (let i = 0; i < received.length; i++) {
-        expect(received[i]!.seq, `seq at index ${i} should be ${i}`).toBe(i);
-      }
+    // Seq numbers must be contiguous starting from 0
+    for (let i = 0; i < received.length; i++) {
+      expect(received[i]!.seq, `seq at index ${i} should be ${i}`).toBe(i);
+    }
 
-      // At least one chunk was received
-      expect(received.length).toBeGreaterThan(0);
-    },
-    15_000,
-  );
+    // At least one chunk was received
+    expect(received.length).toBeGreaterThan(0);
+  }, 15_000);
 
   it('chunks are split at 8KB boundary when output is large', async () => {
     const received: Array<{ stream: string; data: string; seq: number }> = [];
@@ -156,11 +149,7 @@ describe('spawnTask integration with redactionValues', () => {
     // Write 20000 bytes in a single stdout.write — should be split into at least 3 chunks of 8KB
     await new Promise<void>((resolve) => {
       spawnTask('run-test-2', {
-        argv: [
-          process.execPath,
-          '-e',
-          `process.stdout.write('x'.repeat(20000));`,
-        ],
+        argv: [process.execPath, '-e', `process.stdout.write('x'.repeat(20000));`],
         cwd: process.cwd(),
         env: process.env as Record<string, string>,
         onChunk: (stream, data, seq) => received.push({ stream, data, seq }),

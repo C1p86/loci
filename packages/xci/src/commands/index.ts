@@ -96,7 +96,11 @@ function listYamlFilesRecursive(dirPath: string): string[] {
  * Merge a source CommandMap into a target, throwing on duplicate aliases.
  * sourceFile is used for error messages.
  */
-function mergeCommands(target: Map<string, CommandDef>, source: CommandMap, sourceFile: string): void {
+function mergeCommands(
+  target: Map<string, CommandDef>,
+  source: CommandMap,
+  sourceFile: string,
+): void {
   for (const [alias, def] of source) {
     if (target.has(alias)) {
       throw new CommandSchemaError(alias, `duplicate alias defined in ${sourceFile}`);
@@ -130,7 +134,11 @@ function loadCommandsFromDir(baseDir: string): Map<string, CommandDef> {
   }
 
   let dirExists = false;
-  try { dirExists = statSync(commandsDir).isDirectory(); } catch { /* */ }
+  try {
+    dirExists = statSync(commandsDir).isDirectory();
+  } catch {
+    /* */
+  }
   if (dirExists) {
     for (const filePath of listYamlFilesRecursive(commandsDir)) {
       const raw = readCommandsFile(filePath);
@@ -158,10 +166,17 @@ export const commandsLoader: CommandsLoader = {
     try {
       const raw = readFileSync(configPath, 'utf8');
       const parsed = parse(raw);
-      if (parsed && typeof parsed === 'object' && 'project' in parsed && typeof parsed.project === 'string') {
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        'project' in parsed &&
+        typeof parsed.project === 'string'
+      ) {
         projectName = parsed.project;
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // Start with builtin commands (lowest priority — always available system-wide)
     const commands: Map<string, CommandDef> = builtinCommandsDir
@@ -177,7 +192,11 @@ export const commandsLoader: CommandsLoader = {
     if (machineDir && projectName) {
       const machineProjectDir = join(machineDir, projectName);
       let projDirExists = false;
-      try { projDirExists = statSync(machineProjectDir).isDirectory(); } catch { /* */ }
+      try {
+        projDirExists = statSync(machineProjectDir).isDirectory();
+      } catch {
+        /* */
+      }
       if (projDirExists) {
         const machineProjectCmds = loadCommandsFromDir(machineProjectDir);
         mergeCommandsSilent(commands, machineProjectCmds);

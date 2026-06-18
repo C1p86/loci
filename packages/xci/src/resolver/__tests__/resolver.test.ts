@@ -305,7 +305,11 @@ describe('resolver.resolve - sequential', () => {
     const plan = resolver.resolve('ci', commands, config);
     expect(plan.kind).toBe('sequential');
     if (plan.kind === 'sequential') {
-      expect(plan.steps.filter((s) => s.kind !== 'set' && s.kind !== 'prompt' && s.kind !== 'ini').map((s) => (s as { argv: readonly string[] }).argv)).toEqual([
+      expect(
+        plan.steps
+          .filter((s) => s.kind !== 'set' && s.kind !== 'prompt' && s.kind !== 'ini')
+          .map((s) => (s as { argv: readonly string[] }).argv),
+      ).toEqual([
         ['npm', 'run', 'lint'],
         ['npm', 'run', 'test'],
         ['npm', 'run', 'build'],
@@ -323,7 +327,11 @@ describe('resolver.resolve - sequential', () => {
     const plan = resolver.resolve('ci', commands, config);
     expect(plan.kind).toBe('sequential');
     if (plan.kind === 'sequential') {
-      expect(plan.steps.filter((s) => s.kind !== 'set' && s.kind !== 'prompt' && s.kind !== 'ini').map((s) => (s as { argv: readonly string[] }).argv)).toEqual([
+      expect(
+        plan.steps
+          .filter((s) => s.kind !== 'set' && s.kind !== 'prompt' && s.kind !== 'ini')
+          .map((s) => (s as { argv: readonly string[] }).argv),
+      ).toEqual([
         ['npm', 'run', 'lint'],
         ['npm', 'run', 'test'],
       ]);
@@ -339,7 +347,11 @@ describe('resolver.resolve - sequential', () => {
     const plan = resolver.resolve('ci', commands, config);
     expect(plan.kind).toBe('sequential');
     if (plan.kind === 'sequential') {
-      expect(plan.steps.filter((s) => s.kind !== 'set' && s.kind !== 'prompt' && s.kind !== 'ini').map((s) => (s as { argv: readonly string[] }).argv)).toEqual([
+      expect(
+        plan.steps
+          .filter((s) => s.kind !== 'set' && s.kind !== 'prompt' && s.kind !== 'ini')
+          .map((s) => (s as { argv: readonly string[] }).argv),
+      ).toEqual([
         ['npm', 'run', 'lint'],
         ['npm', 'run', 'build'],
       ]);
@@ -357,7 +369,11 @@ describe('resolver.resolve - sequential', () => {
     const plan = resolver.resolve('ci', commands, config);
     expect(plan.kind).toBe('sequential');
     if (plan.kind === 'sequential') {
-      expect(plan.steps.filter((s) => s.kind !== 'set' && s.kind !== 'prompt' && s.kind !== 'ini').map((s) => (s as { argv: readonly string[] }).argv)).toEqual([
+      expect(
+        plan.steps
+          .filter((s) => s.kind !== 'set' && s.kind !== 'prompt' && s.kind !== 'ini')
+          .map((s) => (s as { argv: readonly string[] }).argv),
+      ).toEqual([
         ['npm', 'run', 'lint'],
         ['npm', 'run', 'test'],
         ['npm', 'run', 'build'],
@@ -399,7 +415,11 @@ describe('resolver.resolve - parallel', () => {
       failMode: 'fast',
       group: [
         { alias: 'watch:ts', argv: ['npm', 'run', 'watch:ts'], breadcrumb: ['watch', 'watch:ts'] },
-        { alias: 'watch:css', argv: ['npm', 'run', 'watch:css'], breadcrumb: ['watch', 'watch:css'] },
+        {
+          alias: 'watch:css',
+          argv: ['npm', 'run', 'watch:css'],
+          breadcrumb: ['watch', 'watch:css'],
+        },
       ],
     });
   });
@@ -527,9 +547,9 @@ describe('resolver — for_each with string in (CSV-split)', () => {
       mode: 'steps',
       cmd: ['echo', '${region}'],
     };
-    expect(() =>
-      resolver.resolve('deploy', makeCommands({ deploy: def }), makeConfig({})),
-    ).toThrow(UndefinedPlaceholderError);
+    expect(() => resolver.resolve('deploy', makeCommands({ deploy: def }), makeConfig({}))).toThrow(
+      UndefinedPlaceholderError,
+    );
   });
 });
 
@@ -549,7 +569,11 @@ describe('resolver — for_each bakes loop variable into rawArgv (runtime re-int
       mode: 'steps',
       cmd: ['deploy', '--region', '${region}', '--fleet', '${FleetId}'],
     };
-    const plan = resolver.resolve('deploy-all', makeCommands({ 'deploy-all': def }), makeConfig({}));
+    const plan = resolver.resolve(
+      'deploy-all',
+      makeCommands({ 'deploy-all': def }),
+      makeConfig({}),
+    );
     expect(plan.kind).toBe('sequential');
     if (plan.kind !== 'sequential') throw new Error('unreachable');
     expect(plan.steps).toHaveLength(2);
@@ -557,10 +581,34 @@ describe('resolver — for_each bakes loop variable into rawArgv (runtime re-int
     const s1 = plan.steps[1];
     if (!s0 || !s1) throw new Error('unreachable');
     // Both argv and rawArgv have loop var substituted; ${FleetId} survives untouched
-    expect('argv' in s0 ? s0.argv : null).toEqual(['deploy', '--region', 'eu-west-1', '--fleet', '${FleetId}']);
-    expect('rawArgv' in s0 ? s0.rawArgv : null).toEqual(['deploy', '--region', 'eu-west-1', '--fleet', '${FleetId}']);
-    expect('argv' in s1 ? s1.argv : null).toEqual(['deploy', '--region', 'us-east-1', '--fleet', '${FleetId}']);
-    expect('rawArgv' in s1 ? s1.rawArgv : null).toEqual(['deploy', '--region', 'us-east-1', '--fleet', '${FleetId}']);
+    expect('argv' in s0 ? s0.argv : null).toEqual([
+      'deploy',
+      '--region',
+      'eu-west-1',
+      '--fleet',
+      '${FleetId}',
+    ]);
+    expect('rawArgv' in s0 ? s0.rawArgv : null).toEqual([
+      'deploy',
+      '--region',
+      'eu-west-1',
+      '--fleet',
+      '${FleetId}',
+    ]);
+    expect('argv' in s1 ? s1.argv : null).toEqual([
+      'deploy',
+      '--region',
+      'us-east-1',
+      '--fleet',
+      '${FleetId}',
+    ]);
+    expect('rawArgv' in s1 ? s1.rawArgv : null).toEqual([
+      'deploy',
+      '--region',
+      'us-east-1',
+      '--fleet',
+      '${FleetId}',
+    ]);
   });
 
   it('run: sub-alias: bakes outer loop var into sub-step rawArgv, preserves captured-var placeholder', () => {
@@ -583,8 +631,20 @@ describe('resolver — for_each bakes loop variable into rawArgv (runtime re-int
     const s0 = plan.steps[0];
     const s1 = plan.steps[1];
     if (!s0 || !s1) throw new Error('unreachable');
-    expect('rawArgv' in s0 ? s0.rawArgv : null).toEqual(['deploy', '--region', 'eu-west-1', '--fleet', '${FleetId}']);
-    expect('rawArgv' in s1 ? s1.rawArgv : null).toEqual(['deploy', '--region', 'us-east-1', '--fleet', '${FleetId}']);
+    expect('rawArgv' in s0 ? s0.rawArgv : null).toEqual([
+      'deploy',
+      '--region',
+      'eu-west-1',
+      '--fleet',
+      '${FleetId}',
+    ]);
+    expect('rawArgv' in s1 ? s1.rawArgv : null).toEqual([
+      'deploy',
+      '--region',
+      'us-east-1',
+      '--fleet',
+      '${FleetId}',
+    ]);
   });
 
   it('non-for_each sequential step keeps ${CapturedVar} in rawArgv intact (no regression)', () => {
@@ -612,7 +672,11 @@ describe('resolver — for_each bakes loop variable into rawArgv (runtime re-int
       mode: 'steps',
       cmd: ['deploy', '--region', '${region}', '--fleet', '${FleetId}'],
     };
-    const plan = resolver.resolve('deploy-all', makeCommands({ 'deploy-all': def }), makeConfig({}));
+    const plan = resolver.resolve(
+      'deploy-all',
+      makeCommands({ 'deploy-all': def }),
+      makeConfig({}),
+    );
     if (plan.kind !== 'sequential') throw new Error('unreachable');
     const s0 = plan.steps[0];
     if (!s0 || !('rawArgv' in s0) || s0.rawArgv === undefined) throw new Error('unreachable');
@@ -702,7 +766,8 @@ describe('resolver — cwd field', () => {
     );
     if (plan.kind !== 'sequential') throw new Error('unreachable');
     const step = plan.steps[0];
-    if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini') throw new Error('unreachable');
+    if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini')
+      throw new Error('unreachable');
     expect(step.cwd).toBe('a');
   });
 
@@ -717,7 +782,8 @@ describe('resolver — cwd field', () => {
     );
     if (plan.kind !== 'sequential') throw new Error('unreachable');
     const step = plan.steps[0];
-    if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini') throw new Error('unreachable');
+    if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini')
+      throw new Error('unreachable');
     expect(step.cwd).toBe('b');
   });
 
@@ -732,7 +798,8 @@ describe('resolver — cwd field', () => {
     );
     if (plan.kind !== 'sequential') throw new Error('unreachable');
     const step = plan.steps[0];
-    if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini') throw new Error('unreachable');
+    if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini')
+      throw new Error('unreachable');
     expect(step.cwd).toBe('b');
   });
 
@@ -746,7 +813,8 @@ describe('resolver — cwd field', () => {
     );
     if (plan.kind !== 'sequential') throw new Error('unreachable');
     const step = plan.steps[0];
-    if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini') throw new Error('unreachable');
+    if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini')
+      throw new Error('unreachable');
     expect(step.cwd).toBe('a');
   });
 
@@ -869,7 +937,8 @@ describe('resolver — cwd field', () => {
     );
     if (plan.kind !== 'sequential') throw new Error('unreachable');
     const step = plan.steps[0];
-    if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini') throw new Error('unreachable');
+    if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini')
+      throw new Error('unreachable');
     expect(step.cwd).toBe('grand');
   });
 });
@@ -895,8 +964,10 @@ describe('for_each rawArgv bakes loop variable', () => {
     const s0 = plan.steps[0];
     const s1 = plan.steps[1];
     if (!s0 || !s1) throw new Error('unreachable');
-    if (s0.kind === 'set' || s0.kind === 'prompt' || s0.kind === 'ini') throw new Error('unreachable');
-    if (s1.kind === 'set' || s1.kind === 'prompt' || s1.kind === 'ini') throw new Error('unreachable');
+    if (s0.kind === 'set' || s0.kind === 'prompt' || s0.kind === 'ini' || s0.kind === 'uproject')
+      throw new Error('unreachable');
+    if (s1.kind === 'set' || s1.kind === 'prompt' || s1.kind === 'ini' || s1.kind === 'uproject')
+      throw new Error('unreachable');
 
     // rawArgv must NOT contain the unresolved ${svc} placeholder
     expect(s0.rawArgv).toEqual(['deploy', 'api', '--region', 'us']);
@@ -927,8 +998,10 @@ describe('for_each rawArgv bakes loop variable', () => {
     const s0 = plan.steps[0];
     const s1 = plan.steps[1];
     if (!s0 || !s1) throw new Error('unreachable');
-    if (s0.kind === 'set' || s0.kind === 'prompt' || s0.kind === 'ini') throw new Error('unreachable');
-    if (s1.kind === 'set' || s1.kind === 'prompt' || s1.kind === 'ini') throw new Error('unreachable');
+    if (s0.kind === 'set' || s0.kind === 'prompt' || s0.kind === 'ini' || s0.kind === 'uproject')
+      throw new Error('unreachable');
+    if (s1.kind === 'set' || s1.kind === 'prompt' || s1.kind === 'ini' || s1.kind === 'uproject')
+      throw new Error('unreachable');
 
     expect(s0.rawArgv).toEqual(['deploy', 'api', '--region', 'us']);
     expect(s1.rawArgv).toEqual(['deploy', 'web', '--region', 'us']);
@@ -953,7 +1026,8 @@ describe('cwd inheritance — nested sub-aliases and for_each', () => {
     if (plan.kind === 'sequential') {
       expect(plan.steps).toHaveLength(1);
       const step = plan.steps[0];
-      if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini') throw new Error('unreachable');
+      if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini')
+        throw new Error('unreachable');
       expect(step.cwd).toBe('/top');
     }
   });
@@ -969,7 +1043,8 @@ describe('cwd inheritance — nested sub-aliases and for_each', () => {
     if (plan.kind === 'sequential') {
       expect(plan.steps).toHaveLength(1);
       const step = plan.steps[0];
-      if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini') throw new Error('unreachable');
+      if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini')
+        throw new Error('unreachable');
       expect(step.cwd).toBe('/mid');
     }
   });
@@ -986,8 +1061,10 @@ describe('cwd inheritance — nested sub-aliases and for_each', () => {
       expect(plan.steps).toHaveLength(2);
       const s0 = plan.steps[0];
       const s1 = plan.steps[1];
-      if (!s0 || s0.kind === 'set' || s0.kind === 'prompt' || s0.kind === 'ini') throw new Error('unreachable');
-      if (!s1 || s1.kind === 'set' || s1.kind === 'prompt' || s1.kind === 'ini') throw new Error('unreachable');
+      if (!s0 || s0.kind === 'set' || s0.kind === 'prompt' || s0.kind === 'ini')
+        throw new Error('unreachable');
+      if (!s1 || s1.kind === 'set' || s1.kind === 'prompt' || s1.kind === 'ini')
+        throw new Error('unreachable');
       expect(s0.cwd).toBe('/top');
       expect(s1.cwd).toBe('/top');
     }
@@ -1011,7 +1088,8 @@ describe('cwd inheritance — nested sub-aliases and for_each', () => {
     if (plan.kind === 'sequential') {
       expect(plan.steps).toHaveLength(1);
       const step = plan.steps[0];
-      if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini') throw new Error('unreachable');
+      if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini')
+        throw new Error('unreachable');
       expect(step.cwd).toBe('/loop');
     }
   });
@@ -1032,7 +1110,8 @@ describe('cwd inheritance — nested sub-aliases and for_each', () => {
     if (plan.kind === 'sequential') {
       expect(plan.steps).toHaveLength(1);
       const step = plan.steps[0];
-      if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini') throw new Error('unreachable');
+      if (!step || step.kind === 'set' || step.kind === 'prompt' || step.kind === 'ini')
+        throw new Error('unreachable');
       expect(step.cwd).toBe('/top');
     }
   });

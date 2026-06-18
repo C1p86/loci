@@ -34,7 +34,9 @@ describe('types.ts — pipeline contracts', () => {
 
   it('CommandDef is a discriminated union on `kind`', () => {
     type Kinds = CommandDef['kind'];
-    expectTypeOf<Kinds>().toEqualTypeOf<'single' | 'sequential' | 'parallel' | 'for_each' | 'ini'>();
+    expectTypeOf<Kinds>().toEqualTypeOf<
+      'single' | 'sequential' | 'parallel' | 'for_each' | 'ini' | 'uproject'
+    >();
   });
 
   it('CommandDef narrowing: single has cmd, sequential has steps, parallel has group', () => {
@@ -54,7 +56,9 @@ describe('types.ts — pipeline contracts', () => {
 
   it('ExecutionPlan is a discriminated union with the same kinds as CommandDef', () => {
     type PlanKinds = ExecutionPlan['kind'];
-    expectTypeOf<PlanKinds>().toEqualTypeOf<'single' | 'sequential' | 'parallel' | 'ini'>();
+    expectTypeOf<PlanKinds>().toEqualTypeOf<
+      'single' | 'sequential' | 'parallel' | 'ini' | 'uproject'
+    >();
   });
 
   it('Executor.run takes ExecutionPlan + ExecutorOptions and returns Promise<ExecutionResult>', () => {
@@ -69,7 +73,9 @@ describe('types.ts — pipeline contracts', () => {
   });
 
   it('CommandsLoader and Resolver interfaces exist and have the expected shape', () => {
-    expectTypeOf<CommandsLoader['load']>().parameters.toEqualTypeOf<[string, (string | undefined)?]>();
+    expectTypeOf<CommandsLoader['load']>().parameters.toEqualTypeOf<
+      [string, (string | undefined)?]
+    >();
     expectTypeOf<Resolver['resolve']>().parameters.toEqualTypeOf<
       [string, CommandMap, ResolvedConfig]
     >();

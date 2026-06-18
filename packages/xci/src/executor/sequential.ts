@@ -15,7 +15,17 @@ import type { ExecutionResult, SequentialStep } from '../types.js';
 import { extractFromOutput, validateCapture } from './capture.js';
 import { assertCwdExists } from './cwd.js';
 import { writeIni, deleteIniKeys } from './ini.js';
-import { notifyWaitingForInput, printCaptureResult, printStepHeader, printStepPreview, printStepResult, resetTerminalTitle, setTerminalTitle } from './output.js';
+import { applyUprojectEdits, readUproject, writeUproject } from './uproject.js';
+import {
+  notifyWaitingForInput,
+  printCaptureResult,
+  printStepHeader,
+  printStepPreview,
+  printStepResult,
+  resetTerminalTitle,
+  setTerminalTitle,
+  formatWarning,
+} from './output.js';
 import { runSingle } from './single.js';
 
 /**
@@ -48,18 +58,30 @@ async function runAndCapture(
     interrupted = true;
     process.stderr.write('\n[xci] Stopping child process...\n');
     if (IS_WINDOWS && pid) {
-      try { execSync(`taskkill /f /t /pid ${pid}`, { stdio: 'pipe' }); } catch { /* */ }
+      try {
+        execSync(`taskkill /f /t /pid ${pid}`, { stdio: 'pipe' });
+      } catch {
+        /* */
+      }
     } else {
       proc.kill('SIGTERM');
     }
     const forceTimer = setTimeout(() => {
       if (IS_WINDOWS && pid) {
-        try { execSync(`taskkill /f /t /pid ${pid}`, { stdio: 'pipe' }); } catch { /* */ }
+        try {
+          execSync(`taskkill /f /t /pid ${pid}`, { stdio: 'pipe' });
+        } catch {
+          /* */
+        }
       } else {
         proc.kill('SIGKILL');
       }
     }, 5000);
-    try { await proc; } catch { /* expected */ }
+    try {
+      await proc;
+    } catch {
+      /* expected */
+    }
     clearTimeout(forceTimer);
     process.stderr.write('[xci] Child process terminated.\n');
   };
@@ -133,13 +155,18 @@ export async function runSequential(
     // quick-260421-kbl: compute the true leaf label (used for --from matching
     // by leaf name — backward compat) and the breadcrumb-aware display label
     // that is rendered in step headers / results.
-    const leafLabel = step.kind === 'ini' ? `ini:${step.mode}`
-      : step.kind === 'set' ? 'set'
-      : step.kind === 'prompt' ? `prompt:${step.var}`
-      : (step.label ?? step.argv[0] ?? '(unknown)');
-    const displayLabel = step.breadcrumb && step.breadcrumb.length > 0
-      ? step.breadcrumb.join(' > ')
-      : leafLabel;
+    const leafLabel =
+      step.kind === 'ini'
+        ? `ini:${step.mode}`
+        : step.kind === 'uproject'
+          ? 'uproject'
+          : step.kind === 'set'
+            ? 'set'
+            : step.kind === 'prompt'
+              ? `prompt:${step.var}`
+              : (step.label ?? step.argv[0] ?? '(unknown)');
+    const displayLabel =
+      step.breadcrumb && step.breadcrumb.length > 0 ? step.breadcrumb.join(' > ') : leafLabel;
     const alias = step.breadcrumb?.[0] ?? displayLabel;
 
     // Check if this is the --from target (match against leaf OR full path)
@@ -186,7 +213,9 @@ export async function runSequential(
           value = step.default;
           process.stderr.write(`  (non-interactive) using default: ${value}\n`);
         } else {
-          process.stderr.write(`  error: prompt requires user input but stdin is not a TTY and no default is set\n`);
+          process.stderr.write(
+            `  error: prompt requires user input but stdin is not a TTY and no default is set\n`,
+          );
           printStepResult(displayLabel, 1, 0);
           resetTerminalTitle();
           return { exitCode: 1 };
@@ -205,6 +234,45 @@ export async function runSequential(
       capturedVars[envKey] = value;
       process.stderr.write(`  ${step.var}=${value}\n`);
       printStepResult(displayLabel, 0, 0);
+      continue;
+    }
+
+    // Handle uproject steps inline
+    if (step.kind === 'uproject') {
+      setTerminalTitle(`xci: ${alias} [${stepNum}/${totalSteps}] (uproject)`);
+      printStepHeader(displayLabel, stepNum, totalSteps);
+      const startTime = Date.now();
+      const stepCwd = step.cwd ?? cwd;
+      const mergedValues = { ...env, ...capturedVars };
+      // Interpolate file path with captured vars
+      const rawFilePath = isAbsolute(step.file) ? step.file : resolvePath(stepCwd, step.file);
+      const filePath = interpolateArgv([rawFilePath], '(uproject)', mergedValues)[0] ?? rawFilePath;
+      // Re-interpolate set values with capturedVars
+      let resolvedSet: Record<string, string> | undefined;
+      if (step.set) {
+        resolvedSet = {};
+        for (const [k, v] of Object.entries(step.set)) {
+          resolvedSet[k] = interpolateArgv([v], '(uproject)', mergedValues)[0] ?? v;
+        }
+      }
+      try {
+        const existing = readUproject(filePath);
+        const seqOps: import('./uproject.js').UprojectOps = {};
+        if (step.plugins !== undefined) seqOps.plugins = step.plugins;
+        if (resolvedSet !== undefined) seqOps.set = resolvedSet;
+        const { json, warnings } = applyUprojectEdits(existing, seqOps);
+        writeUproject(filePath, json);
+        process.stderr.write(`  ${filePath}\n`);
+        for (const w of warnings) {
+          process.stderr.write(`  ${formatWarning(w)}\n`);
+        }
+        printStepResult(displayLabel, 0, Date.now() - startTime);
+      } catch (err) {
+        process.stderr.write(`  error: ${(err as Error).message}\n`);
+        printStepResult(displayLabel, 1, Date.now() - startTime);
+        resetTerminalTitle();
+        return { exitCode: 1 };
+      }
       continue;
     }
 
@@ -312,7 +380,14 @@ export async function runSequential(
 
       printStepResult(stepCmd, 0, elapsed);
     } else {
-      const result = await runSingle(finalArgv, stepSpawnCwd, stepEnv, logFile, showOutput, tailLines);
+      const result = await runSingle(
+        finalArgv,
+        stepSpawnCwd,
+        stepEnv,
+        logFile,
+        showOutput,
+        tailLines,
+      );
       const elapsed = Date.now() - startTime;
       printStepResult(stepCmd, result.exitCode, elapsed);
 

@@ -6,12 +6,30 @@ import { isAbsolute, resolve as resolvePath } from 'node:path';
 import type { ExecutionPlan, ExecutionResult, Executor, ExecutorOptions } from '../types.js';
 import { extractFromOutput, validateCapture } from './capture.js';
 import { writeIni, deleteIniKeys } from './ini.js';
-import { notifyCompletion, printCaptureResult, printStepHeader, printStepPreview, printStepResult, resetTerminalTitle, setTerminalTitle } from './output.js';
+import { applyUprojectEdits, readUproject, writeUproject } from './uproject.js';
+import {
+  notifyCompletion,
+  printCaptureResult,
+  printStepHeader,
+  printStepPreview,
+  printStepResult,
+  resetTerminalTitle,
+  setTerminalTitle,
+  formatWarning,
+} from './output.js';
 import { runParallel } from './parallel.js';
 import { runSequential } from './sequential.js';
 import { runSingle, runSingleCapture } from './single.js';
 
-export { buildSecretValues, printCaptureResult, printDryRun, printRunHeader, printStepPreview, printVerboseCommand, printVerboseTrace } from './output.js';
+export {
+  buildSecretValues,
+  printCaptureResult,
+  printDryRun,
+  printRunHeader,
+  printStepPreview,
+  printVerboseCommand,
+  printVerboseTrace,
+} from './output.js';
 export { resolveAbsoluteCwds } from './cwd.js';
 
 export const executor: Executor = {
@@ -26,7 +44,9 @@ export const executor: Executor = {
           // quick-260421-g99: plan.cwd (absolute after resolveAbsoluteCwds) overrides the options default.
           const effectiveCwd = plan.cwd ?? cwd;
           const singleCmd = plan.argv.join(' ');
-          setTerminalTitle(`xci: ${singleCmd.length > 70 ? `${singleCmd.slice(0, 67)}…` : singleCmd}`);
+          setTerminalTitle(
+            `xci: ${singleCmd.length > 70 ? `${singleCmd.slice(0, 67)}…` : singleCmd}`,
+          );
           printStepHeader(cmdName);
           // quick-260422-pnv: always pass cwd so the dark-yellow cwd line appears for single commands too.
           printStepPreview(undefined, plan.argv, secretValues, {
@@ -48,7 +68,10 @@ export const executor: Executor = {
             if (captureResult.stdout.length > 0 && show) {
               process.stdout.write(captureResult.stdout + '\n');
             }
-            const validation = validateCapture(extractFromOutput(captureResult.stdout, plan.capture), plan.capture);
+            const validation = validateCapture(
+              extractFromOutput(captureResult.stdout, plan.capture),
+              plan.capture,
+            );
             const isVerbose = env['XCI_VERBOSE'] === '1';
             printCaptureResult(plan.capture, validation, isVerbose);
             if (!validation.valid) {
@@ -61,16 +84,40 @@ export const executor: Executor = {
             return { exitCode: 0 };
           }
 
-          const singleResult = await runSingle(plan.argv, effectiveCwd, env, logFile, show, tailLines);
+          const singleResult = await runSingle(
+            plan.argv,
+            effectiveCwd,
+            env,
+            logFile,
+            show,
+            tailLines,
+          );
           printStepResult(cmdName, singleResult.exitCode, Date.now() - startTime);
           resetTerminalTitle();
           return singleResult;
         }
         case 'sequential':
-          return runSequential(plan.steps, cwd, env, logFile, show, tailLines, fromStep, secretValues);
+          return runSequential(
+            plan.steps,
+            cwd,
+            env,
+            logFile,
+            show,
+            tailLines,
+            fromStep,
+            secretValues,
+          );
         case 'parallel': {
           setTerminalTitle(`xci: [${plan.group.length} in parallel]`);
-          const parallelResult = await runParallel(plan.group, plan.failMode, cwd, env, logFile, show, secretValues);
+          const parallelResult = await runParallel(
+            plan.group,
+            plan.failMode,
+            cwd,
+            env,
+            logFile,
+            show,
+            secretValues,
+          );
           resetTerminalTitle();
           return parallelResult;
         }
@@ -99,6 +146,35 @@ export const executor: Executor = {
           } catch (err) {
             process.stderr.write(`  error: ${(err as Error).message}\n`);
             printStepResult(iniLabel, 1, Date.now() - startTime);
+            resetTerminalTitle();
+            return { exitCode: 1 };
+          }
+        }
+        case 'uproject': {
+          const uprojectLabel = 'uproject';
+          // Resolve file path against plan.cwd ?? default cwd
+          const effectiveCwd = plan.cwd ?? cwd;
+          const filePath = isAbsolute(plan.file) ? plan.file : resolvePath(effectiveCwd, plan.file);
+          setTerminalTitle(`xci: ${uprojectLabel}`);
+          printStepHeader(uprojectLabel);
+          const startTime = Date.now();
+          try {
+            const existing = readUproject(filePath);
+            const ops: import('./uproject.js').UprojectOps = {};
+            if (plan.plugins !== undefined) ops.plugins = plan.plugins;
+            if (plan.set !== undefined) ops.set = plan.set;
+            const { json, warnings } = applyUprojectEdits(existing, ops);
+            writeUproject(filePath, json);
+            process.stderr.write(`  ${filePath}\n`);
+            for (const w of warnings) {
+              process.stderr.write(`  ${formatWarning(w)}\n`);
+            }
+            printStepResult(uprojectLabel, 0, Date.now() - startTime);
+            resetTerminalTitle();
+            return { exitCode: 0 };
+          } catch (err) {
+            process.stderr.write(`  error: ${(err as Error).message}\n`);
+            printStepResult(uprojectLabel, 1, Date.now() - startTime);
             resetTerminalTitle();
             return { exitCode: 1 };
           }

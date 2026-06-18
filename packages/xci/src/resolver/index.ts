@@ -5,7 +5,15 @@
 
 import { tokenize } from '../commands/tokenize.js';
 import { CommandSchemaError, UnknownAliasError } from '../errors.js';
-import type { CommandDef, CommandMap, ExecutionPlan, PromptStepDef, ResolvedConfig, Resolver, SequentialStep } from '../types.js';
+import type {
+  CommandDef,
+  CommandMap,
+  ExecutionPlan,
+  PromptStepDef,
+  ResolvedConfig,
+  Resolver,
+  SequentialStep,
+} from '../types.js';
 import { interpolateArgv, interpolateArgvLenient } from './interpolate.js';
 import { selectPlatformCmd } from './platform.js';
 
@@ -17,7 +25,10 @@ const VAR_ASSIGN_RE = /^[A-Za-z_][A-Za-z0-9_.]*=/;
 
 /** CSV-split helper for string-form for_each.in: split on ',', trim, drop empties. */
 function csvSplit(s: string): string[] {
-  return s.split(',').map((v) => v.trim()).filter((v) => v.length > 0);
+  return s
+    .split(',')
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0);
 }
 
 /**
@@ -94,14 +105,16 @@ function resolveToStepsLenient(
     case 'single': {
       const rawCmd = selectPlatformCmd(def, aliasName);
       const argv = interpolateArgvLenient(rawCmd, config.values);
-      return [{
-        label: aliasName,
-        argv,
-        rawArgv: rawCmd,
-        ...(def.capture ? { capture: def.capture } : {}),
-        ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
-        breadcrumb: [...chain],
-      }];
+      return [
+        {
+          label: aliasName,
+          argv,
+          rawArgv: rawCmd,
+          ...(def.capture ? { capture: def.capture } : {}),
+          ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+          breadcrumb: [...chain],
+        },
+      ];
     }
     case 'sequential': {
       const allSteps: SequentialStep[] = [];
@@ -109,7 +122,13 @@ function resolveToStepsLenient(
         if (typeof step === 'object') {
           // Inline prompt step
           const p = step as PromptStepDef;
-          allSteps.push({ kind: 'prompt', var: p.var, ...(p.message !== undefined ? { message: p.message } : {}), ...(p.default !== undefined ? { default: p.default } : {}), breadcrumb: [...chain] });
+          allSteps.push({
+            kind: 'prompt',
+            var: p.var,
+            ...(p.message !== undefined ? { message: p.message } : {}),
+            ...(p.default !== undefined ? { default: p.default } : {}),
+            breadcrumb: [...chain],
+          });
         } else if (VAR_ASSIGN_RE.test(step)) {
           // Variable assignment step: KEY=VALUE
           const eqIdx = step.indexOf('=');
@@ -117,7 +136,14 @@ function resolveToStepsLenient(
           const value = step.substring(eqIdx + 1);
           allSteps.push({ kind: 'set', vars: { [key]: value }, breadcrumb: [...chain] });
         } else if (commands.has(step)) {
-          const subSteps = resolveToStepsLenient(step, commands, config, depth + 1, [...chain, step], effectiveCwd);
+          const subSteps = resolveToStepsLenient(
+            step,
+            commands,
+            config,
+            depth + 1,
+            [...chain, step],
+            effectiveCwd,
+          );
           for (const s of subSteps) allSteps.push(s);
         } else {
           const tokens = tokenize(step, aliasName);
@@ -136,7 +162,14 @@ function resolveToStepsLenient(
       // A parallel alias embedded in a sequential context: each parallel entry becomes one step
       return def.group.map((entry) => {
         if (commands.has(entry)) {
-          const sub = resolveToStepsLenient(entry, commands, config, depth + 1, [...chain, entry], effectiveCwd);
+          const sub = resolveToStepsLenient(
+            entry,
+            commands,
+            config,
+            depth + 1,
+            [...chain, entry],
+            effectiveCwd,
+          );
           if (sub.length === 1) return sub[0]!;
           // Multi-step can't be flattened into a single parallel entry; return first
           return sub[0] ?? { argv: [], rawArgv: [], breadcrumb: [...chain] };
@@ -171,7 +204,14 @@ function resolveToStepsLenient(
         const loopValues = { ...config.values, [def.var]: value };
         if (def.run && commands.has(def.run)) {
           const loopConfig: ResolvedConfig = { ...config, values: loopValues };
-          const subSteps = resolveToStepsLenient(def.run, commands, loopConfig, depth + 1, [...chain, def.run], effectiveCwd);
+          const subSteps = resolveToStepsLenient(
+            def.run,
+            commands,
+            loopConfig,
+            depth + 1,
+            [...chain, def.run],
+            effectiveCwd,
+          );
           const baked = bakeLoopVarIntoRawArgv(subSteps, def.var, value);
           for (const s of baked) allSteps.push(s);
         } else if (def.cmd) {
@@ -200,15 +240,17 @@ function resolveToStepsLenient(
           }
         }
       }
-      return [{
-        kind: 'ini' as const,
-        file,
-        mode: def.mode ?? 'overwrite',
-        ...(set ? { set } : {}),
-        ...(def.delete ? { delete: def.delete } : {}),
-        ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
-        breadcrumb: [...chain],
-      }];
+      return [
+        {
+          kind: 'ini' as const,
+          file,
+          mode: def.mode ?? 'overwrite',
+          ...(set ? { set } : {}),
+          ...(def.delete ? { delete: def.delete } : {}),
+          ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+          breadcrumb: [...chain],
+        },
+      ];
     }
 
     case 'uproject': {
@@ -220,14 +262,16 @@ function resolveToStepsLenient(
           set[k] = interpolateArgvLenient([v], config.values)[0] ?? v;
         }
       }
-      return [{
-        kind: 'uproject' as const,
-        file,
-        ...(def.plugins ? { plugins: def.plugins } : {}),
-        ...(set ? { set } : {}),
-        ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
-        breadcrumb: [...chain],
-      }];
+      return [
+        {
+          kind: 'uproject' as const,
+          file,
+          ...(def.plugins ? { plugins: def.plugins } : {}),
+          ...(set ? { set } : {}),
+          ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+          breadcrumb: [...chain],
+        },
+      ];
     }
   }
 }
@@ -277,14 +321,27 @@ function resolveAlias(
         if (typeof step === 'object') {
           // Inline prompt step
           const p = step as PromptStepDef;
-          allSteps.push({ kind: 'prompt', var: p.var, ...(p.message !== undefined ? { message: p.message } : {}), ...(p.default !== undefined ? { default: p.default } : {}), breadcrumb: [...chain] });
+          allSteps.push({
+            kind: 'prompt',
+            var: p.var,
+            ...(p.message !== undefined ? { message: p.message } : {}),
+            ...(p.default !== undefined ? { default: p.default } : {}),
+            breadcrumb: [...chain],
+          });
         } else if (VAR_ASSIGN_RE.test(step)) {
           const eqIdx = step.indexOf('=');
           const key = step.substring(0, eqIdx);
           const value = step.substring(eqIdx + 1);
           allSteps.push({ kind: 'set', vars: { [key]: value }, breadcrumb: [...chain] });
         } else if (commands.has(step)) {
-          const subSteps = resolveToStepsLenient(step, commands, config, depth + 1, [...chain, step], effectiveCwd);
+          const subSteps = resolveToStepsLenient(
+            step,
+            commands,
+            config,
+            depth + 1,
+            [...chain, step],
+            effectiveCwd,
+          );
           for (const s of subSteps) allSteps.push(s);
         } else {
           const tokens = tokenize(step, aliasName);
@@ -301,11 +358,23 @@ function resolveAlias(
     }
 
     case 'parallel': {
-      const group: { alias: string; argv: readonly string[]; cwd?: string; breadcrumb?: readonly string[] }[] = [];
+      const group: {
+        alias: string;
+        argv: readonly string[];
+        cwd?: string;
+        breadcrumb?: readonly string[];
+      }[] = [];
       for (const entry of def.group) {
         if (commands.has(entry)) {
           // D-09: alias ref — must resolve to a single command for parallel group
-          const subPlan = resolveAlias(entry, commands, config, depth + 1, [...chain, entry], effectiveCwd);
+          const subPlan = resolveAlias(
+            entry,
+            commands,
+            config,
+            depth + 1,
+            [...chain, entry],
+            effectiveCwd,
+          );
           if (subPlan.kind !== 'single') {
             throw new CommandSchemaError(
               aliasName,
@@ -353,16 +422,31 @@ function resolveAlias(
           })();
 
       if (def.mode === 'parallel') {
-        const group: { alias: string; argv: readonly string[]; cwd?: string; breadcrumb?: readonly string[] }[] = [];
+        const group: {
+          alias: string;
+          argv: readonly string[];
+          cwd?: string;
+          breadcrumb?: readonly string[];
+        }[] = [];
         for (const value of values) {
           const loopConfig: ResolvedConfig = {
             ...config,
             values: { ...config.values, [def.var]: value },
           };
           if (def.run && commands.has(def.run)) {
-            const subPlan = resolveAlias(def.run, commands, loopConfig, depth + 1, [...chain, def.run], effectiveCwd);
+            const subPlan = resolveAlias(
+              def.run,
+              commands,
+              loopConfig,
+              depth + 1,
+              [...chain, def.run],
+              effectiveCwd,
+            );
             if (subPlan.kind !== 'single') {
-              throw new CommandSchemaError(aliasName, `for_each.run "${def.run}" must resolve to a single command`);
+              throw new CommandSchemaError(
+                aliasName,
+                `for_each.run "${def.run}" must resolve to a single command`,
+              );
             }
             const entryCwd = subPlan.cwd;
             group.push({
@@ -390,7 +474,14 @@ function resolveAlias(
         const loopValues = { ...config.values, [def.var]: value };
         if (def.run && commands.has(def.run)) {
           const loopConfig: ResolvedConfig = { ...config, values: loopValues };
-          const subSteps = resolveToStepsLenient(def.run, commands, loopConfig, depth + 1, [...chain, def.run], effectiveCwd);
+          const subSteps = resolveToStepsLenient(
+            def.run,
+            commands,
+            loopConfig,
+            depth + 1,
+            [...chain, def.run],
+            effectiveCwd,
+          );
           const baked = bakeLoopVarIntoRawArgv(subSteps, def.var, value);
           for (const s of baked) allSteps.push(s);
         } else if (def.cmd) {

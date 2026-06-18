@@ -122,7 +122,11 @@ export function resetTerminalTitle(): void {
   }
 }
 
-export async function notifyCompletion(exitCode: number, projectName?: string, commandName?: string): Promise<void> {
+export async function notifyCompletion(
+  exitCode: number,
+  projectName?: string,
+  commandName?: string,
+): Promise<void> {
   if (process.env.CI) return;
   const status = exitCode === 0 ? 'completato' : `errore (exit ${exitCode})`;
   const title = projectName ?? 'xci';
@@ -131,21 +135,23 @@ export async function notifyCompletion(exitCode: number, projectName?: string, c
     if (process.platform === 'win32') {
       // SnoreToast (node-notifier) requires AUMID registration on Windows 11 — use PowerShell WinRT instead
       const psScript = [
-        "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null",
-        "[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null",
-        "$xml = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)",
+        '[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null',
+        '[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null',
+        '$xml = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)',
         `$xml.GetElementsByTagName('text').Item(0).AppendChild($xml.CreateTextNode('${title.replace(/'/g, "''")}')) | Out-Null`,
         `$xml.GetElementsByTagName('text').Item(1).AppendChild($xml.CreateTextNode('${body.replace(/'/g, "''")}')) | Out-Null`,
-        "$toast = [Windows.UI.Notifications.ToastNotification]::new($xml)",
+        '$toast = [Windows.UI.Notifications.ToastNotification]::new($xml)',
         "$app = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe'",
-        "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($app).Show($toast)",
+        '[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($app).Show($toast)',
       ].join('; ');
       const encoded = Buffer.from(psScript, 'utf16le').toString('base64');
       const { execa } = await import('execa');
       await execa('powershell', ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded]);
     } else {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mod = await import('node-notifier' as string) as { default: { notify(opts: { title: string; message: string }, cb: () => void): void } };
+      const mod = (await import('node-notifier' as string)) as {
+        default: { notify(opts: { title: string; message: string }, cb: () => void): void };
+      };
       await new Promise<void>((resolve) => {
         mod.default.notify({ title, message: body }, resolve);
       });
@@ -155,7 +161,10 @@ export async function notifyCompletion(exitCode: number, projectName?: string, c
   }
 }
 
-export async function notifyWaitingForInput(projectName?: string, promptMessage?: string): Promise<void> {
+export async function notifyWaitingForInput(
+  projectName?: string,
+  promptMessage?: string,
+): Promise<void> {
   if (process.env.CI) return;
   const title = projectName ?? 'xci';
   const body = `⏸ ${promptMessage ?? 'in attesa di input'}`;
@@ -163,21 +172,23 @@ export async function notifyWaitingForInput(projectName?: string, promptMessage?
     if (process.platform === 'win32') {
       // SnoreToast (node-notifier) requires AUMID registration on Windows 11 — use PowerShell WinRT instead
       const psScript = [
-        "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null",
-        "[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null",
-        "$xml = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)",
+        '[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null',
+        '[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null',
+        '$xml = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)',
         `$xml.GetElementsByTagName('text').Item(0).AppendChild($xml.CreateTextNode('${title.replace(/'/g, "''")}')) | Out-Null`,
         `$xml.GetElementsByTagName('text').Item(1).AppendChild($xml.CreateTextNode('${body.replace(/'/g, "''")}')) | Out-Null`,
-        "$toast = [Windows.UI.Notifications.ToastNotification]::new($xml)",
+        '$toast = [Windows.UI.Notifications.ToastNotification]::new($xml)',
         "$app = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe'",
-        "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($app).Show($toast)",
+        '[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($app).Show($toast)',
       ].join('; ');
       const encoded = Buffer.from(psScript, 'utf16le').toString('base64');
       const { execa } = await import('execa');
       await execa('powershell', ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded]);
     } else {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mod = await import('node-notifier' as string) as { default: { notify(opts: { title: string; message: string }, cb: () => void): void } };
+      const mod = (await import('node-notifier' as string)) as {
+        default: { notify(opts: { title: string; message: string }, cb: () => void): void };
+      };
       await new Promise<void>((resolve) => {
         mod.default.notify({ title, message: body }, resolve);
       });
@@ -186,7 +197,6 @@ export async function notifyWaitingForInput(projectName?: string, promptMessage?
     // notification unavailable — silent fallback
   }
 }
-
 
 /* ------------------------------------------------------------------ */
 /* Step header (D-08)                                                   */
@@ -196,8 +206,8 @@ export async function notifyWaitingForInput(projectName?: string, promptMessage?
  * Print a step header to stderr before each sequential step.
  */
 export function printStepHeader(stepName: string, stepNum?: number, totalSteps?: number): void {
-  const counter = stepNum !== undefined && totalSteps !== undefined
-    ? ` [${stepNum}/${totalSteps}]` : '';
+  const counter =
+    stepNum !== undefined && totalSteps !== undefined ? ` [${stepNum}/${totalSteps}]` : '';
   if (shouldUseColor()) {
     process.stderr.write(`${BOLD}${CYAN}\u25b6 ${stepName}${counter}${RESET}\n`);
   } else {
@@ -208,7 +218,12 @@ export function printStepHeader(stepName: string, stepNum?: number, totalSteps?:
 /**
  * Print a step result summary to stderr after each sequential/parallel step.
  */
-export function printStepResult(stepName: string, exitCode: number, durationMs?: number, statusOverride?: string): void {
+export function printStepResult(
+  stepName: string,
+  exitCode: number,
+  durationMs?: number,
+  statusOverride?: string,
+): void {
   const useColor = shouldUseColor();
   if (statusOverride) {
     const dim = useColor ? '\x1b[2m' : '';
@@ -218,11 +233,19 @@ export function printStepResult(stepName: string, exitCode: number, durationMs?:
   }
   const ok = exitCode === 0;
   const icon = ok
-    ? (useColor ? '\x1b[32m\u2713\x1b[0m' : '\u2713')
-    : (useColor ? '\x1b[31m\u2717\x1b[0m' : '\u2717');
+    ? useColor
+      ? '\x1b[32m\u2713\x1b[0m'
+      : '\u2713'
+    : useColor
+      ? '\x1b[31m\u2717\x1b[0m'
+      : '\u2717';
   const status = ok
-    ? (useColor ? '\x1b[32mOK\x1b[0m' : 'OK')
-    : (useColor ? `\x1b[31mFAILED (exit ${exitCode})\x1b[0m` : `FAILED (exit ${exitCode})`);
+    ? useColor
+      ? '\x1b[32mOK\x1b[0m'
+      : 'OK'
+    : useColor
+      ? `\x1b[31mFAILED (exit ${exitCode})\x1b[0m`
+      : `FAILED (exit ${exitCode})`;
   const duration = durationMs !== undefined ? ` ${formatDuration(durationMs)}` : '';
   process.stderr.write(`${icon} ${stepName} ${status}${duration}\n`);
 }
@@ -285,6 +308,12 @@ function collectReferencedPlaceholders(def: CommandDef): Set<string> {
         }
       }
       break;
+    case 'uproject':
+      scanString(def.file);
+      if (def.set) {
+        for (const v of Object.values(def.set)) scanString(v);
+      }
+      break;
   }
   return out;
 }
@@ -321,9 +350,10 @@ export function printRunHeader(
   });
   // Dedupe dot-notation vs UPPER_UNDERSCORE duplicates (match printDryRun's filter).
   const sortedKeys = keys.slice().sort();
-  const displayedKeys = sortedKeys.filter((key) =>
-    key.includes('.') ||
-    !sortedKeys.some((k) => k.includes('.') && k.toUpperCase().replace(/[.\-]/g, '_') === key)
+  const displayedKeys = sortedKeys.filter(
+    (key) =>
+      key.includes('.') ||
+      !sortedKeys.some((k) => k.includes('.') && k.toUpperCase().replace(/[.\-]/g, '_') === key),
   );
 
   if (displayedKeys.length > 0) {
@@ -363,12 +393,38 @@ export function printRunHeader(
         const step = plan.steps[i];
         if (!step) continue;
         if (step.kind === 'ini') {
-          const stepCwdDisplay = step.cwd && step.cwd !== topCwd
-            ? ` ${yellow}(cwd: ${redactCwd(step.cwd, secretValues)})${reset}`
-            : '';
+          const stepCwdDisplay =
+            step.cwd && step.cwd !== topCwd
+              ? ` ${yellow}(cwd: ${redactCwd(step.cwd, secretValues)})${reset}`
+              : '';
           process.stderr.write(`  ${i + 1}. ini:${step.mode} ${step.file}${stepCwdDisplay}\n`);
+        } else if (step.kind === 'uproject') {
+          const stepCwdDisplay =
+            step.cwd && step.cwd !== topCwd
+              ? ` ${yellow}(cwd: ${redactCwd(step.cwd, secretValues)})${reset}`
+              : '';
+          const pluginSummary = step.plugins
+            ? [
+                ...(step.plugins.enable?.length
+                  ? [`enable: ${step.plugins.enable.join(', ')}`]
+                  : []),
+                ...(step.plugins.disable?.length
+                  ? [`disable: ${step.plugins.disable.join(', ')}`]
+                  : []),
+                ...(step.plugins.remove?.length
+                  ? [`remove: ${step.plugins.remove.join(', ')}`]
+                  : []),
+              ].join('; ')
+            : '';
+          const setKeys = step.set ? `set: ${Object.keys(step.set).join(', ')}` : '';
+          const ops = [pluginSummary, setKeys].filter(Boolean).join('; ');
+          process.stderr.write(
+            `  ${i + 1}. uproject ${step.file}${ops ? ` (${ops})` : ''}${stepCwdDisplay}\n`,
+          );
         } else if (step.kind === 'set') {
-          const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(', ');
+          const assignments = Object.entries(step.vars)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(', ');
           process.stderr.write(`  ${i + 1}. set ${assignments}\n`);
         } else if (step.kind === 'prompt') {
           const defaultStr = step.default !== undefined ? ` [default: ${step.default}]` : '';
@@ -378,10 +434,13 @@ export function printRunHeader(
           const redacted = redactArgv(step.argv, secretValues);
           const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
           const label = step.label ? `${step.label}: ` : '';
-          const stepCwdDisplay = step.cwd && step.cwd !== topCwd
-            ? ` ${yellow}(cwd: ${redactCwd(step.cwd, secretValues)})${reset}`
-            : '';
-          process.stderr.write(`  ${i + 1}. ${label}${redacted.join(' ')}${captureTag}${stepCwdDisplay}\n`);
+          const stepCwdDisplay =
+            step.cwd && step.cwd !== topCwd
+              ? ` ${yellow}(cwd: ${redactCwd(step.cwd, secretValues)})${reset}`
+              : '';
+          process.stderr.write(
+            `  ${i + 1}. ${label}${redacted.join(' ')}${captureTag}${stepCwdDisplay}\n`,
+          );
         }
       }
       break;
@@ -389,15 +448,31 @@ export function printRunHeader(
     case 'parallel': {
       for (const entry of plan.group) {
         const redacted = redactArgv(entry.argv, secretValues);
-        const entryCwdDisplay = entry.cwd && entry.cwd !== topCwd
-          ? ` ${yellow}(cwd: ${redactCwd(entry.cwd, secretValues)})${reset}`
-          : '';
+        const entryCwdDisplay =
+          entry.cwd && entry.cwd !== topCwd
+            ? ` ${yellow}(cwd: ${redactCwd(entry.cwd, secretValues)})${reset}`
+            : '';
         process.stderr.write(`  [${entry.alias}] ${redacted.join(' ')}${entryCwdDisplay}\n`);
       }
       break;
     }
     case 'ini': {
       process.stderr.write(`  ini ${plan.mode}: ${plan.file}\n`);
+      break;
+    }
+    case 'uproject': {
+      const pluginSummary = plan.plugins
+        ? [
+            ...(plan.plugins.enable?.length ? [`enable: ${plan.plugins.enable.join(', ')}`] : []),
+            ...(plan.plugins.disable?.length
+              ? [`disable: ${plan.plugins.disable.join(', ')}`]
+              : []),
+            ...(plan.plugins.remove?.length ? [`remove: ${plan.plugins.remove.join(', ')}`] : []),
+          ].join('; ')
+        : '';
+      const setKeys = plan.set ? `set: ${Object.keys(plan.set).join(', ')}` : '';
+      const ops = [pluginSummary, setKeys].filter(Boolean).join('; ');
+      process.stderr.write(`  uproject: ${plan.file}${ops ? ` (${ops})` : ''}\n`);
       break;
     }
   }
@@ -448,6 +523,8 @@ function topLevelCwd(plan: ExecutionPlan): string | undefined {
     case 'single':
       return plan.cwd;
     case 'ini':
+      return plan.cwd;
+    case 'uproject':
       return plan.cwd;
     case 'sequential': {
       for (const step of plan.steps) {
@@ -500,12 +577,36 @@ export function printDryRun(
         const step = plan.steps[i];
         if (step) {
           if (step.kind === 'ini') {
-            const stepCwdDisplay = step.cwd && step.cwd !== topCwd
-              ? ` (cwd: ${redactCwd(step.cwd, secretValues)})`
+            const stepCwdDisplay =
+              step.cwd && step.cwd !== topCwd ? ` (cwd: ${redactCwd(step.cwd, secretValues)})` : '';
+            process.stderr.write(
+              `${prefix}   ${i + 1}. ini:${step.mode} ${step.file}${stepCwdDisplay}\n`,
+            );
+          } else if (step.kind === 'uproject') {
+            const stepCwdDisplay =
+              step.cwd && step.cwd !== topCwd ? ` (cwd: ${redactCwd(step.cwd, secretValues)})` : '';
+            const pluginSummary = step.plugins
+              ? [
+                  ...(step.plugins.enable?.length
+                    ? [`enable: ${step.plugins.enable.join(', ')}`]
+                    : []),
+                  ...(step.plugins.disable?.length
+                    ? [`disable: ${step.plugins.disable.join(', ')}`]
+                    : []),
+                  ...(step.plugins.remove?.length
+                    ? [`remove: ${step.plugins.remove.join(', ')}`]
+                    : []),
+                ].join('; ')
               : '';
-            process.stderr.write(`${prefix}   ${i + 1}. ini:${step.mode} ${step.file}${stepCwdDisplay}\n`);
+            const setKeys = step.set ? `set: ${Object.keys(step.set).join(', ')}` : '';
+            const ops = [pluginSummary, setKeys].filter(Boolean).join('; ');
+            process.stderr.write(
+              `${prefix}   ${i + 1}. uproject ${step.file}${ops ? ` (${ops})` : ''}${stepCwdDisplay}\n`,
+            );
           } else if (step.kind === 'set') {
-            const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(', ');
+            const assignments = Object.entries(step.vars)
+              .map(([k, v]) => `${k}=${v}`)
+              .join(', ');
             process.stderr.write(`${prefix}   ${i + 1}. set ${assignments}\n`);
           } else if (step.kind === 'prompt') {
             const defaultStr = step.default !== undefined ? ` [default: ${step.default}]` : '';
@@ -514,10 +615,11 @@ export function printDryRun(
           } else {
             const redacted = redactArgv(step.argv, secretValues);
             const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
-            const stepCwdDisplay = step.cwd && step.cwd !== topCwd
-              ? ` (cwd: ${redactCwd(step.cwd, secretValues)})`
-              : '';
-            process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}${stepCwdDisplay}\n`);
+            const stepCwdDisplay =
+              step.cwd && step.cwd !== topCwd ? ` (cwd: ${redactCwd(step.cwd, secretValues)})` : '';
+            process.stderr.write(
+              `${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}${stepCwdDisplay}\n`,
+            );
           }
         }
       }
@@ -529,10 +631,11 @@ export function printDryRun(
       );
       for (const entry of plan.group) {
         const redacted = redactArgv(entry.argv, secretValues);
-        const entryCwdDisplay = entry.cwd && entry.cwd !== topCwd
-          ? ` (cwd: ${redactCwd(entry.cwd, secretValues)})`
-          : '';
-        process.stderr.write(`${prefix}   [${entry.alias}] ${redacted.join(' ')}${entryCwdDisplay}\n`);
+        const entryCwdDisplay =
+          entry.cwd && entry.cwd !== topCwd ? ` (cwd: ${redactCwd(entry.cwd, secretValues)})` : '';
+        process.stderr.write(
+          `${prefix}   [${entry.alias}] ${redacted.join(' ')}${entryCwdDisplay}\n`,
+        );
       }
       break;
     }
@@ -548,6 +651,27 @@ export function printDryRun(
       }
       break;
     }
+    case 'uproject': {
+      const pluginSummary = plan.plugins
+        ? [
+            ...(plan.plugins.enable?.length ? [`enable: ${plan.plugins.enable.join(', ')}`] : []),
+            ...(plan.plugins.disable?.length
+              ? [`disable: ${plan.plugins.disable.join(', ')}`]
+              : []),
+            ...(plan.plugins.remove?.length ? [`remove: ${plan.plugins.remove.join(', ')}`] : []),
+          ].join('; ')
+        : '';
+      const setDisplay = plan.set
+        ? Object.entries(plan.set)
+            .map(([k, v]) => `${k}=${secretValues.has(v) ? '**********' : v}`)
+            .join(', ')
+        : '';
+      const ops = [pluginSummary, setDisplay ? `set: ${setDisplay}` : '']
+        .filter(Boolean)
+        .join('; ');
+      process.stderr.write(`${prefix} uproject: ${plan.file}${ops ? ` (${ops})` : ''}\n`);
+      break;
+    }
   }
 
   // Print imported variables with secrets masked
@@ -556,7 +680,10 @@ export function printDryRun(
     const sortedKeys = Object.keys(envVars).sort();
     for (const key of sortedKeys) {
       // Skip UPPER_UNDERSCORE duplicates — show only dot-notation or original keys
-      if (key.includes('.') || !sortedKeys.some((k) => k.includes('.') && k.toUpperCase().replace(/[.\-]/g, '_') === key)) {
+      if (
+        key.includes('.') ||
+        !sortedKeys.some((k) => k.includes('.') && k.toUpperCase().replace(/[.\-]/g, '_') === key)
+      ) {
         const isSecret = secretKeys?.has(key) ?? false;
         const value = isSecret ? '**********' : envVars[key];
         process.stderr.write(`${prefix}   ${key} = ${value}\n`);
@@ -644,12 +771,36 @@ export function printVerboseCommand(
         const step = plan.steps[i];
         if (step) {
           if (step.kind === 'ini') {
-            const stepCwdDisplay = step.cwd && step.cwd !== topCwd
-              ? ` (cwd: ${redactCwd(step.cwd, secretValues)})`
+            const stepCwdDisplay =
+              step.cwd && step.cwd !== topCwd ? ` (cwd: ${redactCwd(step.cwd, secretValues)})` : '';
+            process.stderr.write(
+              `${prefix}   ${i + 1}. ini:${step.mode} ${step.file}${stepCwdDisplay}\n`,
+            );
+          } else if (step.kind === 'uproject') {
+            const stepCwdDisplay =
+              step.cwd && step.cwd !== topCwd ? ` (cwd: ${redactCwd(step.cwd, secretValues)})` : '';
+            const pluginSummary = step.plugins
+              ? [
+                  ...(step.plugins.enable?.length
+                    ? [`enable: ${step.plugins.enable.join(', ')}`]
+                    : []),
+                  ...(step.plugins.disable?.length
+                    ? [`disable: ${step.plugins.disable.join(', ')}`]
+                    : []),
+                  ...(step.plugins.remove?.length
+                    ? [`remove: ${step.plugins.remove.join(', ')}`]
+                    : []),
+                ].join('; ')
               : '';
-            process.stderr.write(`${prefix}   ${i + 1}. ini:${step.mode} ${step.file}${stepCwdDisplay}\n`);
+            const setKeys = step.set ? `set: ${Object.keys(step.set).join(', ')}` : '';
+            const ops = [pluginSummary, setKeys].filter(Boolean).join('; ');
+            process.stderr.write(
+              `${prefix}   ${i + 1}. uproject ${step.file}${ops ? ` (${ops})` : ''}${stepCwdDisplay}\n`,
+            );
           } else if (step.kind === 'set') {
-            const assignments = Object.entries(step.vars).map(([k, v]) => `${k}=${v}`).join(', ');
+            const assignments = Object.entries(step.vars)
+              .map(([k, v]) => `${k}=${v}`)
+              .join(', ');
             process.stderr.write(`${prefix}   ${i + 1}. set ${assignments}\n`);
           } else if (step.kind === 'prompt') {
             const defaultStr = step.default !== undefined ? ` [default: ${step.default}]` : '';
@@ -658,10 +809,11 @@ export function printVerboseCommand(
           } else {
             const redacted = redactArgv(step.argv, secretValues);
             const captureTag = step.capture ? ` [capture → ${step.capture.var}]` : '';
-            const stepCwdDisplay = step.cwd && step.cwd !== topCwd
-              ? ` (cwd: ${redactCwd(step.cwd, secretValues)})`
-              : '';
-            process.stderr.write(`${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}${stepCwdDisplay}\n`);
+            const stepCwdDisplay =
+              step.cwd && step.cwd !== topCwd ? ` (cwd: ${redactCwd(step.cwd, secretValues)})` : '';
+            process.stderr.write(
+              `${prefix}   ${i + 1}. ${redacted.join(' ')}${captureTag}${stepCwdDisplay}\n`,
+            );
           }
         }
       }
@@ -670,10 +822,11 @@ export function printVerboseCommand(
       process.stderr.write(`${prefix} resolved parallel:\n`);
       for (const entry of plan.group) {
         const redacted = redactArgv(entry.argv, secretValues);
-        const entryCwdDisplay = entry.cwd && entry.cwd !== topCwd
-          ? ` (cwd: ${redactCwd(entry.cwd, secretValues)})`
-          : '';
-        process.stderr.write(`${prefix}   [${entry.alias}] ${redacted.join(' ')}${entryCwdDisplay}\n`);
+        const entryCwdDisplay =
+          entry.cwd && entry.cwd !== topCwd ? ` (cwd: ${redactCwd(entry.cwd, secretValues)})` : '';
+        process.stderr.write(
+          `${prefix}   [${entry.alias}] ${redacted.join(' ')}${entryCwdDisplay}\n`,
+        );
       }
       break;
   }

@@ -9,7 +9,15 @@ import { configLoader, resolveMachineConfigDir } from './config/index.js';
 import { commandsLoader } from './commands/index.js';
 import { resolver, buildEnvVars, redactSecrets } from './resolver/index.js';
 import { validateParams, getParamNames } from './resolver/params.js';
-import { executor, printDryRun, printRunHeader, printVerboseCommand, printVerboseTrace, buildSecretValues, resolveAbsoluteCwds } from './executor/index.js';
+import {
+  executor,
+  printDryRun,
+  printRunHeader,
+  printVerboseCommand,
+  printVerboseTrace,
+  buildSecretValues,
+  resolveAbsoluteCwds,
+} from './executor/index.js';
 import { CliError, exitCodeFor, XciError, UnknownAliasError, UnknownFlagError } from './errors.js';
 import { printErrorLines } from './log-errors.js';
 import { XCI_VERSION } from './version.js';
@@ -24,7 +32,11 @@ export { CliError };
 
 // Builtin commands directory: sibling of dist/ in the installed package.
 // In the bundle (dist/cli.mjs) this resolves to <package-root>/builtin-commands/.
-const BUILTIN_COMMANDS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'builtin-commands');
+const BUILTIN_COMMANDS_DIR = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'builtin-commands',
+);
 
 /* ------------------------------------------------------------------ */
 /* Log file setup                                                       */
@@ -47,7 +59,12 @@ function askShowLog(logFile: string): Promise<boolean> {
     stdin.resume();
     function onData(data: Buffer): void {
       stdin.removeListener('data', onData);
-      try { stdin.setRawMode(wasRaw ?? false); stdin.pause(); } catch { /* */ }
+      try {
+        stdin.setRawMode(wasRaw ?? false);
+        stdin.pause();
+      } catch {
+        /* */
+      }
       const key = data.toString().toLowerCase();
       process.stderr.write(key + '\n');
       res(key === 'y');
@@ -122,9 +139,13 @@ function printAliasList(commands: CommandMap): void {
   process.stdout.write('  xci init                              Scaffold .xci/ directory\n');
   process.stdout.write('  xci template                          Generate shareable template\n');
   process.stdout.write('  xci completion [shell]                Output shell completion script\n');
-  process.stdout.write('  xci install [shell]                   Install shell completion permanently\n');
+  process.stdout.write(
+    '  xci install [shell]                   Install shell completion permanently\n',
+  );
   process.stdout.write('  xci uninstall [shell]                 Remove shell completion\n');
-  process.stdout.write('  xci agent-emit-perforce-trigger       Emit Perforce trigger scripts (sh/bat/ps1)\n');
+  process.stdout.write(
+    '  xci agent-emit-perforce-trigger       Emit Perforce trigger scripts (sh/bat/ps1)\n',
+  );
 
   // Flags
   process.stdout.write('\nFlags:\n\n');
@@ -199,6 +220,17 @@ function buildAliasHelpText(alias: string, def: CommandDef): string {
         }
       }
       break;
+    case 'uproject':
+      lines.push(`  file: ${def.file}`);
+      if (def.plugins?.enable?.length) lines.push(`  enable: ${def.plugins.enable.join(', ')}`);
+      if (def.plugins?.disable?.length) lines.push(`  disable: ${def.plugins.disable.join(', ')}`);
+      if (def.plugins?.remove?.length) lines.push(`  remove: ${def.plugins.remove.join(', ')}`);
+      if (def.set) {
+        for (const [k, v] of Object.entries(def.set)) {
+          lines.push(`  set ${k} = ${v}`);
+        }
+      }
+      break;
   }
   return lines.join('\n');
 }
@@ -214,7 +246,10 @@ function printAliasDetails(
   config: ResolvedConfig,
   projectRoot: string,
 ): void {
-  const builtins: Record<string, string> = { 'xci.project.path': projectRoot, 'XCI_PROJECT_PATH': projectRoot };
+  const builtins: Record<string, string> = {
+    'xci.project.path': projectRoot,
+    XCI_PROJECT_PATH: projectRoot,
+  };
   const effectiveValues = { ...config.values, ...builtins };
 
   process.stderr.write(`\n${alias}`);
@@ -255,6 +290,16 @@ function printAliasDetails(
     case 'ini':
       process.stderr.write(`  file: ${def.file}  mode: ${def.mode ?? 'overwrite'}\n`);
       break;
+    case 'uproject': {
+      process.stderr.write(`  file: ${def.file}\n`);
+      const parts: string[] = [];
+      if (def.plugins?.enable?.length) parts.push(`enable: ${def.plugins.enable.join(', ')}`);
+      if (def.plugins?.disable?.length) parts.push(`disable: ${def.plugins.disable.join(', ')}`);
+      if (def.plugins?.remove?.length) parts.push(`remove: ${def.plugins.remove.join(', ')}`);
+      if (def.set) parts.push(`set: ${Object.keys(def.set).join(', ')}`);
+      if (parts.length > 0) process.stderr.write(`  ops: ${parts.join('; ')}\n`);
+      break;
+    }
   }
 
   // Show params (declared + auto-detected)
@@ -316,16 +361,20 @@ function appendExtraArgs(plan: ExecutionPlan, extra: readonly string[]): Executi
     case 'single':
       return { ...plan, argv: [...plan.argv, ...extra] };
     case 'sequential': {
-      // Append to the LAST cmd step in the chain (skip ini steps)
+      // Append to the LAST cmd step in the chain (skip ini/uproject steps)
       if (plan.steps.length === 0) return plan;
       const lastIdx = plan.steps.length - 1;
       const lastStep = plan.steps[lastIdx];
       if (!lastStep) return plan;
-      if (lastStep.kind === 'ini') return plan;
+      if (lastStep.kind === 'ini' || lastStep.kind === 'uproject') return plan;
       const newSteps = plan.steps.map((s, i) =>
-        i === lastIdx && s.kind !== 'ini' && s.kind !== 'set' && s.kind !== 'prompt'
+        i === lastIdx &&
+        s.kind !== 'ini' &&
+        s.kind !== 'uproject' &&
+        s.kind !== 'set' &&
+        s.kind !== 'prompt'
           ? { ...s, argv: [...s.argv, ...extra] }
-          : s
+          : s,
       );
       return { ...plan, steps: newSteps };
     }
@@ -340,6 +389,9 @@ function appendExtraArgs(plan: ExecutionPlan, extra: readonly string[]): Executi
       };
     case 'ini':
       // Extra args don't apply to ini operations
+      return plan;
+    case 'uproject':
+      // Extra args don't apply to uproject operations
       return plan;
   }
 }
@@ -398,7 +450,7 @@ async function runAlias(
   // Built-in variables always available for interpolation and as env vars.
   const builtins: Record<string, string> = {
     'xci.project.path': projectRoot,
-    'XCI_PROJECT_PATH': projectRoot,
+    XCI_PROJECT_PATH: projectRoot,
   };
 
   // Merge: config values < builtins < CLI overrides
@@ -440,9 +492,17 @@ async function runAlias(
     }
     if (machineConfigsDir) {
       const annotation = machineSource === 'env' ? '[from env]' : '[from home fallback]';
-      process.stderr.write(`[xci] NOTE: machine config source: ${annotation} ${machineConfigsDir}\n`);
-      configFiles.push({ path: join(machineConfigsDir, 'commands.yml'), found: existsSync(join(machineConfigsDir, 'commands.yml')) });
-      configFiles.push({ path: join(machineConfigsDir, 'secrets.yml'), found: existsSync(join(machineConfigsDir, 'secrets.yml')) });
+      process.stderr.write(
+        `[xci] NOTE: machine config source: ${annotation} ${machineConfigsDir}\n`,
+      );
+      configFiles.push({
+        path: join(machineConfigsDir, 'commands.yml'),
+        found: existsSync(join(machineConfigsDir, 'commands.yml')),
+      });
+      configFiles.push({
+        path: join(machineConfigsDir, 'secrets.yml'),
+        found: existsSync(join(machineConfigsDir, 'secrets.yml')),
+      });
       const mSecretsDir = join(machineConfigsDir, 'secrets');
       if (existsSync(mSecretsDir)) {
         for (const f of listYamlFilesRecursive(mSecretsDir)) {
@@ -458,9 +518,18 @@ async function runAlias(
     }
     // Project files
     configFiles.push(
-      { path: join(projectRoot, '.xci', 'config.yml'), found: existsSync(join(projectRoot, '.xci', 'config.yml')) },
-      { path: join(projectRoot, '.xci', 'secrets.yml'), found: existsSync(join(projectRoot, '.xci', 'secrets.yml')) },
-      { path: join(projectRoot, '.xci', 'local.yml'), found: existsSync(join(projectRoot, '.xci', 'local.yml')) },
+      {
+        path: join(projectRoot, '.xci', 'config.yml'),
+        found: existsSync(join(projectRoot, '.xci', 'config.yml')),
+      },
+      {
+        path: join(projectRoot, '.xci', 'secrets.yml'),
+        found: existsSync(join(projectRoot, '.xci', 'secrets.yml')),
+      },
+      {
+        path: join(projectRoot, '.xci', 'local.yml'),
+        found: existsSync(join(projectRoot, '.xci', 'local.yml')),
+      },
     );
     // Project secrets/ directory
     const projSecretsDir = join(projectRoot, '.xci', 'secrets');
@@ -487,24 +556,25 @@ async function runAlias(
   const logFile = createLogFile(projectRoot, alias);
 
   // Execute — use TUI dashboard only when --ui is explicitly requested
-  const result = isUi && isTTY()
-    ? await runWithDashboard(finalPlan, projectRoot, env, {
-        commandMap: commands,
-        config: effectiveConfig,
-        cwd: projectRoot,
-        env,
-      } satisfies DashboardContext)
-    : await executor.run(finalPlan, {
-        cwd: projectRoot,
-        env,
-        logFile,
-        showOutput,
-        secretValues,
-        alias,
-        projectName: basename(projectRoot),
-        ...(tailLines !== undefined ? { tailLines } : {}),
-        ...(fromStep !== undefined ? { fromStep } : {}),
-      });
+  const result =
+    isUi && isTTY()
+      ? await runWithDashboard(finalPlan, projectRoot, env, {
+          commandMap: commands,
+          config: effectiveConfig,
+          cwd: projectRoot,
+          env,
+        } satisfies DashboardContext)
+      : await executor.run(finalPlan, {
+          cwd: projectRoot,
+          env,
+          logFile,
+          showOutput,
+          secretValues,
+          alias,
+          projectName: basename(projectRoot),
+          ...(tailLines !== undefined ? { tailLines } : {}),
+          ...(fromStep !== undefined ? { fromStep } : {}),
+        });
 
   if (result.exitCode === 130) {
     // exit 130 = SIGINT (CTRL+C): user intentionally aborted. Skip the
@@ -563,20 +633,45 @@ function registerAliases(
       .option('--from <step>', 'Start execution from this step, skip earlier ones')
       .addHelpText('after', buildAliasHelpText(alias, def));
 
-    sub.action(async function (this: Command, options: { dryRun?: boolean; verbose?: boolean; log?: boolean; shortLog?: string; ui?: boolean }) {
+    sub.action(async function (
+      this: Command,
+      options: {
+        dryRun?: boolean;
+        verbose?: boolean;
+        log?: boolean;
+        shortLog?: string;
+        ui?: boolean;
+      },
+    ) {
       // Reconstruct raw user args preserving the '--' boundary.
       // commander strips '--' from this.args with passThroughOptions(), so we
       // re-derive the user args slice from parent.rawArgs (which keeps '--').
       // We strip the binary path, alias name, and xci-owned flags.
-      const XCI_FLAGS = new Set(['--dry-run', '--verbose', '--log', '--no-log', '--ui', '--list', '--dry-run=true', '--verbose=true', '--log=true', '--ui=true', '--list=true']);
-      const rawArgs: readonly string[] = (this.parent as Command & { rawArgs?: string[] })?.rawArgs ?? [];
+      const XCI_FLAGS = new Set([
+        '--dry-run',
+        '--verbose',
+        '--log',
+        '--no-log',
+        '--ui',
+        '--list',
+        '--dry-run=true',
+        '--verbose=true',
+        '--log=true',
+        '--ui=true',
+        '--list=true',
+      ]);
+      const rawArgs: readonly string[] =
+        (this.parent as Command & { rawArgs?: string[] })?.rawArgs ?? [];
       const aliasIdx = rawArgs.indexOf(alias);
       const afterAlias = aliasIdx >= 0 ? rawArgs.slice(aliasIdx + 1) : [...this.args];
       // Strip --short-log, --from and their values
       const filteredArgs: string[] = [];
       for (let i = 0; i < afterAlias.length; i++) {
         const arg = afterAlias[i];
-        if (arg === '--short-log' || arg === '--from') { i++; continue; }
+        if (arg === '--short-log' || arg === '--from') {
+          i++;
+          continue;
+        }
         if (arg === undefined) continue;
         if (arg.startsWith('--short-log=') || arg.startsWith('--from=')) continue;
         filteredArgs.push(arg);
@@ -602,10 +697,13 @@ function registerAliases(
         }
       }
 
-      const isList = (options as Record<string, unknown>).list === true || afterAlias.includes('--list');
+      const isList =
+        (options as Record<string, unknown>).list === true || afterAlias.includes('--list');
 
       // --from: extract step name
-      let fromStep: string | undefined = (options as Record<string, unknown>).from as string | undefined;
+      let fromStep: string | undefined = (options as Record<string, unknown>).from as
+        | string
+        | undefined;
       if (!fromStep) {
         const fromIdx = afterAlias.indexOf('--from');
         if (fromIdx >= 0 && fromIdx + 1 < afterAlias.length) {
@@ -644,7 +742,9 @@ function registerAliases(
 function registerPerforceEmitterCommand(program: Command): void {
   program
     .command('agent-emit-perforce-trigger')
-    .description('Emit Perforce change-commit trigger scripts (sh/bat/ps1) — no Node required on Perforce server')
+    .description(
+      'Emit Perforce change-commit trigger scripts (sh/bat/ps1) — no Node required on Perforce server',
+    )
     .argument('<url>', 'Webhook URL (e.g. https://xci.example.com/hooks/perforce/<orgToken>)')
     .argument('<token>', 'X-Xci-Token header value (the webhook orgToken plaintext)')
     .option('-o, --output <dir>', 'Output directory for generated scripts', '.')
@@ -653,12 +753,16 @@ function registerPerforceEmitterCommand(program: Command): void {
       const { emitPerforceTriggerScripts } = await import('./perforce-emitter.js');
       try {
         const result = emitPerforceTriggerScripts({ url, token, outputDir: opts.output });
-        process.stdout.write(`Generated ${result.files.length} Perforce trigger scripts in ${opts.output}:\n`);
+        process.stdout.write(
+          `Generated ${result.files.length} Perforce trigger scripts in ${opts.output}:\n`,
+        );
         for (const f of result.files) process.stdout.write(`  ${f}\n`);
         process.stdout.write('\nSECURITY: These scripts contain the webhook token inline.\n');
         process.stdout.write('Restrict file permissions on the Perforce server before use:\n');
         process.stdout.write(`  Unix:    chmod 700 ${opts.output}/trigger.sh\n`);
-        process.stdout.write(`  Windows: icacls "${opts.output}\\trigger.bat" /inheritance:r /grant:r "<P4 service account>:F"\n`);
+        process.stdout.write(
+          `  Windows: icacls "${opts.output}\\trigger.bat" /inheritance:r /grant:r "<P4 service account>:F"\n`,
+        );
         process.stdout.write('\nInstall as a change-commit trigger via: p4 triggers\n');
       } catch (err) {
         process.stderr.write(`error: ${(err as Error).message}\n`);
@@ -707,7 +811,10 @@ function handleError(err: unknown, _program?: Command): number {
   }
 
   const commanderErr = err as { code?: string; exitCode?: number; message?: string };
-  if (commanderErr.code === 'commander.helpDisplayed' || commanderErr.code === 'commander.version') {
+  if (
+    commanderErr.code === 'commander.helpDisplayed' ||
+    commanderErr.code === 'commander.version'
+  ) {
     return 0;
   }
 
@@ -822,7 +929,7 @@ async function handleGetCompletions(argv: readonly string[]): Promise<string[]> 
 
   const builtins: Record<string, string> = {
     'xci.project.path': projectRoot,
-    'XCI_PROJECT_PATH': projectRoot,
+    XCI_PROJECT_PATH: projectRoot,
   };
   const effectiveValues = { ...config.values, ...builtins };
 
@@ -854,13 +961,17 @@ async function main(argv: readonly string[]): Promise<number> {
     for (let i = 2; i < argv.length; i++) {
       const a = argv[i];
       if (a === undefined) continue;
-      if (a.startsWith('-')) { if (takesValue.has(a)) i++; continue; }
+      if (a.startsWith('-')) {
+        if (takesValue.has(a)) i++;
+        continue;
+      }
       filtered.push(a);
     }
     if (filtered.length > 0) {
       process.stderr.write(
         'error [CLI_AGENT_MODE_ARGS]: --agent is daemon-only. Remove the alias argument(s): ' +
-        filtered.join(', ') + '\n'
+          filtered.join(', ') +
+          '\n',
       );
       return 50; // cli category exit code
     }
@@ -914,10 +1025,14 @@ async function main(argv: readonly string[]): Promise<number> {
       const { execSync } = await import('node:child_process');
       let profilePath: string;
       try {
-        profilePath = execSync('powershell -NoProfile -Command "$PROFILE"', { encoding: 'utf8' }).trim();
+        profilePath = execSync('powershell -NoProfile -Command "$PROFILE"', {
+          encoding: 'utf8',
+        }).trim();
       } catch {
         try {
-          profilePath = execSync('pwsh -NoProfile -Command "$PROFILE"', { encoding: 'utf8' }).trim();
+          profilePath = execSync('pwsh -NoProfile -Command "$PROFILE"', {
+            encoding: 'utf8',
+          }).trim();
         } catch {
           process.stderr.write('Could not detect PowerShell profile path.\n');
           process.stderr.write('Run manually: xci completion powershell >> $PROFILE\n');
@@ -927,7 +1042,12 @@ async function main(argv: readonly string[]): Promise<number> {
       }
 
       // Read existing profile, check if already installed
-      const { existsSync: exists, readFileSync: readFile, appendFileSync: appendFile, mkdirSync: mkDir } = await import('node:fs');
+      const {
+        existsSync: exists,
+        readFileSync: readFile,
+        appendFileSync: appendFile,
+        mkdirSync: mkDir,
+      } = await import('node:fs');
       const { dirname: dir } = await import('node:path');
       let existing = '';
       if (exists(profilePath)) {
@@ -936,7 +1056,9 @@ async function main(argv: readonly string[]): Promise<number> {
 
       if (existing.includes(marker)) {
         process.stderr.write(`xci completion already installed in ${profilePath}\n`);
-        process.stderr.write('To reinstall, remove the existing xci block from your $PROFILE and run again.\n');
+        process.stderr.write(
+          'To reinstall, remove the existing xci block from your $PROFILE and run again.\n',
+        );
         return;
       }
 
@@ -963,10 +1085,14 @@ async function main(argv: readonly string[]): Promise<number> {
       const { execSync } = await import('node:child_process');
       let profilePath: string;
       try {
-        profilePath = execSync('powershell -NoProfile -Command "$PROFILE"', { encoding: 'utf8' }).trim();
+        profilePath = execSync('powershell -NoProfile -Command "$PROFILE"', {
+          encoding: 'utf8',
+        }).trim();
       } catch {
         try {
-          profilePath = execSync('pwsh -NoProfile -Command "$PROFILE"', { encoding: 'utf8' }).trim();
+          profilePath = execSync('pwsh -NoProfile -Command "$PROFILE"', {
+            encoding: 'utf8',
+          }).trim();
         } catch {
           process.stderr.write('Could not detect PowerShell profile path.\n');
           process.exitCode = 1;
@@ -974,7 +1100,11 @@ async function main(argv: readonly string[]): Promise<number> {
         }
       }
 
-      const { existsSync: exists, readFileSync: readFile, writeFileSync: writeFile } = await import('node:fs');
+      const {
+        existsSync: exists,
+        readFileSync: readFile,
+        writeFileSync: writeFile,
+      } = await import('node:fs');
       if (!exists(profilePath)) {
         process.stderr.write('No PowerShell profile found. Nothing to remove.\n');
         return;
@@ -982,7 +1112,10 @@ async function main(argv: readonly string[]): Promise<number> {
 
       const content = readFile(profilePath, 'utf8');
       // Remove the xci block: from marker line through the Register-ArgumentCompleter line
-      const cleaned = content.replace(/\n?# xci PowerShell completion[^\n]*(?:\n[^\n]*(?:Set-PSReadLineKeyHandler|Set-PSReadLineOption|Register-ArgumentCompleter)[^\n]*)*/g, '');
+      const cleaned = content.replace(
+        /\n?# xci PowerShell completion[^\n]*(?:\n[^\n]*(?:Set-PSReadLineKeyHandler|Set-PSReadLineOption|Register-ArgumentCompleter)[^\n]*)*/g,
+        '',
+      );
 
       if (cleaned === content) {
         process.stderr.write('xci completion not found in profile. Nothing to remove.\n');
@@ -1013,7 +1146,9 @@ async function main(argv: readonly string[]): Promise<number> {
       if (builtins.size > 0) {
         registerAliases(program, builtins, emptyConfig, effectiveRoot);
       }
-    } catch { /* builtin load errors must not block --help/--version/init */ }
+    } catch {
+      /* builtin load errors must not block --help/--version/init */
+    }
 
     let helpOrVersionDisplayed = false;
     let subcommandRan = false;
@@ -1090,8 +1225,8 @@ async function main(argv: readonly string[]): Promise<number> {
     // positional (non-flag, non-'+') token, so `+` as a flag value
     // is never misinterpreted.
     const plusIdx = userArgv.indexOf('+');
-    const hasComposition = plusIdx > 0
-      && userArgv.slice(0, plusIdx).some((t) => !t.startsWith('-') && t !== '+');
+    const hasComposition =
+      plusIdx > 0 && userArgv.slice(0, plusIdx).some((t) => !t.startsWith('-') && t !== '+');
 
     if (hasComposition) {
       // Extract top-level --parallel flag and remove it from the token
@@ -1103,15 +1238,19 @@ async function main(argv: readonly string[]): Promise<number> {
       const segments: string[][] = [];
       let cur: string[] = [];
       for (const t of tokens) {
-        if (t === '+') { segments.push(cur); cur = []; }
-        else cur.push(t);
+        if (t === '+') {
+          segments.push(cur);
+          cur = [];
+        } else cur.push(t);
       }
       segments.push(cur);
 
       // Validate: every segment must have at least one token (the alias name)
       for (const seg of segments) {
         if (seg.length === 0) {
-          process.stderr.write('error [CLI_UNKNOWN_ALIAS]: empty segment in + composition (check for double + or trailing +)\n');
+          process.stderr.write(
+            'error [CLI_UNKNOWN_ALIAS]: empty segment in + composition (check for double + or trailing +)\n',
+          );
           process.stderr.write('  suggestion: Run `xci --list` to see available aliases\n');
           return 50;
         }
@@ -1120,8 +1259,17 @@ async function main(argv: readonly string[]): Promise<number> {
       // Resolve run-level flags ONCE from the full token stream so they apply
       // to all segments. Strip them from per-segment extraArgs.
       const RUN_LEVEL_FLAGS = new Set([
-        '--dry-run', '--verbose', '--log', '--no-log', '--ui', '--list',
-        '--dry-run=true', '--verbose=true', '--log=true', '--ui=true', '--list=true',
+        '--dry-run',
+        '--verbose',
+        '--log',
+        '--no-log',
+        '--ui',
+        '--list',
+        '--dry-run=true',
+        '--verbose=true',
+        '--log=true',
+        '--ui=true',
+        '--list=true',
       ]);
       const isDryRun = tokens.includes('--dry-run');
       const isVerbose = tokens.includes('--verbose');
@@ -1195,7 +1343,10 @@ async function main(argv: readonly string[]): Promise<number> {
         for (let i = 0; i < rawExtra.length; i++) {
           const t = rawExtra[i];
           if (t === undefined) continue;
-          if (t === '--short-log' || t === '--from') { i++; continue; }
+          if (t === '--short-log' || t === '--from') {
+            i++;
+            continue;
+          }
           if (t.startsWith('--short-log=') || t.startsWith('--from=')) continue;
           if (RUN_LEVEL_FLAGS.has(t)) continue;
           extraArgs.push(t);
@@ -1207,15 +1358,23 @@ async function main(argv: readonly string[]): Promise<number> {
         // Run all segments concurrently; wait for all; return first non-zero (by segment order)
         const codes = await Promise.all(
           segmentTuples.map(({ aliasName, def, extraArgs }) =>
-            runAlias(aliasName, def, extraArgs, commands, config, projectRoot, compositionFlags)
-          )
+            runAlias(aliasName, def, extraArgs, commands, config, projectRoot, compositionFlags),
+          ),
         );
         const firstFail = codes.find((c) => c !== 0);
         return firstFail ?? 0;
       } else {
         // Sequential: stop on first non-zero exit
         for (const { aliasName, def, extraArgs } of segmentTuples) {
-          const code = await runAlias(aliasName, def, extraArgs, commands, config, projectRoot, compositionFlags);
+          const code = await runAlias(
+            aliasName,
+            def,
+            extraArgs,
+            commands,
+            config,
+            projectRoot,
+            compositionFlags,
+          );
           if (code !== 0) return code;
         }
         return 0;

@@ -22,7 +22,11 @@ type SettledResult = { exitCode: number; canceled: boolean };
  * Prints a summary of results to stderr after completion (D-09).
  */
 export async function runParallel(
-  group: readonly { readonly alias: string; readonly argv: readonly string[]; readonly cwd?: string }[],
+  group: readonly {
+    readonly alias: string;
+    readonly argv: readonly string[];
+    readonly cwd?: string;
+  }[],
   failMode: 'fast' | 'complete',
   cwd: string,
   env: Record<string, string>,

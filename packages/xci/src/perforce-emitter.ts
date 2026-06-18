@@ -41,7 +41,7 @@ function validateToken(token: string): void {
   if (!SAFE_TOKEN_RE.test(token)) {
     const err = new Error(
       `InvalidTokenFormatError: Token contains unsafe characters. ` +
-        `Expected base64url charset (A-Za-z0-9_+/=-). Got: ${JSON.stringify(token.slice(0, 20))}`
+        `Expected base64url charset (A-Za-z0-9_+/=-). Got: ${JSON.stringify(token.slice(0, 20))}`,
     );
     err.name = 'InvalidTokenFormatError';
     throw err;

@@ -64,5 +64,9 @@ export function resolveAbsoluteCwds(plan: ExecutionPlan, projectRoot: string): E
       const abs = toAbs(plan.cwd, projectRoot);
       return abs === undefined ? plan : { ...plan, cwd: abs };
     }
+    case 'uproject': {
+      const abs = toAbs(plan.cwd, projectRoot);
+      return abs === undefined ? plan : { ...plan, cwd: abs };
+    }
   }
 }

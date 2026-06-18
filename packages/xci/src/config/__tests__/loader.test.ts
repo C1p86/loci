@@ -149,7 +149,11 @@ describe('configLoader.load', () => {
     it('loads secrets from .xci/secrets/ directory', async () => {
       cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
       await mkdir(join(cwd, '.xci', 'secrets'), { recursive: true });
-      await writeFile(join(cwd, '.xci', 'secrets', 'aws.yml'), 'aws:\n  token: "proj-secret"', 'utf8');
+      await writeFile(
+        join(cwd, '.xci', 'secrets', 'aws.yml'),
+        'aws:\n  token: "proj-secret"',
+        'utf8',
+      );
 
       const result = await configLoader.load(cwd);
       expect(result.values['aws.token']).toBe('proj-secret');
@@ -159,7 +163,11 @@ describe('configLoader.load', () => {
     it('loads secrets from nested .xci/secrets/ subdirectories', async () => {
       cwd = await mkdtemp(join(tmpdir(), 'xci-test-'));
       await mkdir(join(cwd, '.xci', 'secrets', 'cloud'), { recursive: true });
-      await writeFile(join(cwd, '.xci', 'secrets', 'cloud', 'gcp.yml'), 'gcp:\n  key: "gcp-val"', 'utf8');
+      await writeFile(
+        join(cwd, '.xci', 'secrets', 'cloud', 'gcp.yml'),
+        'gcp:\n  key: "gcp-val"',
+        'utf8',
+      );
       await writeFile(join(cwd, '.xci', 'secrets', 'db.yml'), 'db:\n  pass: "db-val"', 'utf8');
 
       const result = await configLoader.load(cwd);
@@ -294,7 +302,8 @@ describe('configLoader.load', () => {
 
     it('resolves transitive references (a → b → c)', async () => {
       cwd = await setupFixture({
-        'config.yml': 'base: "https://api.example.com"\npath: "${base}/v1"\nendpoint: "${path}/users"',
+        'config.yml':
+          'base: "https://api.example.com"\npath: "${base}/v1"\nendpoint: "${path}/users"',
       });
       const result = await configLoader.load(cwd);
       expect(result.values['endpoint']).toBe('https://api.example.com/v1/users');
@@ -701,11 +710,7 @@ describe('machine config resolution', () => {
 
   it('uses home fallback when env var is unset and ~/.xci/ exists', async () => {
     await mkdir(join(homeTmp, '.xci'));
-    await writeFile(
-      join(homeTmp, '.xci', 'config.yml'),
-      'machine: "fallback-value"',
-      'utf8',
-    );
+    await writeFile(join(homeTmp, '.xci', 'config.yml'), 'machine: "fallback-value"', 'utf8');
     cwd = await setupFixture({});
     const result = await configLoader.load(cwd);
     expect(result.values['machine']).toBe('fallback-value');
@@ -722,9 +727,7 @@ describe('machine config resolution', () => {
     // No env-var or home-fallback NOTE in stderr
     const stderrCalls: string[] = stderrSpy.mock.calls.map((c: unknown[]) => String(c[0]));
     expect(
-      stderrCalls.some((s: string) =>
-        /XCI_MACHINE_CONFIGS|home fallback|~\/\.xci/.test(s),
-      ),
+      stderrCalls.some((s: string) => /XCI_MACHINE_CONFIGS|home fallback|~\/\.xci/.test(s)),
     ).toBe(false);
   });
 
@@ -774,9 +777,9 @@ describe('machine config resolution', () => {
     });
 
     it('throws MachineConfigInvalidError when env var set but not a directory', () => {
-      expect(() =>
-        resolveMachineConfigDir({ XCI_MACHINE_CONFIGS: '/x' }, () => false),
-      ).toThrow(MachineConfigInvalidError);
+      expect(() => resolveMachineConfigDir({ XCI_MACHINE_CONFIGS: '/x' }, () => false)).toThrow(
+        MachineConfigInvalidError,
+      );
     });
 
     it('treats empty string as unset and falls through to home', () => {

@@ -1,7 +1,6 @@
 import { AgentModeArgsError } from '../errors.js';
 
-const VALID_FORMS_HINT =
-  'valid forms: ws://host:3000, http://host:3000, wss://example.com';
+const VALID_FORMS_HINT = 'valid forms: ws://host:3000, http://host:3000, wss://example.com';
 
 /**
  * Normalize a user-provided --agent argument to the canonical WS URL the xci
@@ -22,9 +21,7 @@ export function normalizeAgentUrl(raw: string): string {
 
   // Detect bare "host[:port]" — no "://" at all. Prepend ws:// so WHATWG URL
   // has a scheme to parse.
-  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)
-    ? trimmed
-    : `ws://${trimmed}`;
+  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `ws://${trimmed}`;
 
   let parsed: URL;
   try {

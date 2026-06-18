@@ -239,7 +239,7 @@ describe('token format validation (security)', () => {
         url: 'https://example.com',
         token: 'tok"123',
         outputDir: tmpDir,
-      })
+      }),
     ).toThrow('InvalidTokenFormatError');
   });
 
@@ -249,7 +249,7 @@ describe('token format validation (security)', () => {
         url: 'https://example.com',
         token: 'tok$123',
         outputDir: tmpDir,
-      })
+      }),
     ).toThrow('InvalidTokenFormatError');
   });
 
@@ -259,7 +259,7 @@ describe('token format validation (security)', () => {
         url: 'https://example.com',
         token: 'xci_whk_abc123_XYZ+/=-',
         outputDir: tmpDir,
-      })
+      }),
     ).not.toThrow();
   });
 });

@@ -37,7 +37,11 @@ async function killAndWait(proc: ResultPromise): Promise<void> {
   const forceKillTimer = setTimeout(() => {
     process.stderr.write('[xci] Force killing child process...\n');
     if (IS_WINDOWS && pid) {
-      try { execSync(`taskkill /f /t /pid ${pid}`, { stdio: 'pipe' }); } catch { /* */ }
+      try {
+        execSync(`taskkill /f /t /pid ${pid}`, { stdio: 'pipe' });
+      } catch {
+        /* */
+      }
     } else {
       proc.kill('SIGKILL');
     }

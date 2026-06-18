@@ -6,13 +6,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { type WebSocket, WebSocketServer } from 'ws';
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { runAgent } from '../../agent/index.js';
 import type { AgentFrame } from '../../agent/types.js';
 import type { AddressInfo } from 'node:net';
@@ -46,7 +40,9 @@ async function createMockServer(
     socket.on('message', (data) => {
       try {
         received.push(JSON.parse(data.toString('utf8')) as AgentFrame);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     });
     onConnect?.(socket, (frame) => socket.send(JSON.stringify(frame)));
   });
@@ -55,11 +51,15 @@ async function createMockServer(
 
   return {
     port: (wss.address() as AddressInfo).port,
-    close() { wss.close(); },
+    close() {
+      wss.close();
+    },
     send(frame: object) {
       activeSock?.send(JSON.stringify(frame));
     },
-    frames() { return [...received]; },
+    frames() {
+      return [...received];
+    },
     async waitFrames(count, predicate, timeoutMs = 8_000): Promise<AgentFrame[]> {
       const deadline = Date.now() + timeoutMs;
       while (Date.now() < deadline) {
@@ -105,7 +105,10 @@ let agentPromise: Promise<number>;
 let agentToken: string;
 
 beforeEach(async () => {
-  tmpDir = await mkdir(join(tmpdir(), `xci-dispatch-test-${Date.now()}-${Math.random().toString(36).slice(2)}`), { recursive: true }) as unknown as string;
+  tmpDir = (await mkdir(
+    join(tmpdir(), `xci-dispatch-test-${Date.now()}-${Math.random().toString(36).slice(2)}`),
+    { recursive: true },
+  )) as unknown as string;
   // mkdir with recursive:true returns the created path or undefined; normalize:
   tmpDir = join(tmpdir(), `xci-dispatch-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   await mkdir(tmpDir, { recursive: true });
@@ -147,9 +150,12 @@ async function spawnAgent(opts: {
 
   const extraArgs = opts.extraArgs ?? [];
   const args = [
-    '--agent', `ws://127.0.0.1:${server.port}/`,
-    '--token', token,
-    '--config-dir', tmpDir,
+    '--agent',
+    `ws://127.0.0.1:${server.port}/`,
+    '--token',
+    token,
+    '--config-dir',
+    tmpDir,
     ...extraArgs,
   ];
 
@@ -188,9 +194,9 @@ it('dispatch: single-alias yaml_definition (string cmd) → state:running + log_
   const stateAck = stateFrames.find((f) => (f as { run_id?: string }).run_id === 'run-1');
   expect(stateAck).toBeDefined();
 
-  const logChunks = srv.frames().filter(
-    (f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-1',
-  );
+  const logChunks = srv
+    .frames()
+    .filter((f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-1');
   expect(logChunks.some((c) => (c as { data: string }).data.includes('hello'))).toBe(true);
 }, 15_000);
 
@@ -201,11 +207,12 @@ it('dispatch: single-alias yaml_definition (array cmd) → parsed as argv → ex
   const { server: srv } = await spawnAgent({ authenticate: true });
 
   // Single-alias with array cmd form
-  srv.send(
-    makeDispatchFrame('run-2', 'run:\n  cmd:\n    - node\n    - -e\n    - console.log(1)'),
-  );
+  srv.send(makeDispatchFrame('run-2', 'run:\n  cmd:\n    - node\n    - -e\n    - console.log(1)'));
 
-  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-2');
+  const results = await srv.waitFrames(
+    1,
+    (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-2',
+  );
   expect(results.length).toBeGreaterThanOrEqual(1);
   expect((results[0] as { exit_code: number }).exit_code).toBe(0);
 }, 15_000);
@@ -246,7 +253,10 @@ it('dispatch: at max concurrency → result frame with exit_code=-1 (reject)', a
   );
 
   // Wait for state:running ack before sending second
-  await srv.waitFrames(1, (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-cap-1');
+  await srv.waitFrames(
+    1,
+    (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-cap-1',
+  );
 
   // Second dispatch while first still running
   srv.send(makeDispatchFrame('run-cap-2', 'run:\n  cmd: echo second'));
@@ -294,12 +304,19 @@ it('cancel: kills running task → result frame with cancelled=true', async () =
   );
 
   // Wait for state:running ack
-  await srv.waitFrames(1, (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-cancel');
+  await srv.waitFrames(
+    1,
+    (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-cancel',
+  );
 
   // Cancel
   srv.send({ type: 'cancel', run_id: 'run-cancel', reason: 'manual' });
 
-  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-cancel', 12_000);
+  const results = await srv.waitFrames(
+    1,
+    (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-cancel',
+    12_000,
+  );
   expect(results.length).toBeGreaterThanOrEqual(1);
   const r = results[0] as { exit_code: number; cancelled?: boolean };
   expect(r.cancelled).toBe(true);
@@ -345,17 +362,20 @@ it('SEC-06: agent-local secrets win over dispatched params on collision', async 
       }),
     );
 
-    await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-sec06');
-
-    const logChunks = srv.frames().filter(
-      (f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-sec06',
+    await srv.waitFrames(
+      1,
+      (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-sec06',
     );
+
+    const logChunks = srv
+      .frames()
+      .filter((f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-sec06');
     const output = logChunks.map((c) => (c as { data: string }).data).join('');
     // Agent-local secret wins on collision (env var is 'local_value', not 'remote_value')
     // AND the value is redacted from log output per D-08/D-24 (Plan 11-04 agent-side redaction)
     expect(output).not.toContain('remote_value'); // dispatched value did not win
-    expect(output).not.toContain('local_value');  // agent-side redaction applied
-    expect(output).toContain('***');              // replacement confirmed
+    expect(output).not.toContain('local_value'); // agent-side redaction applied
+    expect(output).toContain('***'); // replacement confirmed
   } finally {
     // Remove the secrets file from cwd so other tests are not affected
     const { unlink } = await import('node:fs/promises');
@@ -374,11 +394,14 @@ it('SEC-06: missing .xci/secrets.yml does not error — dispatched params pass t
     'run:\n  cmd:\n    - node\n    - -e\n    - "process.stdout.write(process.env.X || \'missing\')"';
   srv.send(makeDispatchFrame('run-nosecrets', echoScript, { X: 'y' }));
 
-  await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-nosecrets');
-
-  const logChunks = srv.frames().filter(
-    (f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-nosecrets',
+  await srv.waitFrames(
+    1,
+    (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-nosecrets',
   );
+
+  const logChunks = srv
+    .frames()
+    .filter((f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-nosecrets');
   const output = logChunks.map((c) => (c as { data: string }).data).join('');
   expect(output).toContain('y');
 }, 15_000);
@@ -396,7 +419,10 @@ it('goodbye: sent on SIGTERM includes running_runs for active dispatches', async
       'run:\n  cmd:\n    - node\n    - -e\n    - setTimeout(()=>{},30000)',
     ),
   );
-  await srv.waitFrames(1, (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-goodbye');
+  await srv.waitFrames(
+    1,
+    (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-goodbye',
+  );
 
   // Send SIGTERM to the agent process (via process.kill from runAgent's perspective)
   // In this test environment runAgent is called in the same process, so we trigger SIGTERM
@@ -425,7 +451,10 @@ it('reconnect: includes running_runs for active runs', async () => {
       'run:\n  cmd:\n    - node\n    - -e\n    - setTimeout(()=>{},30000)',
     ),
   );
-  await srv.waitFrames(1, (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-reconnect');
+  await srv.waitFrames(
+    1,
+    (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-reconnect',
+  );
 
   // Force reconnect by having server close the connection
   srv.close();
@@ -460,15 +489,16 @@ it('--max-concurrent: parsed correctly; 3 dispatches accepted with maxConcurrent
   const { server: srv } = await spawnAgent({ authenticate: true, maxConcurrent: 3 });
 
   // Send 3 long tasks
-  const longYaml =
-    'run:\n  cmd:\n    - node\n    - -e\n    - setTimeout(()=>{},15000)';
+  const longYaml = 'run:\n  cmd:\n    - node\n    - -e\n    - setTimeout(()=>{},15000)';
   srv.send(makeDispatchFrame('run-mc-1', longYaml));
   srv.send(makeDispatchFrame('run-mc-2', longYaml));
   srv.send(makeDispatchFrame('run-mc-3', longYaml));
 
   // Wait for 3 state:running acks
   const acks = await srv.waitFrames(3, (f) => f.type === 'state', 10_000);
-  expect(acks.filter((f) => (f as { state?: string }).state === 'running').length).toBeGreaterThanOrEqual(3);
+  expect(
+    acks.filter((f) => (f as { state?: string }).state === 'running').length,
+  ).toBeGreaterThanOrEqual(3);
 
   // Verify no AGENT_AT_CAPACITY error
   const errors = srv.frames().filter((f) => f.type === 'error');
@@ -490,13 +520,16 @@ it('dispatch: sequential task → steps run in order, all log_chunks arrive, res
 
   srv.send(makeDispatchFrame('run-seq', seqYaml));
 
-  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-seq');
+  const results = await srv.waitFrames(
+    1,
+    (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-seq',
+  );
   expect(results.length).toBeGreaterThanOrEqual(1);
   expect((results[0] as { exit_code: number }).exit_code).toBe(0);
 
-  const logChunks = srv.frames().filter(
-    (f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-seq',
-  );
+  const logChunks = srv
+    .frames()
+    .filter((f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-seq');
   const output = logChunks.map((c) => (c as { data: string }).data).join('');
   expect(output).toContain('step1');
   expect(output).toContain('step2');
@@ -523,12 +556,17 @@ it('dispatch: sequential task — first step failure stops execution', async () 
 
   srv.send(makeDispatchFrame('run-seq-fail', seqYaml));
 
-  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-seq-fail');
+  const results = await srv.waitFrames(
+    1,
+    (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-seq-fail',
+  );
   expect((results[0] as { exit_code: number }).exit_code).toBe(1);
 
-  const output = srv.frames()
+  const output = srv
+    .frames()
     .filter((f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-seq-fail')
-    .map((c) => (c as { data: string }).data).join('');
+    .map((c) => (c as { data: string }).data)
+    .join('');
   expect(output).not.toContain('should-not-run');
 }, 15_000);
 
@@ -546,11 +584,18 @@ it('dispatch: sequential task cancel → result with cancelled=true', async () =
   ].join('\n');
 
   srv.send(makeDispatchFrame('run-seq-cancel', seqYaml));
-  await srv.waitFrames(1, (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-seq-cancel');
+  await srv.waitFrames(
+    1,
+    (f) => f.type === 'state' && (f as { run_id?: string }).run_id === 'run-seq-cancel',
+  );
 
   srv.send({ type: 'cancel', run_id: 'run-seq-cancel', reason: 'manual' });
 
-  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-seq-cancel', 12_000);
+  const results = await srv.waitFrames(
+    1,
+    (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-seq-cancel',
+    12_000,
+  );
   expect(results.length).toBeGreaterThanOrEqual(1);
   expect((results[0] as { cancelled?: boolean }).cancelled).toBe(true);
 }, 20_000);
@@ -576,11 +621,15 @@ it('dispatch: task cwd → command runs in the declared working directory', asyn
 
   srv.send(makeDispatchFrame('run-cwd-ok', yamlDef));
 
-  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-cwd-ok');
+  const results = await srv.waitFrames(
+    1,
+    (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-cwd-ok',
+  );
   expect(results.length).toBeGreaterThanOrEqual(1);
   expect((results[0] as { exit_code: number }).exit_code).toBe(0);
 
-  const output = srv.frames()
+  const output = srv
+    .frames()
     .filter((f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-cwd-ok')
     .map((f) => (f as { data: string }).data)
     .join('');
@@ -598,11 +647,15 @@ it('dispatch: nonexistent cwd → result exit_code=-1 with a clear error message
 
   srv.send(makeDispatchFrame('run-cwd-missing', yamlDef));
 
-  const results = await srv.waitFrames(1, (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-cwd-missing');
+  const results = await srv.waitFrames(
+    1,
+    (f) => f.type === 'result' && (f as { run_id?: string }).run_id === 'run-cwd-missing',
+  );
   expect(results.length).toBeGreaterThanOrEqual(1);
   expect((results[0] as { exit_code: number }).exit_code).toBe(-1);
 
-  const output = srv.frames()
+  const output = srv
+    .frames()
     .filter((f) => f.type === 'log_chunk' && (f as { run_id: string }).run_id === 'run-cwd-missing')
     .map((f) => (f as { data: string }).data)
     .join('');

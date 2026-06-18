@@ -55,11 +55,13 @@ describe('resolveAbsoluteCwds — sequential plan', () => {
     if (out.kind !== 'sequential') throw new Error('unreachable');
 
     const s0 = out.steps[0];
-    if (!s0 || s0.kind === 'set' || s0.kind === 'ini' || s0.kind === 'prompt') throw new Error('expected cmd step');
+    if (!s0 || s0.kind === 'set' || s0.kind === 'ini' || s0.kind === 'prompt')
+      throw new Error('expected cmd step');
     expect(s0.cwd).toBe(resolvePath('/p', 'x'));
 
     const s1 = out.steps[1];
-    if (!s1 || s1.kind === 'set' || s1.kind === 'ini' || s1.kind === 'prompt') throw new Error('expected cmd step');
+    if (!s1 || s1.kind === 'set' || s1.kind === 'ini' || s1.kind === 'prompt')
+      throw new Error('expected cmd step');
     expect(s1.cwd).toBeUndefined();
 
     const s2 = out.steps[2];
@@ -125,7 +127,11 @@ beforeEach(() => {
   tmpDir = mkdtempSync(join(tmpdir(), 'xci-cwd-'));
 });
 afterEach(() => {
-  try { rmSync(tmpDir, { recursive: true, force: true }); } catch { /* */ }
+  try {
+    rmSync(tmpDir, { recursive: true, force: true });
+  } catch {
+    /* */
+  }
 });
 
 describe('executor.run single — honours plan.cwd', () => {

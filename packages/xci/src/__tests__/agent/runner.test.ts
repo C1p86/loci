@@ -24,14 +24,20 @@ function makeOpts(
     argv: overrides.argv ?? ['node', '-e', 'console.log("default")'],
     cwd: overrides.cwd ?? process.cwd(),
     env: overrides.env ?? {},
-    onChunk: overrides.onChunk ?? ((stream, data, seq) => {
-      chunks.push({ stream, data, seq });
-    }),
-    onExit: overrides.onExit ?? ((code, durationMs, cancelled) => {
-      exitResult = { code, durationMs, cancelled };
-    }),
+    onChunk:
+      overrides.onChunk ??
+      ((stream, data, seq) => {
+        chunks.push({ stream, data, seq });
+      }),
+    onExit:
+      overrides.onExit ??
+      ((code, durationMs, cancelled) => {
+        exitResult = { code, durationMs, cancelled };
+      }),
     chunks,
-    get exitResult() { return exitResult; },
+    get exitResult() {
+      return exitResult;
+    },
   };
 }
 

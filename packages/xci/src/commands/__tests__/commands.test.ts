@@ -394,8 +394,16 @@ describe('commandsLoader.load — commands/ directory', () => {
     mkdirSync(join(tmpDir, '.xci', 'commands', 'deploy'), { recursive: true });
     mkdirSync(join(tmpDir, '.xci', 'commands', 'ci', 'checks'), { recursive: true });
     writeFileSync(join(tmpDir, '.xci', 'commands', 'build.yml'), 'build: "npm run build"', 'utf8');
-    writeFileSync(join(tmpDir, '.xci', 'commands', 'deploy', 'staging.yml'), 'deploy-staging: "npm run deploy:staging"', 'utf8');
-    writeFileSync(join(tmpDir, '.xci', 'commands', 'ci', 'checks', 'lint.yml'), 'lint: "npx biome check"', 'utf8');
+    writeFileSync(
+      join(tmpDir, '.xci', 'commands', 'deploy', 'staging.yml'),
+      'deploy-staging: "npm run deploy:staging"',
+      'utf8',
+    );
+    writeFileSync(
+      join(tmpDir, '.xci', 'commands', 'ci', 'checks', 'lint.yml'),
+      'lint: "npx biome check"',
+      'utf8',
+    );
 
     const result = await commandsLoader.load(tmpDir);
     expect(result.size).toBe(3);
@@ -407,7 +415,11 @@ describe('commandsLoader.load — commands/ directory', () => {
   it('throws on duplicate alias across nested subdirectories', async () => {
     mkdirSync(join(tmpDir, '.xci', 'commands', 'sub'), { recursive: true });
     writeFileSync(join(tmpDir, '.xci', 'commands', 'build.yml'), 'build: "npm run build"', 'utf8');
-    writeFileSync(join(tmpDir, '.xci', 'commands', 'sub', 'build.yml'), 'build: "npx tsup"', 'utf8');
+    writeFileSync(
+      join(tmpDir, '.xci', 'commands', 'sub', 'build.yml'),
+      'build: "npx tsup"',
+      'utf8',
+    );
 
     await expect(commandsLoader.load(tmpDir)).rejects.toBeInstanceOf(CommandSchemaError);
   });
@@ -421,10 +433,10 @@ describe('for_each.in — string form', () => {
   it('accepts array form unchanged (regression guard)', async () => {
     writeCommands(
       'deploy:\n' +
-      '  for_each:\n' +
-      '    var: region\n' +
-      '    in: ["a", "b"]\n' +
-      '    cmd: ["echo", "${region}"]\n',
+        '  for_each:\n' +
+        '    var: region\n' +
+        '    in: ["a", "b"]\n' +
+        '    cmd: ["echo", "${region}"]\n',
     );
     const result = await commandsLoader.load(tmpDir);
     const def = result.get('deploy');
@@ -434,10 +446,10 @@ describe('for_each.in — string form', () => {
   it('accepts string form with ${...} placeholder', async () => {
     writeCommands(
       'deploy:\n' +
-      '  for_each:\n' +
-      '    var: region\n' +
-      '    in: "${AwsLocations}"\n' +
-      '    cmd: ["echo", "${region}"]\n',
+        '  for_each:\n' +
+        '    var: region\n' +
+        '    in: "${AwsLocations}"\n' +
+        '    cmd: ["echo", "${region}"]\n',
     );
     const result = await commandsLoader.load(tmpDir);
     const def = result.get('deploy');
@@ -447,10 +459,10 @@ describe('for_each.in — string form', () => {
   it('rejects scalar string without any ${...} placeholder', async () => {
     writeCommands(
       'deploy:\n' +
-      '  for_each:\n' +
-      '    var: region\n' +
-      '    in: "plain-string"\n' +
-      '    cmd: ["echo", "${region}"]\n',
+        '  for_each:\n' +
+        '    var: region\n' +
+        '    in: "plain-string"\n' +
+        '    cmd: ["echo", "${region}"]\n',
     );
     await expect(commandsLoader.load(tmpDir)).rejects.toThrow(CommandSchemaError);
     await expect(commandsLoader.load(tmpDir)).rejects.toThrow(/\$\{\.\.\.\}/);
@@ -463,10 +475,10 @@ describe('for_each.in — string form', () => {
   ])('rejects non-array non-string for_each.in (%s)', async (_label, inBlock) => {
     writeCommands(
       'deploy:\n' +
-      '  for_each:\n' +
-      '    var: region\n' +
-      inBlock +
-      '    cmd: ["echo", "${region}"]\n',
+        '  for_each:\n' +
+        '    var: region\n' +
+        inBlock +
+        '    cmd: ["echo", "${region}"]\n',
     );
     await expect(commandsLoader.load(tmpDir)).rejects.toThrow(CommandSchemaError);
     await expect(commandsLoader.load(tmpDir)).rejects.toThrow(/array of strings OR/);
@@ -489,12 +501,7 @@ describe('commandsLoader.load — cwd field', () => {
   });
 
   it('preserves ${placeholder} cwd as-is at load time (no interpolation)', async () => {
-    writeCommands(
-      'deploy:\n' +
-      '  steps:\n' +
-      '    - echo hello\n' +
-      '  cwd: "${DEPLOY_DIR}"\n',
-    );
+    writeCommands('deploy:\n' + '  steps:\n' + '    - echo hello\n' + '  cwd: "${DEPLOY_DIR}"\n');
     const result = await commandsLoader.load(tmpDir);
     expect(result.get('deploy')).toMatchObject({
       kind: 'sequential',
@@ -514,7 +521,10 @@ describe('commandsLoader.load — cwd field', () => {
     ['single', 'build:\n  cmd: "npm run build"\n  cwd: 123\n'],
     ['sequential', 'ci:\n  steps:\n    - lint\n  cwd: 123\n'],
     ['parallel', 'check:\n  parallel:\n    - lint\n  cwd: 123\n'],
-    ['for_each', 'fe:\n  for_each:\n    var: region\n    in: ["a"]\n    cmd: ["echo", "${region}"]\n  cwd: 123\n'],
+    [
+      'for_each',
+      'fe:\n  for_each:\n    var: region\n    in: ["a"]\n    cmd: ["echo", "${region}"]\n  cwd: 123\n',
+    ],
     ['ini', 'cfg:\n  ini:\n    file: /tmp/x.ini\n    set:\n      Sec:\n        k: v\n  cwd: 123\n'],
   ])('rejects numeric cwd on %s alias with "cwd must be a string"', async (_kind, yaml) => {
     writeCommands(yaml);
@@ -526,8 +536,14 @@ describe('commandsLoader.load — cwd field', () => {
     ['single', 'build:\n  cmd: "npm run build"\n  cwd: null\n'],
     ['sequential', 'ci:\n  steps:\n    - lint\n  cwd: null\n'],
     ['parallel', 'check:\n  parallel:\n    - lint\n  cwd: null\n'],
-    ['for_each', 'fe:\n  for_each:\n    var: region\n    in: ["a"]\n    cmd: ["echo", "${region}"]\n  cwd: null\n'],
-    ['ini', 'cfg:\n  ini:\n    file: /tmp/x.ini\n    set:\n      Sec:\n        k: v\n  cwd: null\n'],
+    [
+      'for_each',
+      'fe:\n  for_each:\n    var: region\n    in: ["a"]\n    cmd: ["echo", "${region}"]\n  cwd: null\n',
+    ],
+    [
+      'ini',
+      'cfg:\n  ini:\n    file: /tmp/x.ini\n    set:\n      Sec:\n        k: v\n  cwd: null\n',
+    ],
   ])('rejects null cwd on %s alias with "cwd must be a string"', async (_kind, yaml) => {
     writeCommands(yaml);
     await expect(commandsLoader.load(tmpDir)).rejects.toThrow(CommandSchemaError);
@@ -549,11 +565,11 @@ describe('commandsLoader.load — cwd field', () => {
   it('accepts cwd on a for_each alias', async () => {
     writeCommands(
       'deploy:\n' +
-      '  for_each:\n' +
-      '    var: region\n' +
-      '    in: ["a", "b"]\n' +
-      '    cmd: ["echo", "${region}"]\n' +
-      '  cwd: /abs/deploy\n',
+        '  for_each:\n' +
+        '    var: region\n' +
+        '    in: ["a", "b"]\n' +
+        '    cmd: ["echo", "${region}"]\n' +
+        '  cwd: /abs/deploy\n',
     );
     const result = await commandsLoader.load(tmpDir);
     expect(result.get('deploy')).toMatchObject({ kind: 'for_each', cwd: '/abs/deploy' });
@@ -562,12 +578,12 @@ describe('commandsLoader.load — cwd field', () => {
   it('accepts cwd on an ini alias', async () => {
     writeCommands(
       'cfg:\n' +
-      '  ini:\n' +
-      '    file: my.ini\n' +
-      '    set:\n' +
-      '      Section:\n' +
-      '        Key: val\n' +
-      '  cwd: conf\n',
+        '  ini:\n' +
+        '    file: my.ini\n' +
+        '    set:\n' +
+        '      Section:\n' +
+        '        Key: val\n' +
+        '  cwd: conf\n',
     );
     const result = await commandsLoader.load(tmpDir);
     expect(result.get('cfg')).toMatchObject({ kind: 'ini', cwd: 'conf' });

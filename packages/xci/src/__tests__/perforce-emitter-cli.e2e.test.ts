@@ -142,7 +142,7 @@ describe.runIf(existsSync(xciDistCli))('xci agent-emit-perforce-trigger CLI E2E'
         encoding: 'utf8',
         env: { ...process.env, NO_COLOR: '1' },
         cwd: tmpDir,
-      }
+      },
     );
     expect(result.status).toBe(0);
     expect(existsSync(join(tmpDir, 'trigger.sh'))).toBe(true);

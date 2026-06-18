@@ -40,23 +40,35 @@ let lastExitCode = 0;
 
 function statusIcon(status: CommandStatus): string {
   switch (status) {
-    case 'pending':  return `${color.dim}○${color.reset}`;
-    case 'running':  return `${color.yellow}▶${color.reset}`;
-    case 'success':  return `${color.green}✓${color.reset}`;
-    case 'failed':   return `${color.red}✗${color.reset}`;
-    case 'canceled': return `${color.gray}⊘${color.reset}`;
-    case 'skipped':  return `${color.gray}–${color.reset}`;
+    case 'pending':
+      return `${color.dim}○${color.reset}`;
+    case 'running':
+      return `${color.yellow}▶${color.reset}`;
+    case 'success':
+      return `${color.green}✓${color.reset}`;
+    case 'failed':
+      return `${color.red}✗${color.reset}`;
+    case 'canceled':
+      return `${color.gray}⊘${color.reset}`;
+    case 'skipped':
+      return `${color.gray}–${color.reset}`;
   }
 }
 
 function statusColor(status: CommandStatus): string {
   switch (status) {
-    case 'pending':  return color.dim;
-    case 'running':  return color.yellow;
-    case 'success':  return color.green;
-    case 'failed':   return color.red;
-    case 'canceled': return color.gray;
-    case 'skipped':  return color.gray;
+    case 'pending':
+      return color.dim;
+    case 'running':
+      return color.yellow;
+    case 'success':
+      return color.green;
+    case 'failed':
+      return color.red;
+    case 'canceled':
+      return color.gray;
+    case 'skipped':
+      return color.gray;
   }
 }
 
@@ -81,7 +93,9 @@ function renderFrame(): void {
   // Top border (plain box drawing — no ANSI color math needed)
   const leftHeader = ` Commands ${box.horizontal.repeat(Math.max(0, leftPanelWidth - 11))}`;
   const rightHeader = ` Output ${box.horizontal.repeat(Math.max(0, rightWidth - 8))}`;
-  buf.push(`${color.dim}${box.topLeft}${box.horizontal}${leftHeader}${box.teeDown}${box.horizontal}${rightHeader}${box.topRight}${color.reset}`);
+  buf.push(
+    `${color.dim}${box.topLeft}${box.horizontal}${leftHeader}${box.teeDown}${box.horizontal}${rightHeader}${box.topRight}${color.reset}`,
+  );
 
   // Content rows — build each cell as plain text, then wrap with color
   for (let row = 0; row < contentRows; row++) {
@@ -90,10 +104,17 @@ function renderFrame(): void {
     let leftStyled = '';
     if (row < commands.length) {
       const cmd = commands[row]!;
-      const exitSuffix = cmd.exitCode !== undefined && cmd.status === 'failed'
-        ? ` (${cmd.exitCode})` : '';
+      const exitSuffix =
+        cmd.exitCode !== undefined && cmd.status === 'failed' ? ` (${cmd.exitCode})` : '';
       // Icon takes 1 char visually; build plain text first for padding
-      const iconChar = ({ pending: 'o', running: '>', success: 'v', failed: 'x', canceled: '-', skipped: '-' })[cmd.status];
+      const iconChar = {
+        pending: 'o',
+        running: '>',
+        success: 'v',
+        failed: 'x',
+        canceled: '-',
+        skipped: '-',
+      }[cmd.status];
       leftPlain = ` ${iconChar} ${cmd.label}${exitSuffix}`;
       leftPlain = pad(leftPlain, leftPanelWidth);
       // Now rebuild with ANSI colors using same structure
@@ -115,7 +136,9 @@ function renderFrame(): void {
       rightStyled = ' '.repeat(rightWidth);
     }
 
-    buf.push(`${color.dim}${box.vertical}${color.reset}${leftStyled}${color.dim}${box.vertical}${color.reset}${rightStyled}${color.dim}${box.vertical}${color.reset}`);
+    buf.push(
+      `${color.dim}${box.vertical}${color.reset}${leftStyled}${color.dim}${box.vertical}${color.reset}${rightStyled}${color.dim}${box.vertical}${color.reset}`,
+    );
   }
 
   // Bottom border with keybindings
@@ -129,7 +152,9 @@ function renderFrame(): void {
   const keysLen = keysPlain.length;
   const leftBorder = Math.max(1, Math.floor((borderLen - keysLen) / 2));
   const rightBorder = Math.max(0, borderLen - keysLen - leftBorder);
-  buf.push(`${color.dim}${box.bottomLeft}${box.horizontal.repeat(leftBorder)}${color.reset}${keys}${color.dim}${box.horizontal.repeat(rightBorder)}${box.bottomRight}${color.reset}`);
+  buf.push(
+    `${color.dim}${box.bottomLeft}${box.horizontal.repeat(leftBorder)}${color.reset}${keys}${color.dim}${box.horizontal.repeat(rightBorder)}${box.bottomRight}${color.reset}`,
+  );
 
   // Status bar
   const running = commands.filter((c) => c.status === 'running').length;
@@ -154,8 +179,8 @@ function renderFrame(): void {
  */
 function sanitize(s: string): string {
   return stripAnsi(s)
-    .replace(/\r/g, '')           // carriage returns (progress bars)
-    .replace(/\t/g, '    ')       // tabs → 4 spaces
+    .replace(/\r/g, '') // carriage returns (progress bars)
+    .replace(/\t/g, '    ') // tabs → 4 spaces
     .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, ''); // other control chars
 }
 
@@ -218,7 +243,16 @@ function buildEntries(plan: ExecutionPlan): CommandEntry[] {
       return [{ label: plan.argv[0] ?? '(cmd)', status: 'pending' }];
     case 'sequential':
       return plan.steps.map((step) => ({
-        label: step.kind === 'ini' ? `ini:${step.mode}` : step.kind === 'set' ? 'set' : step.kind === 'prompt' ? `prompt:${step.var}` : (step.label ?? step.argv[0] ?? '(step)'),
+        label:
+          step.kind === 'ini'
+            ? `ini:${step.mode}`
+            : step.kind === 'uproject'
+              ? 'uproject'
+              : step.kind === 'set'
+                ? 'set'
+                : step.kind === 'prompt'
+                  ? `prompt:${step.var}`
+                  : (step.label ?? step.argv[0] ?? '(step)'),
         status: 'pending' as CommandStatus,
       }));
     case 'parallel':
@@ -228,6 +262,8 @@ function buildEntries(plan: ExecutionPlan): CommandEntry[] {
       }));
     case 'ini':
       return [{ label: `ini:${plan.mode}`, status: 'pending' }];
+    case 'uproject':
+      return [{ label: 'uproject', status: 'pending' }];
   }
 }
 
@@ -377,6 +413,42 @@ async function execSequential(
         if (step.set) writeIni(filePath, step.set, step.mode);
         if (step.delete) deleteIniKeys(filePath, step.delete as Record<string, string[]>);
         appendLog(`  ${filePath}`);
+        updateCommand(i, 'success');
+        flushRender();
+      } catch (err) {
+        appendLog(`  error: ${(err as Error).message}`);
+        updateCommand(i, 'failed', 1);
+        for (let j = i + 1; j < plan.steps.length; j++) {
+          updateCommand(j, 'skipped');
+        }
+        flushRender();
+        return { exitCode: 1 };
+      }
+      continue;
+    }
+
+    // Handle uproject steps inline
+    if (step.kind === 'uproject') {
+      updateCommand(i, 'running');
+      appendLog(`-- step ${i + 1}/${plan.steps.length}: uproject --`);
+      flushRender();
+      try {
+        const { applyUprojectEdits, readUproject, writeUproject } = await import(
+          '../executor/uproject.js'
+        );
+        const { isAbsolute, resolve: resolvePath } = await import('node:path');
+        const stepCwd = step.cwd ?? cwd;
+        const filePath = isAbsolute(step.file) ? step.file : resolvePath(stepCwd, step.file);
+        const existing = readUproject(filePath);
+        const tuiOps: import('../executor/uproject.js').UprojectOps = {};
+        if (step.plugins !== undefined) tuiOps.plugins = step.plugins;
+        if (step.set !== undefined) tuiOps.set = step.set;
+        const { json, warnings } = applyUprojectEdits(existing, tuiOps);
+        writeUproject(filePath, json);
+        appendLog(`  ${filePath}`);
+        for (const w of warnings) {
+          appendLog(`  warning: ${w}`);
+        }
         updateCommand(i, 'success');
         flushRender();
       } catch (err) {
@@ -620,13 +692,20 @@ export async function runWithDashboard(
 
 function printSummary(result: ExecutionResult): void {
   for (const cmd of commands) {
-    const icon = cmd.status === 'success' ? `${color.green}v${color.reset}`
-      : cmd.status === 'failed' ? `${color.red}x${color.reset}`
-      : cmd.status === 'skipped' ? `${color.gray}-${color.reset}`
-      : cmd.status === 'canceled' ? `${color.gray}-${color.reset}`
-      : `${color.dim}o${color.reset}`;
-    const exitStr = cmd.exitCode !== undefined && cmd.status === 'failed'
-      ? ` ${color.dim}(exit ${cmd.exitCode})${color.reset}` : '';
+    const icon =
+      cmd.status === 'success'
+        ? `${color.green}v${color.reset}`
+        : cmd.status === 'failed'
+          ? `${color.red}x${color.reset}`
+          : cmd.status === 'skipped'
+            ? `${color.gray}-${color.reset}`
+            : cmd.status === 'canceled'
+              ? `${color.gray}-${color.reset}`
+              : `${color.dim}o${color.reset}`;
+    const exitStr =
+      cmd.exitCode !== undefined && cmd.status === 'failed'
+        ? ` ${color.dim}(exit ${cmd.exitCode})${color.reset}`
+        : '';
     write(`${icon} ${cmd.label}${exitStr}\n`);
   }
   if (result.exitCode !== 0) {

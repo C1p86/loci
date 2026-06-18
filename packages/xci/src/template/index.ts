@@ -3,7 +3,15 @@
 // `xci template` subcommand — creates a shareable template of the project's .xci/ directory
 // with secret values stripped, system config copied, and missing variables listed.
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { join, relative } from 'node:path';
 import type { Command } from 'commander';
 import { parse, stringify } from 'yaml';
@@ -33,9 +41,7 @@ function stripValues(obj: unknown): unknown {
 }
 
 function isSecretsFile(relPath: string): boolean {
-  return relPath === 'secrets.yml'
-    || relPath === 'secrets.yaml'
-    || relPath.startsWith('secrets/');
+  return relPath === 'secrets.yml' || relPath === 'secrets.yaml' || relPath.startsWith('secrets/');
 }
 
 /** A location where a variable is used. */
@@ -136,7 +142,9 @@ function collectDefinedKeysFromDir(dir: string): Set<string> {
       try {
         const parsed = parse(readFileSync(path, 'utf8'));
         for (const k of flattenKeys(parsed)) keys.add(k);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   };
   scanFiles(dir);
@@ -233,10 +241,17 @@ export function runTemplate(cwd: string): void {
     try {
       const configContent = readFileSync(configPath, 'utf8');
       const config = parse(configContent);
-      if (config && typeof config === 'object' && 'project' in config && typeof config.project === 'string') {
+      if (
+        config &&
+        typeof config === 'object' &&
+        'project' in config &&
+        typeof config.project === 'string'
+      ) {
         projectName = config.project;
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   // Clean previous template
@@ -286,7 +301,10 @@ export function runTemplate(cwd: string): void {
     mergeUsages(scanForPlaceholdersWithLocations(machineDir, machineDir), '$XCI_MACHINE_CONFIGS');
     const machineProjectDir = join(machineDir, projectName);
     if (existsSync(machineProjectDir)) {
-      mergeUsages(scanForPlaceholdersWithLocations(machineProjectDir, machineProjectDir), `$XCI_MACHINE_CONFIGS/${projectName}`);
+      mergeUsages(
+        scanForPlaceholdersWithLocations(machineProjectDir, machineProjectDir),
+        `$XCI_MACHINE_CONFIGS/${projectName}`,
+      );
     }
   }
 

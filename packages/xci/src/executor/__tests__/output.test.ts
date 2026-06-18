@@ -34,7 +34,9 @@ describe('hashColor', () => {
 
   it('produces different colors for different names (most of the time)', () => {
     // Not guaranteed, but with 8 colors and distinct names, very unlikely to collide
-    const colors = new Set(['api', 'build', 'deploy', 'test', 'lint', 'format', 'package', 'run'].map(hashColor));
+    const colors = new Set(
+      ['api', 'build', 'deploy', 'test', 'lint', 'format', 'package', 'run'].map(hashColor),
+    );
     expect(colors.size).toBeGreaterThan(1);
   });
 });
@@ -180,10 +182,7 @@ describe('printDryRun', () => {
     printDryRun(
       {
         kind: 'sequential',
-        steps: [
-          { argv: ['npm', 'run', 'build'] },
-          { argv: ['npm', 'test'] },
-        ],
+        steps: [{ argv: ['npm', 'run', 'build'] }, { argv: ['npm', 'test'] }],
       },
       new Set(),
     );
@@ -236,10 +235,7 @@ describe('printParallelSummary', () => {
   });
 
   it('writes checkmark for exit 0', () => {
-    printParallelSummary(
-      [{ alias: 'api' }],
-      [{ exitCode: 0, canceled: false }],
-    );
+    printParallelSummary([{ alias: 'api' }], [{ exitCode: 0, canceled: false }]);
     const output = stderrOutput.join('');
     expect(output).toContain('\u2713');
     expect(output).toContain('api');
@@ -247,10 +243,7 @@ describe('printParallelSummary', () => {
   });
 
   it('writes cross for non-zero exit', () => {
-    printParallelSummary(
-      [{ alias: 'worker' }],
-      [{ exitCode: 1, canceled: false }],
-    );
+    printParallelSummary([{ alias: 'worker' }], [{ exitCode: 1, canceled: false }]);
     const output = stderrOutput.join('');
     expect(output).toContain('\u2717');
     expect(output).toContain('worker');
@@ -258,10 +251,7 @@ describe('printParallelSummary', () => {
   });
 
   it('shows canceled status', () => {
-    printParallelSummary(
-      [{ alias: 'slow' }],
-      [{ exitCode: 0, canceled: true }],
-    );
+    printParallelSummary([{ alias: 'slow' }], [{ exitCode: 0, canceled: true }]);
     const output = stderrOutput.join('');
     expect(output).toContain('canceled');
   });
@@ -269,7 +259,10 @@ describe('printParallelSummary', () => {
   it('handles multiple entries', () => {
     printParallelSummary(
       [{ alias: 'api' }, { alias: 'worker' }],
-      [{ exitCode: 0, canceled: false }, { exitCode: 2, canceled: false }],
+      [
+        { exitCode: 0, canceled: false },
+        { exitCode: 2, canceled: false },
+      ],
     );
     const output = stderrOutput.join('');
     expect(output).toContain('api');

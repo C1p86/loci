@@ -8,3 +8,17 @@ __prompt-test:
     - kind: prompt
       var: answer
       message: "Type something to test prompt notification:"
+
+# Example: manage UE5 plugins and engine association in a .uproject file.
+# Copy this to your project's commands.yml and adjust paths/plugin names.
+ue-enable-plugins:
+  description: Enable/disable UE plugins and set engine association in the .uproject file
+  uproject: ${UE.uproject.path}
+  plugins:
+    enable:
+      - EnhancedInput
+      - ModelingToolsEditorMode
+    disable:
+      - Paper2D
+  set:
+    EngineAssociation: "5.4"
