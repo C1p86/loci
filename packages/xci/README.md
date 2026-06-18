@@ -337,6 +337,77 @@ deploy-fleet:
 xci deploy-fleet regions=eu-west-1,us-east-1,ap-northeast-1
 ```
 
+### Unreal Engine `.uproject` Files
+
+The `uproject` kind edits an Unreal Engine `.uproject` file (which is JSON) declaratively — enable, disable, or remove plugins and set top-level fields — without spawning the editor. An alias is treated as a `uproject` kind when it has an `uproject:` key (the path to the file).
+
+```yaml
+ue-setup:
+  description: Configure UE plugins for this project
+  uproject: MyGame.uproject       # path: relative to project root, absolute, or ${placeholder}
+  plugins:
+    enable:  [EnhancedInput, ModelingToolsEditorMode]
+    disable: [Paper2D]
+    remove:  [OnlineSubsystemNull]
+  set:
+    EngineAssociation: "5.4"
+    Description: "My game project"
+```
+
+At least one operation (`plugins.enable`, `plugins.disable`, `plugins.remove`, or `set`) is required — otherwise the alias fails to load with a schema error.
+
+#### Plugin operations
+
+| Operation | Behavior |
+|-----------|----------|
+| `enable: [Name, …]` | Sets `Enabled: true` on the matching entry in the `Plugins` array. If the plugin is **not** present, a new entry `{ "Name": "…", "Enabled": true }` is appended (the `Plugins` array is created if missing). |
+| `disable: [Name, …]` | Sets `Enabled: false` on the matching entry. Other fields on that entry are preserved. |
+| `remove: [Name, …]` | Deletes the matching entry from the `Plugins` array entirely. |
+
+`set` assigns each key on the top-level object (e.g. `EngineAssociation`, `Description`, `MarketplaceURL`). Existing keys are updated in place; new keys are appended. Key order of existing fields is never reordered.
+
+#### Warnings, not errors
+
+Missing or redundant operations are **warnings on stderr** — they never fail the run (exit code stays `0`):
+
+- Disabling or removing a plugin that is **not** in the array → warning, skipped.
+- Enabling or adding a plugin that is **already present / already enabled** → warning, no-op.
+
+This makes aliases idempotent: re-running `ue-setup` after the file is already configured succeeds quietly with warnings instead of failing.
+
+```
+▶ uproject
+  /path/to/MyGame.uproject
+  plugin "OnlineSubsystemNull" not found (remove skipped)
+✓ uproject OK 1ms
+```
+
+#### Formatting & interpolation
+
+- The file is written back with **2-space indentation and a trailing newline** (UE's conventional format). It uses native JSON only.
+- `${placeholder}` is interpolated in the `uproject` path and in every `set` value (from config, CLI params, or captured variables). Plugin names are taken literally.
+
+```yaml
+ue-engine:
+  uproject: "${UE.project.path}/MyGame.uproject"
+  set:
+    EngineAssociation: "${ue_version}"
+```
+
+```bash
+xci ue-engine ue_version=5.4
+```
+
+#### Dry run
+
+`--dry-run` prints the target file and the planned operations and **writes nothing**:
+
+```
+[dry-run] uproject: MyGame.uproject (enable: EnhancedInput, ModelingToolsEditorMode; disable: Paper2D; remove: OnlineSubsystemNull; set: EngineAssociation=5.4)
+```
+
+A ready-to-copy `ue-enable-plugins` example ships with xci as a built-in command — run `xci --list` to see it, then copy it into your `.xci/commands.yml` and adjust the paths and plugin names.
+
 ### Working Directory (`cwd`)
 
 By default every alias runs in the project root — the directory that contains `.xci/`. Use the optional `cwd` field to run an alias from a different directory. It accepts a **relative path** (resolved against the project root), an **absolute path**, or a **`${placeholder}`** interpolated from config or CLI params.
@@ -378,7 +449,7 @@ publish-to-s3:
   cmd: bash publish.sh
 ```
 
-If the directory does not exist, execa surfaces the failure with the full absolute path in the error message. `cwd` works with every alias kind — `cmd`, `steps`, `parallel`, `for_each`, and `ini`.
+If the directory does not exist, execa surfaces the failure with the full absolute path in the error message. `cwd` works with every alias kind — `cmd`, `steps`, `parallel`, `for_each`, `ini`, and `uproject`.
 
 ### Split Commands Across Files
 
