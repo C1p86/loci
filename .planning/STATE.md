@@ -4,7 +4,7 @@ milestone: v2.1
 milestone_name: Quality & Parity
 status: Phase complete — ready for verification
 stopped_at: Completed 16-go-cli-output-infrastructure 16-02-PLAN.md
-last_updated: "2026-06-05T16:30:00.000Z"
+last_updated: "2026-06-23T00:00:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 2
@@ -109,6 +109,7 @@ None
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 260623-fr4 | Add xci command kind (delegate to a nested xci project) | 2026-06-23 | 3cd5c18 | [260623-fr4-aggiungere-command-kind-xci-delega-a-un-](./quick/260623-fr4-aggiungere-command-kind-xci-delega-a-un-/) |
 | 260605-of7 | notify waiting for input on prompt step | 2026-06-05 | f6a3685 | [260605-of7-notify-waiting-for-input-on-prompt-step](.planning/quick/260605-of7-notify-waiting-for-input-on-prompt-step/) |
 | 260415-j2u | Rename CLI command from loci to xci | 2026-04-15 | 3f37119 | [260415-j2u-rename-cli-command-from-loci-to-xci](./quick/260415-j2u-rename-cli-command-from-loci-to-xci/) |
 | 260415-jxl | Add CLI KEY=VALUE parameter overrides | 2026-04-15 | 5a1fa83 | [260415-jxl-add-cli-key-value-parameter-overrides](./quick/260415-jxl-add-cli-key-value-parameter-overrides/) |
