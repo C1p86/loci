@@ -20,6 +20,7 @@ import { runXciDelegate } from './xci-delegate.js';
 import {
   notifyWaitingForInput,
   printCaptureResult,
+  printDelegationBanner,
   printStepHeader,
   printStepPreview,
   printStepResult,
@@ -258,6 +259,7 @@ export async function runSequential(
         : undefined;
       // Resolve spawn cwd: resolved project (absolute) > step.cwd > inherited cwd
       const delegateCwd = resolvedProject ?? stepCwd;
+      printDelegationBanner(delegateCwd, resolvedAlias, resolvedArgs, secretValues ?? new Set());
       const stepEnv = { ...env, ...capturedVars };
       const isVerboseXci = stepEnv.XCI_VERBOSE === '1';
       const xciResult = await runXciDelegate(

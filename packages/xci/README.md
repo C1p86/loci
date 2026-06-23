@@ -498,6 +498,28 @@ This is automatic: the outer xci passes its accumulated breadcrumb to the inner 
 
 `XCI_BREADCRUMB` is set automatically by the outer xci — you do not need to set it manually.
 
+#### Delegation banner
+
+Before each `kind: xci` child process spawns, xci prints a bright-cyan banner to stderr so the operator can clearly see where the delegation is going and with which parameters:
+
+```
+────────────────────────────────────────────────────────────
+↳ xci → packages/backend :: build
+params: --watch --prod
+```
+
+The banner consists of three lines:
+
+1. **Separator** — a line of dashes sized to the terminal width (capped at 80 columns).
+2. **Target** — `↳ xci → <project> :: <alias>`, where `<project>` is the resolved absolute or relative path of the delegated project directory.
+3. **Params** — `params: <args>` with secret values redacted to `***`. When no args are passed, prints `params: (none)`.
+
+The banner goes to **stderr only** and is additive — it does not affect stdout, log files, or the SHOW+SAVE output capture behavior.
+
+**Color and NO_COLOR:** when `NO_COLOR` is set or stderr is not a TTY, the banner prints as plain text with no ANSI escape codes. `FORCE_COLOR` forces color on even when stderr is not a TTY.
+
+**Secret safety:** any argument token whose value matches a configured secret is replaced with `***` in the params line. The raw secret value is never written to stderr, stdout, or log files.
+
 #### Exit code propagation
 
 The exit code of the child xci invocation is propagated unchanged. If the child exits with code 3, the `kind: xci` step exits with code 3.

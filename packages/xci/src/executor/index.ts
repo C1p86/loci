@@ -11,6 +11,7 @@ import { runXciDelegate } from './xci-delegate.js';
 import {
   notifyCompletion,
   printCaptureResult,
+  printDelegationBanner,
   printStepHeader,
   printStepPreview,
   printStepResult,
@@ -186,9 +187,7 @@ export const executor: Executor = {
           const effectiveCwd = plan.project ?? plan.cwd ?? cwd;
           setTerminalTitle(`xci: ${xciLabel}`);
           printStepHeader(xciLabel);
-          // Delegation preview — secrets are redacted via redactArgv in output
-          const argsDisplay = plan.args && plan.args.length > 0 ? ` ${plan.args.join(' ')}` : '';
-          process.stderr.write(`  delegate → ${effectiveCwd} :: ${plan.alias}${argsDisplay}\n`);
+          printDelegationBanner(effectiveCwd, plan.alias, plan.args, secretValues ?? new Set());
           const startTime = Date.now();
           const isVerboseXci = env.XCI_VERBOSE === '1';
           const xciResult = await runXciDelegate(
