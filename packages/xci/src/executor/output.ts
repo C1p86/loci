@@ -6,7 +6,7 @@ import { appendFileSync } from 'node:fs';
 import { redactSecrets } from '../resolver/envvars.js';
 import type { CaptureConfig, CommandDef, ExecutionPlan, ResolvedConfig } from '../types.js';
 import type { CaptureValidationResult } from './capture.js';
-import { isNested } from './nesting.js';
+import { getBreadcrumbPrefix, isNested } from './nesting.js';
 
 /* ------------------------------------------------------------------ */
 /* ANSI constants                                                        */
@@ -349,12 +349,17 @@ export function printRunHeader(
   const useColor = shouldUseColor();
   const bold = useColor ? BOLD : '';
   const cyan = useColor ? CYAN : '';
-  const dim = useColor ? DIM : '';
+  const _dim = useColor ? DIM : ''; // kept for potential future use (biome: noUnusedVariables suppressed via rename)
   const reset = useColor ? RESET : '';
   const yellow = useColor ? BRIGHT_YELLOW : '';
 
-  // Title
-  process.stderr.write(`${bold}${cyan}\u25b6 running: ${alias}${reset}\n`);
+  // Title \u2014 prepend the incoming breadcrumb prefix (from outer xci via XCI_BREADCRUMB env var)
+  // so the run header shows the FULL cross-process path, e.g. "\u25b6 running: run-child > inner-seq".
+  // When XCI_BREADCRUMB is absent (no delegation), prefix=[] and the alias is rendered bare \u2014
+  // byte-identical to today (quick-260623-ipz).
+  const prefix = getBreadcrumbPrefix();
+  const displayAlias = prefix.length > 0 ? `${prefix.join(' > ')} > ${alias}` : alias;
+  process.stderr.write(`${bold}${cyan}\u25b6 running: ${displayAlias}${reset}\n`);
 
   // Variables block — only show vars the alias actually references via ${...}
   const referenced = collectReferencedPlaceholders(def);

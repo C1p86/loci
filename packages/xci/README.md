@@ -481,6 +481,23 @@ When xci detects it is running inside another xci (via `XCI_NESTING_DEPTH >= 1`)
 
 `XCI_NESTING_DEPTH` is set automatically — you do not need to set it manually.
 
+#### Breadcrumb propagation across the delegate boundary
+
+When a `kind: xci` step delegates to an inner project, the **full cross-process path** is visible in the inner xci's step headers and run header. For example, if your outer alias `run-child` delegates to `inner-seq`, which has a step `inner-step`, the inner run header shows:
+
+```
+▶ running: run-child > inner-seq
+▶ run-child > inner-seq > inner-step [1/1]
+```
+
+This is automatic: the outer xci passes its accumulated breadcrumb to the inner via the `XCI_BREADCRUMB` environment variable, and the inner resolver seeds its chain from it. Each nesting level appends its own alias names, so N-level delegation chains naturally extend the path without manual configuration.
+
+**No-delegation behavior is byte-identical**: when `XCI_BREADCRUMB` is absent (i.e. the alias is run directly, not from an outer xci delegate), the run header and step headers are exactly as they are today.
+
+**Secrets are never included**: the breadcrumb contains alias names only — never variable values, config values, or secret values.
+
+`XCI_BREADCRUMB` is set automatically by the outer xci — you do not need to set it manually.
+
 #### Exit code propagation
 
 The exit code of the child xci invocation is propagated unchanged. If the child exits with code 3, the `kind: xci` step exits with code 3.

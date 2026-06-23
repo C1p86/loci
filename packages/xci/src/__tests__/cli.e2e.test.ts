@@ -1569,4 +1569,54 @@ describe.skipIf(!existsSync(CLI))('xci command kind (260623-fr4)', () => {
       expect(elapsed).toBeLessThan(15000);
     },
   );
+
+  // ------------------------------------------------------------------
+  // quick-260623-ipz: breadcrumb propagation across xci delegate boundary
+  // ------------------------------------------------------------------
+
+  it(
+    'breadcrumb propagation: outer kind:xci run header shows full path "running: run-child > inner-seq"',
+    { timeout: 20000 },
+    () => {
+      // CHILD project: inner-seq is a sequential alias whose first step prints a known line
+      const childDir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': [
+            'inner-step:',
+            `  cmd: ["node", "-e", "process.stdout.write('INNER-LINE\\\\n')"]`,
+            '',
+            'inner-seq:',
+            '  kind: sequential',
+            '  steps:',
+            '    - inner-step',
+            '',
+          ].join('\n'),
+          '.xci/config.yml': '',
+        }),
+      );
+      // OUTER project: run-child delegates to child's inner-seq via kind:xci
+      const outerDir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': [
+            'run-child:',
+            '  kind: xci',
+            '  alias: inner-seq',
+            `  project: "${childDir.replace(/\\/g, '/')}"`,
+            '',
+          ].join('\n'),
+          '.xci/config.yml': '',
+        }),
+      );
+      // --log: SHOW+SAVE so inner output tees into the outer's captured stdout/stderr
+      const { stdout, stderr, code } = runCliInDir(outerDir, ['run-child', '--log']);
+      expect(code).toBe(0);
+
+      const combined = stdout + stderr;
+      // The inner xci run header MUST show the full breadcrumb path in the "running:" line
+      // (output.ts printRunHeader prefix — the actual assertion for Task 3 output.ts change)
+      expect(combined).toContain('running: run-child > inner-seq');
+      // The tee path must be exercised: inner stdout line must reach outer output
+      expect(combined).toContain('INNER-LINE');
+    },
+  );
 });
