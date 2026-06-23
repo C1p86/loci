@@ -259,6 +259,7 @@ export async function runSequential(
       // Resolve spawn cwd: resolved project (absolute) > step.cwd > inherited cwd
       const delegateCwd = resolvedProject ?? stepCwd;
       const stepEnv = { ...env, ...capturedVars };
+      const isVerboseXci = stepEnv.XCI_VERBOSE === '1';
       const xciResult = await runXciDelegate(
         {
           alias: resolvedAlias,
@@ -268,6 +269,11 @@ export async function runSequential(
         },
         delegateCwd,
         stepEnv,
+        undefined, // entryScript: default (process.argv[1])
+        logFile,
+        showOutput,
+        tailLines,
+        isVerboseXci,
       );
       printStepResult(displayLabel, xciResult.exitCode, Date.now() - startTime);
       if (xciResult.exitCode !== 0) {

@@ -190,6 +190,7 @@ export const executor: Executor = {
           const argsDisplay = plan.args && plan.args.length > 0 ? ` ${plan.args.join(' ')}` : '';
           process.stderr.write(`  delegate → ${effectiveCwd} :: ${plan.alias}${argsDisplay}\n`);
           const startTime = Date.now();
+          const isVerboseXci = env.XCI_VERBOSE === '1';
           const xciResult = await runXciDelegate(
             {
               alias: plan.alias,
@@ -199,6 +200,11 @@ export const executor: Executor = {
             },
             cwd,
             env,
+            undefined, // entryScript: default (process.argv[1])
+            logFile,
+            show,
+            tailLines,
+            isVerboseXci,
           );
           printStepResult(xciLabel, xciResult.exitCode, Date.now() - startTime);
           resetTerminalTitle();

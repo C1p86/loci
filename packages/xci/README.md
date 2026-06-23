@@ -448,15 +448,28 @@ build-backend:
 | `description` | No | Human-readable description shown in `--list` and `--help` |
 | `params` | No | Declare required/optional parameters for placeholder interpolation |
 
+#### Output logging
+
+`kind: xci` pipes the inner xci's stdout and stderr back through the outer process and tees them to:
+
+- **The outer terminal** — respecting the outer's `--log` / `--short-log` / `--verbose` / default-tail flags (same rules as a `cmd:` step).
+- **The outer project's `.xci/log/` file** — the delegated output is written to the same log file that the outer invocation opened, so a single log captures the full execution trace.
+
+The outer passes `--log` (or `--verbose` when the outer ran with `--verbose`) to the inner so the inner streams its real output instead of swallowing it into its own logfile. Nesting attenuation stays ON (no terminal title OSC, no desktop notification, no tail cursor-redraw in the inner) so the inner's output arrives as clean plain lines.
+
+stdin is kept inherited so interactive prompts inside the inner still work.
+
+#### Anti-hang design
+
+The delegate spawn resolves on the child process **exit** event rather than on stream close. After exit, the piped stdout/stderr streams are explicitly destroyed and unreferenced. This means a short-lived background process spawned inside the inner xci that briefly holds the pipe write-end open cannot cause the outer to hang — on either the normal completion path or the SIGINT interrupt path.
+
 #### Why a separate kind instead of a shell command?
 
-Two bugs motivate this approach:
+Two reasons motivate this approach:
 
 1. **Garbled output (OSC/banner collision)** — wrapping `xci` in a `cmd:` step (e.g. `cmd: xci build`) re-pipes child stdio through the outer xci's stream processing. The child emits terminal title OSC sequences and a startup banner; those bytes collide with the outer runner's own re-rendering, producing garbled output in the terminal.
 
-2. **Outer process hangs** — the parent's pipe stream never reaches EOF while the child holds its end of the pipe open. The outer xci waits for the pipe to drain, the inner xci waits for the pipe to be consumed, and both hang indefinitely.
-
-`kind: xci` spawns the child with `stdio: 'inherit'` — the child's stdin/stdout/stderr are wired directly to the terminal, bypassing the parent's pipe layer entirely. The parent waits only on the child process exit event.
+2. **Outer process hangs** — if the inner process leaves a background grandchild holding the pipe write-end open, an inherit-based approach makes the outer wait for pipe EOF indefinitely. `kind: xci` instead resolves on the child exit event and destroys/unrefs the piped streams immediately after, so no leaked grandchild can cause a hang.
 
 #### Nesting attenuation
 

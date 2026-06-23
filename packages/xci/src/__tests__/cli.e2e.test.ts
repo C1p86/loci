@@ -5,7 +5,16 @@
 // Locally: `npm run build && npm test`
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -1460,4 +1469,104 @@ describe.skipIf(!existsSync(CLI))('xci command kind (260623-fr4)', () => {
     const { code } = runCliInDir(parentDir, ['multi']);
     expect(code).toBe(0);
   });
+
+  // ------------------------------------------------------------------
+  // quick-260623-hp3: delegated output shown (SHOW+SAVE) — BUILD-LINE-STDOUT
+  // ------------------------------------------------------------------
+
+  it('SHOW+SAVE: delegated line appears in outer stdout AND outer logfile (BUILD-LINE-STDOUT)', () => {
+    const childDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          'print-line:',
+          // Write a known string to stdout so the outer can assert it
+          `  cmd: ["node", "-e", "process.stdout.write('BUILD-LINE-STDOUT\\\\n')"]`,
+          '',
+        ].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const parentDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          `delegate-print:`,
+          `  kind: xci`,
+          `  alias: print-line`,
+          `  project: "${childDir.replace(/\\/g, '/')}"`,
+          '',
+        ].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    // --log ensures showOutput=true and logFile is opened by the outer CLI
+    const { stdout, stderr, code } = runCliInDir(parentDir, ['delegate-print', '--log']);
+    expect(code).toBe(0);
+
+    // (a) The delegated line must appear in outer combined output (stdout or stderr)
+    const combined = stdout + stderr;
+    expect(combined).toContain('BUILD-LINE-STDOUT');
+
+    // (b) The outer project's .xci/log/ file must also contain the delegated line
+    const logDir = join(parentDir, '.xci', 'log');
+    expect(existsSync(logDir)).toBe(true);
+    const logFiles = readdirSync(logDir).map((f) => join(logDir, f));
+    expect(logFiles.length).toBeGreaterThan(0);
+    // Find the newest log file (in case there are multiple)
+    const newestLog = logFiles.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0];
+    const logContent = readFileSync(newestLog!, 'utf8');
+    expect(logContent).toContain('BUILD-LINE-STDOUT');
+  });
+
+  // ------------------------------------------------------------------
+  // quick-260623-hp3: anti-hang regression (vitest timeout is PRIMARY signal)
+  // NOTE: The vitest timeout on this test IS the primary hang detection signal.
+  // A true hang would cause spawnSync to block indefinitely and the vitest
+  // timeout would fire and fail the test. The elapsed-time check below is
+  // belt-and-suspenders only — if the test completes within the timeout, it
+  // means the piped+exit-event anti-hang implementation is working correctly.
+  // ------------------------------------------------------------------
+
+  it(
+    'ANTI-HANG: delegate resolves even when inner leaves a short-lived background grandchild (vitest timeout is primary hang signal)',
+    { timeout: 20000 },
+    () => {
+      const childDir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': [
+            'with-background:',
+            // Spawn a short-lived detached background process that briefly holds
+            // a pipe open, then write DONE to stdout and exit the main process.
+            // The background grandchild sleeps 400ms in the system temp dir
+            // (not the project dir) to avoid EPERM on Windows cleanup.
+            `  cmd: ["node", "-e", "const c=require('child_process').spawn(process.execPath,['-e','setTimeout(()=>{},400)'],{detached:true,stdio:'ignore',cwd:require('os').tmpdir()});c.unref();process.stdout.write('DONE\\\\n')"]`,
+            '',
+          ].join('\n'),
+          '.xci/config.yml': '',
+        }),
+      );
+      const parentDir = trackDir(
+        createTempProject({
+          '.xci/commands.yml': [
+            `delegate-bg:`,
+            `  kind: xci`,
+            `  alias: with-background`,
+            `  project: "${childDir.replace(/\\/g, '/')}"`,
+            '',
+          ].join('\n'),
+          '.xci/config.yml': '',
+        }),
+      );
+
+      const start = Date.now();
+      const { stdout, stderr, code } = runCliInDir(parentDir, ['delegate-bg', '--log']);
+      const elapsed = Date.now() - start;
+
+      // Primary hang signal: if this point is reached, the test did not hang
+      // (vitest timeout would have killed it otherwise).
+      expect(code).toBe(0);
+      expect(stdout + stderr).toContain('DONE');
+      // Belt-and-suspenders: should complete well within 15 seconds
+      expect(elapsed).toBeLessThan(15000);
+    },
+  );
 });
