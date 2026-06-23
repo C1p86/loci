@@ -518,7 +518,7 @@ The banner goes to **stderr only** and is additive — it does not affect stdout
 
 **Color and NO_COLOR:** when `NO_COLOR` is set or stderr is not a TTY, the banner prints as plain text with no ANSI escape codes. `FORCE_COLOR` forces color on even when stderr is not a TTY.
 
-**Secret safety:** any argument token whose value matches a configured secret is replaced with `***` in the params line. The raw secret value is never written to stderr, stdout, or log files.
+**Secret safety:** any occurrence of a configured secret value within an argument token (including embedded forms like `KEY=<secret>`) is replaced with `***` in the params line. The raw secret value is never written to stderr, stdout, or log files.
 
 #### Exit code propagation
 
@@ -800,7 +800,7 @@ aws:
 ```
 
 - All secret files are gitignored by `xci init` and must never be committed
-- Values from secrets are redacted (`***`) in `--dry-run` and `--verbose` output
+- Values from secrets are redacted (`***`) in the delegation banner, run header, `--dry-run`, and `--verbose` output — including when a secret appears as a substring within an argument token or cwd path (e.g. `token=${DEPLOY_TOKEN}` renders as `token=***`)
 - If `secrets.yml` is accidentally git-tracked, `xci` warns on every run
 - xci never logs secret values
 
