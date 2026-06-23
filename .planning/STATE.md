@@ -109,6 +109,7 @@ None
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 260623-ipz | Propagate XCI breadcrumb across delegate boundary — full cross-process path in step headers and run header | 2026-06-23 | 25dead7 | [260623-ipz-propagate-xci-delegate-breadcrumb-across](./quick/260623-ipz-propagate-xci-delegate-breadcrumb-across/) |
 | 260623-hp3 | Fix kind:xci delegated output not shown — tee to terminal + logfile, piped+exit-event anti-hang | 2026-06-23 | 3c90081 | [260623-hp3-fix-xci-kind-delegated-output-not-shown-](./quick/260623-hp3-fix-xci-kind-delegated-output-not-shown-/) |
 | 260623-fr4 | Add xci command kind (delegate to a nested xci project) | 2026-06-23 | 3cd5c18 | [260623-fr4-aggiungere-command-kind-xci-delega-a-un-](./quick/260623-fr4-aggiungere-command-kind-xci-delega-a-un-/) |
 | 260605-of7 | notify waiting for input on prompt step | 2026-06-05 | f6a3685 | [260605-of7-notify-waiting-for-input-on-prompt-step](.planning/quick/260605-of7-notify-waiting-for-input-on-prompt-step/) |
@@ -152,5 +153,5 @@ None
 ## Session Continuity
 
 Last session: 2026-06-23
-Stopped at: Completed quick task 260623-hp3 — fix kind:xci delegated output not shown
+Stopped at: Completed quick task 260623-ipz — propagate XCI breadcrumb across delegate boundary
 Resume: Phase 16 — Go CLI Output Infrastructure (`/gsd:plan-phase 16`)
