@@ -30,6 +30,7 @@ export const BRIGHT_YELLOW = '\x1b[93m';
 export const RED = '\x1b[31m';
 export const CYAN = '\x1b[36m';
 export const BOLD = '\x1b[1m';
+export const BRIGHT_CYAN = '\x1b[96m';
 
 /* ------------------------------------------------------------------ */
 /* Color detection (D-04)                                               */
@@ -263,6 +264,47 @@ function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   const s = (ms / 1000).toFixed(1);
   return `${s}s`;
+}
+
+/**
+ * Print a bright-cyan delegation banner to stderr before a kind:xci child spawns.
+ *
+ * Writes three lines:
+ *   1. A separator line of dashes (width = min(process.stderr.columns ?? 60, 80))
+ *   2. A target line: ↳ xci → <project> :: <alias>
+ *   3. A params line: params: <redacted args> | params: (none)
+ *
+ * Secret values in args are redacted to *** via the module-private redactArgv helper.
+ * Respects shouldUseColor() — when color is disabled (NO_COLOR / non-TTY) all output
+ * is plain text with no ANSI escape sequences. Writes to process.stderr only.
+ * NEVER emits secret cleartext.
+ */
+export function printDelegationBanner(
+  project: string,
+  alias: string,
+  args: readonly string[] | undefined,
+  secretValues: ReadonlySet<string>,
+): void {
+  const useColor = shouldUseColor();
+  const dashCount = Math.min(process.stderr.columns ?? 60, 80);
+  const dashes = '-'.repeat(dashCount);
+
+  // Separator line
+  const sepLine = useColor ? `${BRIGHT_CYAN}${dashes}${RESET}\n` : `${dashes}\n`;
+  process.stderr.write(sepLine);
+
+  // Target line: ↳ xci → <project> :: <alias>
+  const targetText = `↳ xci → ${project} :: ${alias}`;
+  const targetLine = useColor ? `${BRIGHT_CYAN}${targetText}${RESET}\n` : `${targetText}\n`;
+  process.stderr.write(targetLine);
+
+  // Params line — redact args before displaying
+  const paramsText =
+    args && args.length > 0
+      ? `params: ${redactArgv(args, secretValues).join(' ')}`
+      : 'params: (none)';
+  const paramsLine = useColor ? `${BRIGHT_CYAN}${paramsText}${RESET}\n` : `${paramsText}\n`;
+  process.stderr.write(paramsLine);
 }
 
 /* ------------------------------------------------------------------ */

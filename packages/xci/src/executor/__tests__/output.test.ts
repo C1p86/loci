@@ -6,12 +6,14 @@ import { join as pathJoin } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ANSI_PALETTE,
+  BRIGHT_CYAN,
   dimPrefix,
   formatError,
   formatPrefix,
   formatWarning,
   hashColor,
   makeLineTransform,
+  printDelegationBanner,
   printDryRun,
   printParallelSummary,
   printRunHeader,
@@ -499,6 +501,110 @@ describe('printRunHeader', () => {
     expect(firstChunk).toContain('\x1b[36m'); // CYAN
     expect(firstChunk).toContain('running: greet');
     expect(firstChunk).toContain('\x1b[0m'); // RESET
+  });
+});
+
+describe('printDelegationBanner', () => {
+  let chunks: string[];
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    chunks = [];
+    stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(((chunk: unknown) => {
+      chunks.push(typeof chunk === 'string' ? chunk : String(chunk));
+      return true;
+    }) as typeof process.stderr.write);
+  });
+
+  afterEach(() => {
+    stderrSpy.mockRestore();
+    vi.unstubAllEnvs();
+  });
+
+  it('color ON: separator line contains BRIGHT_CYAN (\\x1b[96m) and RESET', () => {
+    vi.stubEnv('NO_COLOR', undefined as unknown as string);
+    vi.stubEnv('FORCE_COLOR', '1');
+
+    printDelegationBanner('packages/backend', 'build', [], new Set());
+
+    const output = chunks.join('');
+    expect(output).toContain('\x1b[96m'); // BRIGHT_CYAN
+    expect(output).toContain('\x1b[0m'); // RESET
+  });
+
+  it('color ON: output contains project, alias, and args', () => {
+    vi.stubEnv('NO_COLOR', undefined as unknown as string);
+    vi.stubEnv('FORCE_COLOR', '1');
+
+    printDelegationBanner('packages/backend', 'build', ['--watch', '--prod'], new Set());
+
+    const output = chunks.join('');
+    expect(output).toContain('packages/backend');
+    expect(output).toContain('build');
+    expect(output).toContain('--watch');
+    expect(output).toContain('--prod');
+  });
+
+  it('color OFF: no ANSI escape codes anywhere in output', () => {
+    vi.stubEnv('NO_COLOR', '1');
+    vi.stubEnv('FORCE_COLOR', undefined as unknown as string);
+
+    printDelegationBanner('packages/backend', 'build', ['--watch'], new Set());
+
+    const output = chunks.join('');
+    expect(output).not.toContain('\x1b[');
+    expect(output).toContain('packages/backend');
+    expect(output).toContain('build');
+    expect(output).toContain('--watch');
+  });
+
+  it('secret redaction: secret arg renders *** and cleartext is absent', () => {
+    vi.stubEnv('NO_COLOR', '1');
+    vi.stubEnv('FORCE_COLOR', undefined as unknown as string);
+
+    const secretValues = new Set(['s3cr3t']);
+    printDelegationBanner('packages/backend', 'deploy', ['--token', 's3cr3t'], secretValues);
+
+    const output = chunks.join('');
+    expect(output).toContain('***');
+    expect(output).not.toContain('s3cr3t');
+  });
+
+  it('empty args (empty array): params line reads "params: (none)"', () => {
+    vi.stubEnv('NO_COLOR', '1');
+    vi.stubEnv('FORCE_COLOR', undefined as unknown as string);
+
+    printDelegationBanner('packages/backend', 'build', [], new Set());
+
+    const output = chunks.join('');
+    expect(output).toContain('params: (none)');
+  });
+
+  it('undefined args: params line reads "params: (none)"', () => {
+    vi.stubEnv('NO_COLOR', '1');
+    vi.stubEnv('FORCE_COLOR', undefined as unknown as string);
+
+    printDelegationBanner('packages/backend', 'build', undefined, new Set());
+
+    const output = chunks.join('');
+    expect(output).toContain('params: (none)');
+  });
+
+  it('BRIGHT_CYAN constant equals \\x1b[96m', () => {
+    expect(BRIGHT_CYAN).toBe('\x1b[96m');
+  });
+
+  it('writes three lines to stderr (separator, target, params)', () => {
+    vi.stubEnv('NO_COLOR', '1');
+    vi.stubEnv('FORCE_COLOR', undefined as unknown as string);
+
+    printDelegationBanner('packages/backend', 'build', ['arg1'], new Set());
+
+    // Each write call ends with \n; we should have exactly 3 writes
+    expect(chunks.length).toBe(3);
+    expect(chunks[0]).toMatch(/^-+\n$/); // separator line
+    expect(chunks[1]).toContain('↳ xci → packages/backend :: build'); // ↳ xci → ...
+    expect(chunks[2]).toContain('params: arg1');
   });
 });
 
