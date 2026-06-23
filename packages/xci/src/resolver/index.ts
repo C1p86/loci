@@ -273,6 +273,28 @@ function resolveToStepsLenient(
         },
       ];
     }
+
+    case 'xci': {
+      const resolvedAlias =
+        interpolateArgvLenient([def.alias], config.values)[0] ?? def.alias;
+      const resolvedProject =
+        def.project !== undefined
+          ? (interpolateArgvLenient([def.project], config.values)[0] ?? def.project)
+          : undefined;
+      const resolvedArgs = def.args
+        ? def.args.map((a) => interpolateArgvLenient([a], config.values)[0] ?? a)
+        : undefined;
+      return [
+        {
+          kind: 'xci' as const,
+          alias: resolvedAlias,
+          ...(resolvedProject !== undefined ? { project: resolvedProject } : {}),
+          ...(resolvedArgs !== undefined ? { args: resolvedArgs } : {}),
+          ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+          breadcrumb: [...chain],
+        },
+      ];
+    }
   }
 }
 
@@ -536,6 +558,25 @@ function resolveAlias(
         file,
         ...(def.plugins ? { plugins: def.plugins } : {}),
         ...(set ? { set } : {}),
+        ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+      };
+    }
+
+    case 'xci': {
+      const resolvedAlias =
+        interpolateArgv([def.alias], aliasName, config.values)[0] ?? def.alias;
+      const resolvedProject =
+        def.project !== undefined
+          ? (interpolateArgv([def.project], aliasName, config.values)[0] ?? def.project)
+          : undefined;
+      const resolvedArgs = def.args
+        ? def.args.map((a) => interpolateArgv([a], aliasName, config.values)[0] ?? a)
+        : undefined;
+      return {
+        kind: 'xci',
+        alias: resolvedAlias,
+        ...(resolvedProject !== undefined ? { project: resolvedProject } : {}),
+        ...(resolvedArgs !== undefined ? { args: resolvedArgs } : {}),
         ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
       };
     }

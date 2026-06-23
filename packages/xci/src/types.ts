@@ -125,6 +125,15 @@ export type CommandDef =
       readonly description?: string;
       readonly params?: Readonly<Record<string, ParamDef>>;
       readonly cwd?: string; // working directory — relative to projectRoot, absolute path, or ${placeholder}. Inherited by child aliases when they don't declare their own.
+    }
+  | {
+      readonly kind: 'xci';
+      readonly alias: string; // alias to run in the target project (required)
+      readonly project?: string; // target project root (relative/absolute/${...}); default current cwd
+      readonly args?: readonly string[]; // forwarded argv (KEY=VALUE overrides + pass-through)
+      readonly description?: string;
+      readonly params?: Readonly<Record<string, ParamDef>>;
+      readonly cwd?: string; // standard cwd field (kept for uniformity / cwd inheritance)
     };
 
 export type CommandMap = ReadonlyMap<string, CommandDef>;
@@ -165,6 +174,14 @@ export type SequentialStep =
         readonly remove?: readonly string[];
       };
       readonly set?: Readonly<Record<string, string>>;
+      readonly cwd?: string; // effective working directory (absolute after resolveAbsoluteCwds)
+      readonly breadcrumb?: readonly string[]; // path of containing alias names
+    }
+  | {
+      readonly kind: 'xci';
+      readonly alias: string; // alias to run in the target project
+      readonly project?: string; // target project root (absolute after resolveAbsoluteCwds)
+      readonly args?: readonly string[]; // forwarded argv (post-interpolation)
       readonly cwd?: string; // effective working directory (absolute after resolveAbsoluteCwds)
       readonly breadcrumb?: readonly string[]; // path of containing alias names
     }
@@ -216,6 +233,13 @@ export type ExecutionPlan =
         readonly remove?: readonly string[];
       };
       readonly set?: Readonly<Record<string, string>>;
+      readonly cwd?: string;
+    }
+  | {
+      readonly kind: 'xci';
+      readonly alias: string; // alias to run in the target project
+      readonly project?: string; // target project root (absolute after resolveAbsoluteCwds)
+      readonly args?: readonly string[]; // forwarded argv (post-interpolation)
       readonly cwd?: string;
     };
 

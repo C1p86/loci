@@ -154,6 +154,41 @@ function normalizeObject(
   obj: Record<string, unknown>,
   _filePath: string,
 ): CommandDef {
+  // Check for xci kind — detected by `kind: xci` discriminator (NOT a top-level data key)
+  if (obj.kind === 'xci') {
+    const rawAlias = obj.alias;
+    if (typeof rawAlias !== 'string' || rawAlias.length === 0) {
+      throw new CommandSchemaError(aliasName, 'xci.alias is required (string)');
+    }
+
+    let project: string | undefined;
+    if (obj.project !== undefined) {
+      if (typeof obj.project !== 'string') {
+        throw new CommandSchemaError(aliasName, 'xci.project must be a string');
+      }
+      project = obj.project;
+    }
+
+    let args: readonly string[] | undefined;
+    if (obj.args !== undefined) {
+      args = validateStringArray(aliasName, obj.args, 'args');
+    }
+
+    const description = typeof obj.description === 'string' ? obj.description : undefined;
+    const params = normalizeParams(aliasName, obj.params);
+    const cwd = parseCwd(aliasName, obj);
+
+    return {
+      kind: 'xci',
+      alias: rawAlias,
+      ...(project !== undefined ? { project } : {}),
+      ...(args !== undefined ? { args } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(params !== undefined ? { params } : {}),
+      ...(cwd !== undefined ? { cwd } : {}),
+    };
+  }
+
   // Check for uproject (Unreal Engine .uproject file manipulation)
   if (Object.hasOwn(obj, 'uproject')) {
     const rawFile = obj.uproject;

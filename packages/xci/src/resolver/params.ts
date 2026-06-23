@@ -221,6 +221,16 @@ function collectAll(
       }
       // Plugin names are literals — not tracked as placeholders
       break;
+
+    case 'xci':
+      trackUsage(extractPlaceholders(def.alias));
+      if (def.project !== undefined) trackUsage(extractPlaceholders(def.project));
+      if (def.args) {
+        for (const v of def.args) {
+          trackUsage(extractPlaceholders(v));
+        }
+      }
+      break;
   }
 
   // Recurse into sub-aliases for sequential/parallel (handled above via return)
