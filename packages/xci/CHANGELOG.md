@@ -1,5 +1,12 @@
 # xci
 
+## 0.3.1
+
+### Patch Changes
+
+- 25dead7: kind:xci now propagates the breadcrumb across the delegate boundary so the inner xci shows the full path from the original alias down to the current step in step headers and the run header (e.g. `run-child > inner-seq > inner-step`). No-delegation behavior is byte-identical: when XCI_BREADCRUMB is absent the run header is unchanged.
+- 3c90081: Fix: kind: xci now shows and logs the delegated command's output (tee to terminal + outer logfile), forwarding the output flag to the inner; piped+exit-event spawn preserves anti-hang on both normal and interrupt paths.
+
 ## 0.3.0
 
 ### Minor Changes

@@ -1,5 +1,13 @@
 # @xci/server
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies [25dead7]
+- Updated dependencies [3c90081]
+  - xci@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes
