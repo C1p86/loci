@@ -266,6 +266,8 @@ export async function runSequential(
           ...(resolvedProject !== undefined ? { project: resolvedProject } : {}),
           ...(resolvedArgs !== undefined ? { args: resolvedArgs } : {}),
           ...(stepCwd !== undefined ? { cwd: stepCwd } : {}),
+          // quick-260623-ipz: forward accumulated breadcrumb to child process env
+          ...(step.breadcrumb !== undefined ? { breadcrumb: step.breadcrumb } : {}),
         },
         delegateCwd,
         stepEnv,

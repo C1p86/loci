@@ -10,7 +10,7 @@ import { createWriteStream } from 'node:fs';
 import { isAbsolute, resolve as resolvePath } from 'node:path';
 import type { ExecutionResult } from '../types.js';
 import { assertCwdExists } from './cwd.js';
-import { getNestingDepth, XCI_NESTING_DEPTH_ENV } from './nesting.js';
+import { getNestingDepth, XCI_BREADCRUMB_ENV, XCI_NESTING_DEPTH_ENV } from './nesting.js';
 import { attachTee } from './tee.js';
 
 const IS_WINDOWS = process.platform === 'win32';
@@ -25,6 +25,8 @@ export interface XciDelegateFields {
   readonly project?: string;
   readonly args?: readonly string[];
   readonly cwd?: string;
+  /** Accumulated breadcrumb from the outer resolver chain (quick-260623-ipz). */
+  readonly breadcrumb?: readonly string[];
 }
 
 /**
@@ -76,6 +78,14 @@ export function buildDelegateInvocation(
     ...env,
     [XCI_NESTING_DEPTH_ENV]: String(childDepth),
   };
+
+  // Inject XCI_BREADCRUMB when the caller supplies a non-empty breadcrumb array.
+  // The passed-in breadcrumb is already the FULL accumulated path (the outer's resolver
+  // seeded it from its own incoming XCI_BREADCRUMB). Do NOT re-read process.env here
+  // and do NOT re-concatenate — that would double-count across nesting levels.
+  if (fields.breadcrumb !== undefined && fields.breadcrumb.length > 0) {
+    childEnv[XCI_BREADCRUMB_ENV] = fields.breadcrumb.join(' > ');
+  }
 
   return {
     execPath: process.execPath,

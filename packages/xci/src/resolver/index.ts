@@ -621,6 +621,9 @@ function resolveAlias(
         ...(resolvedProject !== undefined ? { project: resolvedProject } : {}),
         ...(resolvedArgs !== undefined ? { args: resolvedArgs } : {}),
         ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+        // Carry the accumulated breadcrumb (chain = [...incomingPrefix, aliasName] after Task 1 seed)
+        // so executor/index.ts can forward it to runXciDelegate → childEnv.XCI_BREADCRUMB.
+        ...(chain.length > 0 ? { breadcrumb: [...chain] } : {}),
       };
     }
   }

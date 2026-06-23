@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { XCI_NESTING_DEPTH_ENV } from '../nesting.js';
+import { XCI_BREADCRUMB_ENV, XCI_NESTING_DEPTH_ENV } from '../nesting.js';
 import { buildDelegateInvocation, runXciDelegate } from '../xci-delegate.js';
 
 const ORIG_DEPTH = process.env[XCI_NESTING_DEPTH_ENV];
@@ -146,6 +146,60 @@ describe('buildDelegateInvocation', () => {
       '--log',
     );
     expect(result.argv).toEqual([FAKE_ENTRY, 'test', '--log']);
+  });
+
+  // quick-260623-ipz: XCI_BREADCRUMB env injection tests
+  it("sets XCI_BREADCRUMB = 'A > A1' when fields.breadcrumb is ['A','A1']", () => {
+    delete process.env[XCI_NESTING_DEPTH_ENV];
+    const result = buildDelegateInvocation(
+      { alias: 'build', breadcrumb: ['A', 'A1'] },
+      EFFECTIVE_CWD,
+      {},
+      FAKE_ENTRY,
+      '--log',
+    );
+    expect(result.env[XCI_BREADCRUMB_ENV]).toBe('A > A1');
+    // XCI_NESTING_DEPTH still increments correctly
+    expect(result.env[XCI_NESTING_DEPTH_ENV]).toBe('1');
+  });
+
+  it('omits XCI_BREADCRUMB from env when fields.breadcrumb is undefined (no-delegation path is byte-identical)', () => {
+    delete process.env[XCI_NESTING_DEPTH_ENV];
+    const result = buildDelegateInvocation(
+      { alias: 'build' },
+      EFFECTIVE_CWD,
+      {},
+      FAKE_ENTRY,
+      '--log',
+    );
+    expect(Object.prototype.hasOwnProperty.call(result.env, XCI_BREADCRUMB_ENV)).toBe(false);
+  });
+
+  it('omits XCI_BREADCRUMB from env when fields.breadcrumb is empty array', () => {
+    delete process.env[XCI_NESTING_DEPTH_ENV];
+    const result = buildDelegateInvocation(
+      { alias: 'build', breadcrumb: [] },
+      EFFECTIVE_CWD,
+      {},
+      FAKE_ENTRY,
+      '--log',
+    );
+    expect(Object.prototype.hasOwnProperty.call(result.env, XCI_BREADCRUMB_ENV)).toBe(false);
+  });
+
+  it("2-level accumulation: fields.breadcrumb=['root','A','A1'] sets XCI_BREADCRUMB='root > A > A1' verbatim (no re-concatenation)", () => {
+    delete process.env[XCI_NESTING_DEPTH_ENV];
+    // Simulate outer process: its resolver already seeded chain from incoming 'root',
+    // so plan.breadcrumb = ['root','A','A1']. We pass that directly — must NOT re-read
+    // process.env.XCI_BREADCRUMB and concatenate again (would produce 'root > root > ...').
+    const result = buildDelegateInvocation(
+      { alias: 'inner', breadcrumb: ['root', 'A', 'A1'] },
+      EFFECTIVE_CWD,
+      {},
+      FAKE_ENTRY,
+      '--log',
+    );
+    expect(result.env[XCI_BREADCRUMB_ENV]).toBe('root > A > A1');
   });
 });
 

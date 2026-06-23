@@ -197,6 +197,8 @@ export const executor: Executor = {
               ...(plan.project !== undefined ? { project: plan.project } : {}),
               ...(plan.args !== undefined ? { args: plan.args } : {}),
               ...(plan.cwd !== undefined ? { cwd: plan.cwd } : {}),
+              // quick-260623-ipz: forward accumulated breadcrumb to child process env
+              ...(plan.breadcrumb !== undefined ? { breadcrumb: plan.breadcrumb } : {}),
             },
             cwd,
             env,

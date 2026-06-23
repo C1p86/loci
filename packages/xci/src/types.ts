@@ -250,6 +250,7 @@ export type ExecutionPlan =
       readonly project?: string; // target project root (absolute after resolveAbsoluteCwds)
       readonly args?: readonly string[]; // forwarded argv (post-interpolation)
       readonly cwd?: string;
+      readonly breadcrumb?: readonly string[]; // accumulated path from outer xci processes (quick-260623-ipz)
     };
 
 export interface Resolver {
