@@ -1,18 +1,30 @@
 // src/executor/__tests__/nesting.test.ts
 //
-// Unit tests for getNestingDepth / isNested (executor/nesting.ts).
+// Unit tests for getNestingDepth / isNested / getBreadcrumbPrefix (executor/nesting.ts).
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { XCI_NESTING_DEPTH_ENV, getNestingDepth, isNested } from '../nesting.js';
+import {
+  XCI_BREADCRUMB_ENV,
+  XCI_NESTING_DEPTH_ENV,
+  getBreadcrumbPrefix,
+  getNestingDepth,
+  isNested,
+} from '../nesting.js';
 
 const ORIG = process.env[XCI_NESTING_DEPTH_ENV];
+const ORIG_BREADCRUMB = process.env[XCI_BREADCRUMB_ENV];
 
 afterEach(() => {
-  // Restore the original value (or delete if unset)
+  // Restore the original values (or delete if unset)
   if (ORIG === undefined) {
     delete process.env[XCI_NESTING_DEPTH_ENV];
   } else {
     process.env[XCI_NESTING_DEPTH_ENV] = ORIG;
+  }
+  if (ORIG_BREADCRUMB === undefined) {
+    delete process.env[XCI_BREADCRUMB_ENV];
+  } else {
+    process.env[XCI_BREADCRUMB_ENV] = ORIG_BREADCRUMB;
   }
 });
 
@@ -72,5 +84,37 @@ describe('isNested', () => {
   it('returns false for NaN depth', () => {
     process.env[XCI_NESTING_DEPTH_ENV] = 'abc';
     expect(isNested()).toBe(false);
+  });
+});
+
+describe('getBreadcrumbPrefix', () => {
+  it('returns [] when XCI_BREADCRUMB is absent', () => {
+    delete process.env[XCI_BREADCRUMB_ENV];
+    expect(getBreadcrumbPrefix()).toEqual([]);
+  });
+
+  it('returns [] when XCI_BREADCRUMB is empty string', () => {
+    process.env[XCI_BREADCRUMB_ENV] = '';
+    expect(getBreadcrumbPrefix()).toEqual([]);
+  });
+
+  it("returns ['a','b'] for 'a > b'", () => {
+    process.env[XCI_BREADCRUMB_ENV] = 'a > b';
+    expect(getBreadcrumbPrefix()).toEqual(['a', 'b']);
+  });
+
+  it("returns ['a','b','c'] for 'a > b > c'", () => {
+    process.env[XCI_BREADCRUMB_ENV] = 'a > b > c';
+    expect(getBreadcrumbPrefix()).toEqual(['a', 'b', 'c']);
+  });
+
+  it("filters empty segments: 'a >  > b' returns ['a','b']", () => {
+    process.env[XCI_BREADCRUMB_ENV] = 'a >  > b';
+    expect(getBreadcrumbPrefix()).toEqual(['a', 'b']);
+  });
+
+  it("trims whitespace from segments: '  a  >  b  ' returns ['a','b']", () => {
+    process.env[XCI_BREADCRUMB_ENV] = '  a  >  b  ';
+    expect(getBreadcrumbPrefix()).toEqual(['a', 'b']);
   });
 });

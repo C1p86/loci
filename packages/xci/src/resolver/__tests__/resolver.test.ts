@@ -2,7 +2,8 @@
 //
 // Tests for resolver modules: platform.ts, envvars.ts, interpolate.ts, and index.ts
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { XCI_BREADCRUMB_ENV } from '../../executor/nesting.js';
 import { CommandSchemaError, UndefinedPlaceholderError, UnknownAliasError } from '../../errors.js';
 import type { CommandDef, CommandMap, ResolvedConfig } from '../../types.js';
 import { buildEnvVars, redactSecrets } from '../envvars.js';
@@ -1283,5 +1284,75 @@ describe('resolver.resolve - breadcrumb (quick-260421-kbl)', () => {
       ['ci', 'checks', 'test'],
       ['ci'],
     ]);
+  });
+});
+
+/* ============================================================
+ * resolver.resolve - XCI_BREADCRUMB prefix seeding (quick-260623-ipz)
+ * ============================================================ */
+
+describe('resolver.resolve - XCI_BREADCRUMB prefix seeding (quick-260623-ipz)', () => {
+  // Isolate XCI_BREADCRUMB env from the outer process so these tests
+  // do NOT pollute the existing Tests 1-9 above (vitest runs in same process).
+  let origBreadcrumb: string | undefined;
+
+  beforeEach(() => {
+    origBreadcrumb = process.env[XCI_BREADCRUMB_ENV];
+  });
+
+  afterEach(() => {
+    if (origBreadcrumb === undefined) {
+      delete process.env[XCI_BREADCRUMB_ENV];
+    } else {
+      process.env[XCI_BREADCRUMB_ENV] = origBreadcrumb;
+    }
+  });
+
+  it('with XCI_BREADCRUMB unset, existing breadcrumb behavior is unchanged (byte-identical)', () => {
+    delete process.env[XCI_BREADCRUMB_ENV];
+    const commands = makeCommands({
+      A1a: { kind: 'single', cmd: ['echo', 'a1a'] },
+      A1: { kind: 'sequential', steps: ['A1a'] },
+      A: { kind: 'sequential', steps: ['A1'] },
+    });
+    const plan = resolver.resolve('A', commands, makeConfig());
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    const s0 = plan.steps[0];
+    if (!s0) throw new Error('unreachable');
+    // byte-identical to today: prefix=[] so seed=['A']
+    expect(s0.breadcrumb).toEqual(['A', 'A1', 'A1a']);
+  });
+
+  it("with XCI_BREADCRUMB='outer > mid', nested sequential breadcrumb is prefixed", () => {
+    process.env[XCI_BREADCRUMB_ENV] = 'outer > mid';
+    const commands = makeCommands({
+      A1a: { kind: 'single', cmd: ['echo', 'a1a'] },
+      A1: { kind: 'sequential', steps: ['A1a'] },
+      A: { kind: 'sequential', steps: ['A1'] },
+    });
+    const plan = resolver.resolve('A', commands, makeConfig());
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    const s0 = plan.steps[0];
+    if (!s0) throw new Error('unreachable');
+    // prefix=['outer','mid'], seed=['outer','mid','A'] → chain grows to ['outer','mid','A','A1','A1a']
+    expect(s0.breadcrumb).toEqual(['outer', 'mid', 'A', 'A1', 'A1a']);
+  });
+
+  it('depth-cap guard: a LONG XCI_BREADCRUMB prefix (20 segments) + shallow real nesting does NOT throw', () => {
+    // Build a 20-segment prefix. This only enriches the breadcrumb display —
+    // depth is tracked INDEPENDENTLY (starts at 0 regardless of prefix length).
+    const longPrefix = Array.from({ length: 20 }, (_, i) => `seg${i}`).join(' > ');
+    process.env[XCI_BREADCRUMB_ENV] = longPrefix;
+    const commands = makeCommands({
+      leaf: { kind: 'single', cmd: ['echo', 'hi'] },
+      mid: { kind: 'sequential', steps: ['leaf'] }, // depth 1
+      top: { kind: 'sequential', steps: ['mid'] }, // depth 2
+    });
+    // Must NOT throw CommandSchemaError about depth cap
+    expect(() => resolver.resolve('top', commands, makeConfig())).not.toThrow();
+    const plan = resolver.resolve('top', commands, makeConfig());
+    expect(plan.kind).toBe('sequential');
   });
 });

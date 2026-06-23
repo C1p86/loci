@@ -5,6 +5,7 @@
 
 import { tokenize } from '../commands/tokenize.js';
 import { CommandSchemaError, UnknownAliasError } from '../errors.js';
+import { getBreadcrumbPrefix } from '../executor/nesting.js';
 import type {
   CommandDef,
   CommandMap,
@@ -627,6 +628,16 @@ function resolveAlias(
 
 export const resolver: Resolver = {
   resolve(aliasName: string, commands: CommandMap, config: ResolvedConfig): ExecutionPlan {
-    return resolveAlias(aliasName, commands, config, 0, [aliasName], undefined);
+    // Seed the chain with the incoming breadcrumb prefix (from the outer xci process via
+    // XCI_BREADCRUMB env var), followed by aliasName. This enriches breadcrumb display in
+    // step headers and the run header so operators see the FULL cross-process path.
+    //
+    // CRITICAL: depth starts at 0 regardless of prefix length. The prefix only enriches
+    // the display chain — it never consumes the inner process's nesting budget. The cap
+    // check is `if (depth > 10)` and depth is incremented on each recursion independently
+    // of chain length. The cap error message chain.join(' -> ') will cosmetically include
+    // the prefix — that is acceptable and intentional.
+    const prefix = getBreadcrumbPrefix();
+    return resolveAlias(aliasName, commands, config, 0, [...prefix, aliasName], undefined);
   },
 };
