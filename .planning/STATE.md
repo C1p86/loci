@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Quality & Parity
 status: Phase complete — ready for verification
-stopped_at: Completed 16-go-cli-output-infrastructure 16-02-PLAN.md
-last_updated: "2026-06-23T14:23:00.000Z"
+stopped_at: Completed quick task 260623-k2w — redact secret values as substrings in argv/cwd
+last_updated: "2026-06-23T14:45:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 2
@@ -109,6 +109,7 @@ None
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 260623-k2w | Security fix: redact secret values as substrings in argv tokens and cwd strings (closes token=${SECRET} cleartext leak) | 2026-06-23 | 68e0eb9 | [260623-k2w-redact-secret-values-as-substrings-in-ar](./quick/260623-k2w-redact-secret-values-as-substrings-in-ar/) |
 | 260623-jqc | Print bright-cyan delegation banner (target folder + redacted params) to stderr at both kind:xci call sites | 2026-06-23 | 11c84dc | [260623-jqc-print-cyan-delegation-banner-with-target](./quick/260623-jqc-print-cyan-delegation-banner-with-target/) |
 | 260623-ipz | Propagate XCI breadcrumb across delegate boundary — full cross-process path in step headers and run header | 2026-06-23 | 25dead7 | [260623-ipz-propagate-xci-delegate-breadcrumb-across](./quick/260623-ipz-propagate-xci-delegate-breadcrumb-across/) |
 | 260623-hp3 | Fix kind:xci delegated output not shown — tee to terminal + logfile, piped+exit-event anti-hang | 2026-06-23 | 3c90081 | [260623-hp3-fix-xci-kind-delegated-output-not-shown-](./quick/260623-hp3-fix-xci-kind-delegated-output-not-shown-/) |
