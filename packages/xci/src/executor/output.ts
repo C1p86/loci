@@ -580,20 +580,42 @@ export function buildSecretValues(config: ResolvedConfig): ReadonlySet<string> {
 }
 
 /**
- * Replace argv tokens that match any secret value with '***'.
+ * Replace every occurrence of every secret value as a LITERAL substring within `s`.
+ * Secrets are applied longest-first so that overlapping secrets (where one is a
+ * substring of another) do not leave fragments of the longer secret visible.
+ * Uses split/join (never regex) so metacharacters in secret values are never
+ * interpreted as regex patterns.
+ * Empty or whitespace-only secrets are skipped to prevent blanking entire strings.
+ * quick-260623-k2w
  */
-function redactArgv(argv: readonly string[], secretValues: ReadonlySet<string>): readonly string[] {
-  return argv.map((token) => (secretValues.has(token) ? '***' : token));
+function redactSecretsInString(s: string, secretValues: ReadonlySet<string>): string {
+  const sorted = [...secretValues].sort((a, b) => b.length - a.length);
+  let result = s;
+  for (const secret of sorted) {
+    if (secret.trim().length === 0) continue;
+    result = result.split(secret).join('***');
+  }
+  return result;
 }
 
 /**
- * Redact a cwd string: if its exact value matches a secret, display `***`.
+ * Replace argv tokens that contain any secret value as a substring with the secret
+ * occurrences replaced by '***'. Uses redactSecretsInString for literal, all-occurrences
+ * substring replacement (not whole-token exact match).
+ * quick-260623-k2w
+ */
+function redactArgv(argv: readonly string[], secretValues: ReadonlySet<string>): readonly string[] {
+  return argv.map((token) => redactSecretsInString(token, secretValues));
+}
+
+/**
+ * Redact a cwd string: replace any secret value appearing as a substring with '***'.
  * Returns undefined unchanged.
- * quick-260421-g99
+ * quick-260421-g99, quick-260623-k2w
  */
 function redactCwd(cwd: string | undefined, secretValues: ReadonlySet<string>): string | undefined {
   if (cwd === undefined) return undefined;
-  return secretValues.has(cwd) ? '***' : cwd;
+  return redactSecretsInString(cwd, secretValues);
 }
 
 /**
@@ -740,7 +762,7 @@ export function printDryRun(
       if (plan.set) {
         for (const [section, keys] of Object.entries(plan.set)) {
           for (const [k, v] of Object.entries(keys)) {
-            const masked = secretValues.has(v) ? '**********' : v;
+            const masked = secretValues.has(v) ? '**********' : redactSecretsInString(v, secretValues);
             process.stderr.write(`${prefix}   [${section}] ${k}=${masked}\n`);
           }
         }
@@ -759,7 +781,7 @@ export function printDryRun(
         : '';
       const setDisplay = plan.set
         ? Object.entries(plan.set)
-            .map(([k, v]) => `${k}=${secretValues.has(v) ? '**********' : v}`)
+            .map(([k, v]) => `${k}=${secretValues.has(v) ? '**********' : redactSecretsInString(v, secretValues)}`)
             .join(', ')
         : '';
       const ops = [pluginSummary, setDisplay ? `set: ${setDisplay}` : '']
