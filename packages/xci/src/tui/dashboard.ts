@@ -248,11 +248,13 @@ function buildEntries(plan: ExecutionPlan): CommandEntry[] {
             ? `ini:${step.mode}`
             : step.kind === 'uproject'
               ? 'uproject'
-              : step.kind === 'set'
-                ? 'set'
-                : step.kind === 'prompt'
-                  ? `prompt:${step.var}`
-                  : (step.label ?? step.argv[0] ?? '(step)'),
+              : step.kind === 'xci'
+                ? `xci:${step.alias}`
+                : step.kind === 'set'
+                  ? 'set'
+                  : step.kind === 'prompt'
+                    ? `prompt:${step.var}`
+                    : (step.label ?? step.argv[0] ?? '(step)'),
         status: 'pending' as CommandStatus,
       }));
     case 'parallel':
@@ -264,6 +266,8 @@ function buildEntries(plan: ExecutionPlan): CommandEntry[] {
       return [{ label: `ini:${plan.mode}`, status: 'pending' }];
     case 'uproject':
       return [{ label: 'uproject', status: 'pending' }];
+    case 'xci':
+      return [{ label: `xci:${plan.alias}`, status: 'pending' }];
   }
 }
 
@@ -448,6 +452,58 @@ async function execSequential(
         appendLog(`  ${filePath}`);
         for (const w of warnings) {
           appendLog(`  warning: ${w}`);
+        }
+        updateCommand(i, 'success');
+        flushRender();
+      } catch (err) {
+        appendLog(`  error: ${(err as Error).message}`);
+        updateCommand(i, 'failed', 1);
+        for (let j = i + 1; j < plan.steps.length; j++) {
+          updateCommand(j, 'skipped');
+        }
+        flushRender();
+        return { exitCode: 1 };
+      }
+      continue;
+    }
+
+    // Handle xci delegate steps inline
+    if (step.kind === 'xci') {
+      updateCommand(i, 'running');
+      appendLog(`-- step ${i + 1}/${plan.steps.length}: xci:${step.alias} --`);
+      flushRender();
+      try {
+        const { runXciDelegate } = await import('../executor/xci-delegate.js');
+        const stepCwd = step.cwd ?? cwd;
+        const delegateCwd = step.project ?? stepCwd;
+        const mergedValues = { ...env, ...capturedVars };
+        const { interpolateArgv } = await import('../resolver/interpolate.js');
+        const resolvedAlias = interpolateArgv([step.alias], '(xci)', mergedValues)[0] ?? step.alias;
+        const resolvedProject =
+          step.project !== undefined
+            ? (interpolateArgv([step.project], '(xci)', mergedValues)[0] ?? step.project)
+            : undefined;
+        const resolvedArgs = step.args
+          ? step.args.map((a) => interpolateArgv([a], '(xci)', mergedValues)[0] ?? a)
+          : undefined;
+        const stepEnv = { ...env, ...capturedVars };
+        const xciResult = await runXciDelegate(
+          {
+            alias: resolvedAlias,
+            ...(resolvedProject !== undefined ? { project: resolvedProject } : {}),
+            ...(resolvedArgs !== undefined ? { args: resolvedArgs } : {}),
+            ...(stepCwd !== undefined ? { cwd: stepCwd } : {}),
+          },
+          delegateCwd,
+          stepEnv,
+        );
+        if (xciResult.exitCode !== 0) {
+          updateCommand(i, 'failed', xciResult.exitCode);
+          for (let j = i + 1; j < plan.steps.length; j++) {
+            updateCommand(j, 'skipped');
+          }
+          flushRender();
+          return xciResult;
         }
         updateCommand(i, 'success');
         flushRender();

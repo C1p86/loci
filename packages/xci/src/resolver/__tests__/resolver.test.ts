@@ -964,9 +964,21 @@ describe('for_each rawArgv bakes loop variable', () => {
     const s0 = plan.steps[0];
     const s1 = plan.steps[1];
     if (!s0 || !s1) throw new Error('unreachable');
-    if (s0.kind === 'set' || s0.kind === 'prompt' || s0.kind === 'ini' || s0.kind === 'uproject')
+    if (
+      s0.kind === 'set' ||
+      s0.kind === 'prompt' ||
+      s0.kind === 'ini' ||
+      s0.kind === 'uproject' ||
+      s0.kind === 'xci'
+    )
       throw new Error('unreachable');
-    if (s1.kind === 'set' || s1.kind === 'prompt' || s1.kind === 'ini' || s1.kind === 'uproject')
+    if (
+      s1.kind === 'set' ||
+      s1.kind === 'prompt' ||
+      s1.kind === 'ini' ||
+      s1.kind === 'uproject' ||
+      s1.kind === 'xci'
+    )
       throw new Error('unreachable');
 
     // rawArgv must NOT contain the unresolved ${svc} placeholder
@@ -998,9 +1010,21 @@ describe('for_each rawArgv bakes loop variable', () => {
     const s0 = plan.steps[0];
     const s1 = plan.steps[1];
     if (!s0 || !s1) throw new Error('unreachable');
-    if (s0.kind === 'set' || s0.kind === 'prompt' || s0.kind === 'ini' || s0.kind === 'uproject')
+    if (
+      s0.kind === 'set' ||
+      s0.kind === 'prompt' ||
+      s0.kind === 'ini' ||
+      s0.kind === 'uproject' ||
+      s0.kind === 'xci'
+    )
       throw new Error('unreachable');
-    if (s1.kind === 'set' || s1.kind === 'prompt' || s1.kind === 'ini' || s1.kind === 'uproject')
+    if (
+      s1.kind === 'set' ||
+      s1.kind === 'prompt' ||
+      s1.kind === 'ini' ||
+      s1.kind === 'uproject' ||
+      s1.kind === 'xci'
+    )
       throw new Error('unreachable');
 
     expect(s0.rawArgv).toEqual(['deploy', 'api', '--region', 'us']);

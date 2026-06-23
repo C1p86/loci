@@ -36,6 +36,16 @@ function resolveStepCwd(step: SequentialStep, projectRoot: string): SequentialSt
   if (step.kind === 'set' || step.kind === 'prompt') return step;
   // Both 'ini' and the cmd variant (kind undefined or 'cmd') may carry cwd.
   const abs = toAbs(step.cwd, projectRoot);
+  // For xci steps: also rewrite project to absolute (relative project is against projectRoot).
+  if (step.kind === 'xci') {
+    const absProject = toAbs(step.project, projectRoot);
+    const result = {
+      ...step,
+      ...(absProject !== undefined ? { project: absProject } : {}),
+      ...(abs !== undefined ? { cwd: abs } : {}),
+    };
+    return result;
+  }
   if (abs === undefined) return step;
   return { ...step, cwd: abs };
 }
@@ -67,6 +77,15 @@ export function resolveAbsoluteCwds(plan: ExecutionPlan, projectRoot: string): E
     case 'uproject': {
       const abs = toAbs(plan.cwd, projectRoot);
       return abs === undefined ? plan : { ...plan, cwd: abs };
+    }
+    case 'xci': {
+      const abs = toAbs(plan.cwd, projectRoot);
+      const absProject = toAbs(plan.project, projectRoot);
+      return {
+        ...plan,
+        ...(abs !== undefined ? { cwd: abs } : {}),
+        ...(absProject !== undefined ? { project: absProject } : {}),
+      };
     }
   }
 }

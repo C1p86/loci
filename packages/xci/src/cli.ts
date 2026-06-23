@@ -231,6 +231,11 @@ function buildAliasHelpText(alias: string, def: CommandDef): string {
         }
       }
       break;
+    case 'xci':
+      lines.push(`  alias: ${def.alias}`);
+      if (def.project) lines.push(`  project: ${def.project}`);
+      if (def.args && def.args.length > 0) lines.push(`  args: ${def.args.join(' ')}`);
+      break;
   }
   return lines.join('\n');
 }
@@ -300,6 +305,12 @@ function printAliasDetails(
       if (parts.length > 0) process.stderr.write(`  ops: ${parts.join('; ')}\n`);
       break;
     }
+    case 'xci': {
+      process.stderr.write(`  alias: ${def.alias}\n`);
+      if (def.project) process.stderr.write(`  project: ${def.project}\n`);
+      if (def.args && def.args.length > 0) process.stderr.write(`  args: ${def.args.join(' ')}\n`);
+      break;
+    }
   }
 
   // Show params (declared + auto-detected)
@@ -361,18 +372,32 @@ function appendExtraArgs(plan: ExecutionPlan, extra: readonly string[]): Executi
     case 'single':
       return { ...plan, argv: [...plan.argv, ...extra] };
     case 'sequential': {
-      // Append to the LAST cmd step in the chain (skip ini/uproject steps)
+      // Append to the LAST cmd or xci step in the chain (skip ini/uproject/set/prompt steps)
       if (plan.steps.length === 0) return plan;
       const lastIdx = plan.steps.length - 1;
       const lastStep = plan.steps[lastIdx];
       if (!lastStep) return plan;
-      if (lastStep.kind === 'ini' || lastStep.kind === 'uproject') return plan;
+      if (
+        lastStep.kind === 'ini' ||
+        lastStep.kind === 'uproject' ||
+        lastStep.kind === 'set' ||
+        lastStep.kind === 'prompt'
+      )
+        return plan;
+      if (lastStep.kind === 'xci') {
+        // For xci last step: append to its args
+        const newSteps = plan.steps.map((s, i) =>
+          i === lastIdx && s.kind === 'xci' ? { ...s, args: [...(s.args ?? []), ...extra] } : s,
+        );
+        return { ...plan, steps: newSteps };
+      }
       const newSteps = plan.steps.map((s, i) =>
         i === lastIdx &&
         s.kind !== 'ini' &&
         s.kind !== 'uproject' &&
         s.kind !== 'set' &&
-        s.kind !== 'prompt'
+        s.kind !== 'prompt' &&
+        s.kind !== 'xci'
           ? { ...s, argv: [...s.argv, ...extra] }
           : s,
       );
@@ -393,6 +418,9 @@ function appendExtraArgs(plan: ExecutionPlan, extra: readonly string[]): Executi
     case 'uproject':
       // Extra args don't apply to uproject operations
       return plan;
+    case 'xci':
+      // For xci top-level plan: append extra to args (forwarded to the inner alias)
+      return { ...plan, args: [...(plan.args ?? []), ...extra] };
   }
 }
 

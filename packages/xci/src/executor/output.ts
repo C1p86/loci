@@ -6,6 +6,7 @@ import { appendFileSync } from 'node:fs';
 import { redactSecrets } from '../resolver/envvars.js';
 import type { CaptureConfig, CommandDef, ExecutionPlan, ResolvedConfig } from '../types.js';
 import type { CaptureValidationResult } from './capture.js';
+import { isNested } from './nesting.js';
 
 /* ------------------------------------------------------------------ */
 /* ANSI constants                                                        */
@@ -111,12 +112,16 @@ export function dimPrefix(label: string): string {
 /* ------------------------------------------------------------------ */
 
 export function setTerminalTitle(title: string): void {
+  // Attenuation: suppress terminal-title OSC sequences when running as a nested delegate
+  if (isNested()) return;
   if (process.stderr.isTTY) {
     process.stderr.write(`\x1b]0;${title}\x07`);
   }
 }
 
 export function resetTerminalTitle(): void {
+  // Attenuation: suppress terminal-title OSC sequences when running as a nested delegate
+  if (isNested()) return;
   if (process.stderr.isTTY) {
     process.stderr.write(`\x1b]0;\x07`);
   }
@@ -127,6 +132,8 @@ export async function notifyCompletion(
   projectName?: string,
   commandName?: string,
 ): Promise<void> {
+  // Attenuation: suppress desktop notifications when running as a nested delegate
+  if (isNested()) return;
   if (process.env.CI) return;
   const status = exitCode === 0 ? 'completato' : `errore (exit ${exitCode})`;
   const title = projectName ?? 'xci';
@@ -165,6 +172,8 @@ export async function notifyWaitingForInput(
   projectName?: string,
   promptMessage?: string,
 ): Promise<void> {
+  // Attenuation: suppress desktop notifications when running as a nested delegate
+  if (isNested()) return;
   if (process.env.CI) return;
   const title = projectName ?? 'xci';
   const body = `⏸ ${promptMessage ?? 'in attesa di input'}`;
@@ -314,6 +323,11 @@ function collectReferencedPlaceholders(def: CommandDef): Set<string> {
         for (const v of Object.values(def.set)) scanString(v);
       }
       break;
+    case 'xci':
+      scanString(def.alias);
+      if (def.project !== undefined) scanString(def.project);
+      if (def.args) scanArray(def.args);
+      break;
   }
   return out;
 }
@@ -421,6 +435,19 @@ export function printRunHeader(
           process.stderr.write(
             `  ${i + 1}. uproject ${step.file}${ops ? ` (${ops})` : ''}${stepCwdDisplay}\n`,
           );
+        } else if (step.kind === 'xci') {
+          const stepProject = step.project ?? step.cwd ?? topCwd ?? '.';
+          const argsStr =
+            step.args && step.args.length > 0
+              ? ` ${redactArgv(step.args, secretValues).join(' ')}`
+              : '';
+          const stepCwdDisplay =
+            step.cwd && step.cwd !== topCwd
+              ? ` ${yellow}(cwd: ${redactCwd(step.cwd, secretValues)})${reset}`
+              : '';
+          process.stderr.write(
+            `  ${i + 1}. xci → ${step.alias} @ ${stepProject}${argsStr}${stepCwdDisplay}\n`,
+          );
         } else if (step.kind === 'set') {
           const assignments = Object.entries(step.vars)
             .map(([k, v]) => `${k}=${v}`)
@@ -475,6 +502,15 @@ export function printRunHeader(
       process.stderr.write(`  uproject: ${plan.file}${ops ? ` (${ops})` : ''}\n`);
       break;
     }
+    case 'xci': {
+      const project = plan.project ?? plan.cwd ?? '.';
+      const argsStr =
+        plan.args && plan.args.length > 0
+          ? ` ${redactArgv(plan.args, secretValues).join(' ')}`
+          : '';
+      process.stderr.write(`  xci → ${plan.alias} @ ${project}${argsStr}\n`);
+      break;
+    }
   }
 }
 
@@ -526,6 +562,8 @@ function topLevelCwd(plan: ExecutionPlan): string | undefined {
       return plan.cwd;
     case 'uproject':
       return plan.cwd;
+    case 'xci':
+      return plan.project ?? plan.cwd;
     case 'sequential': {
       for (const step of plan.steps) {
         if (step.kind === 'set' || step.kind === 'prompt') continue;
@@ -603,6 +641,17 @@ export function printDryRun(
             process.stderr.write(
               `${prefix}   ${i + 1}. uproject ${step.file}${ops ? ` (${ops})` : ''}${stepCwdDisplay}\n`,
             );
+          } else if (step.kind === 'xci') {
+            const stepProject = step.project ?? step.cwd ?? topCwd ?? '.';
+            const argsStr =
+              step.args && step.args.length > 0
+                ? ` ${redactArgv(step.args, secretValues).join(' ')}`
+                : '';
+            const stepCwdDisplay =
+              step.cwd && step.cwd !== topCwd ? ` (cwd: ${redactCwd(step.cwd, secretValues)})` : '';
+            process.stderr.write(
+              `${prefix}   ${i + 1}. xci → ${step.alias} @ ${stepProject}${argsStr}${stepCwdDisplay}\n`,
+            );
           } else if (step.kind === 'set') {
             const assignments = Object.entries(step.vars)
               .map(([k, v]) => `${k}=${v}`)
@@ -670,6 +719,15 @@ export function printDryRun(
         .filter(Boolean)
         .join('; ');
       process.stderr.write(`${prefix} uproject: ${plan.file}${ops ? ` (${ops})` : ''}\n`);
+      break;
+    }
+    case 'xci': {
+      const project = plan.project ?? plan.cwd ?? '.';
+      const argsStr =
+        plan.args && plan.args.length > 0
+          ? ` ${redactArgv(plan.args, secretValues).join(' ')}`
+          : '';
+      process.stderr.write(`${prefix} xci → ${plan.alias} @ ${project}${argsStr}\n`);
       break;
     }
   }
@@ -797,6 +855,17 @@ export function printVerboseCommand(
             process.stderr.write(
               `${prefix}   ${i + 1}. uproject ${step.file}${ops ? ` (${ops})` : ''}${stepCwdDisplay}\n`,
             );
+          } else if (step.kind === 'xci') {
+            const stepProject = step.project ?? step.cwd ?? topCwd ?? '.';
+            const argsStr =
+              step.args && step.args.length > 0
+                ? ` ${redactArgv(step.args, secretValues).join(' ')}`
+                : '';
+            const stepCwdDisplay =
+              step.cwd && step.cwd !== topCwd ? ` (cwd: ${redactCwd(step.cwd, secretValues)})` : '';
+            process.stderr.write(
+              `${prefix}   ${i + 1}. xci → ${step.alias} @ ${stepProject}${argsStr}${stepCwdDisplay}\n`,
+            );
           } else if (step.kind === 'set') {
             const assignments = Object.entries(step.vars)
               .map(([k, v]) => `${k}=${v}`)
@@ -829,6 +898,15 @@ export function printVerboseCommand(
         );
       }
       break;
+    case 'xci': {
+      const project = plan.project ?? plan.cwd ?? '.';
+      const argsStr =
+        plan.args && plan.args.length > 0
+          ? ` ${redactArgv(plan.args, secretValues).join(' ')}`
+          : '';
+      process.stderr.write(`${prefix} resolved xci → ${plan.alias} @ ${project}${argsStr}\n`);
+      break;
+    }
   }
 }
 

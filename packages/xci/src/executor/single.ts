@@ -9,6 +9,7 @@ import { execa, type ResultPromise } from 'execa';
 import { SpawnError } from '../errors.js';
 import type { ExecutionResult } from '../types.js';
 import { assertCwdExists } from './cwd.js';
+import { isNested } from './nesting.js';
 
 const IS_WINDOWS = process.platform === 'win32';
 const FORCE_KILL_DELAY = 5000;
@@ -137,7 +138,9 @@ export async function runSingle(
 
   // Use inherit only when showing full output with no log file and no tail
   const useInherit = !logFile && showOutput && !tailLines;
-  const isTail = tailLines !== undefined && tailLines > 0;
+  // Disable real-time tail cursor-move redraws when nested (attenuation rule).
+  // Plain line streaming and the log file still work; only the cursor-up/erase redraw is suppressed.
+  const isTail = tailLines !== undefined && tailLines > 0 && !isNested();
 
   const proc = execa(cmd, args, {
     cwd,

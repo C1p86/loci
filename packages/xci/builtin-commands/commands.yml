@@ -22,3 +22,13 @@ ue-enable-plugins:
       - Paper2D
   set:
     EngineAssociation: "5.4"
+
+# Example: delegate an alias to another project directory.
+# Replace ${XCI.other_project} with a path param or a literal path.
+# The child xci process runs with stdio:inherit so its output flows directly
+# to the terminal without pipe buffering or garbled banner/OSC codes.
+xci-delegate-example:
+  kind: xci
+  description: Run 'build' alias in another project directory
+  alias: build
+  project: ${XCI.other_project}

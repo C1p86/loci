@@ -275,8 +275,7 @@ function resolveToStepsLenient(
     }
 
     case 'xci': {
-      const resolvedAlias =
-        interpolateArgvLenient([def.alias], config.values)[0] ?? def.alias;
+      const resolvedAlias = interpolateArgvLenient([def.alias], config.values)[0] ?? def.alias;
       const resolvedProject =
         def.project !== undefined
           ? (interpolateArgvLenient([def.project], config.values)[0] ?? def.project)
@@ -563,8 +562,7 @@ function resolveAlias(
     }
 
     case 'xci': {
-      const resolvedAlias =
-        interpolateArgv([def.alias], aliasName, config.values)[0] ?? def.alias;
+      const resolvedAlias = interpolateArgv([def.alias], aliasName, config.values)[0] ?? def.alias;
       const resolvedProject =
         def.project !== undefined
           ? (interpolateArgv([def.project], aliasName, config.values)[0] ?? def.project)

@@ -16,6 +16,7 @@ import { extractFromOutput, validateCapture } from './capture.js';
 import { assertCwdExists } from './cwd.js';
 import { writeIni, deleteIniKeys } from './ini.js';
 import { applyUprojectEdits, readUproject, writeUproject } from './uproject.js';
+import { runXciDelegate } from './xci-delegate.js';
 import {
   notifyWaitingForInput,
   printCaptureResult,
@@ -160,11 +161,13 @@ export async function runSequential(
         ? `ini:${step.mode}`
         : step.kind === 'uproject'
           ? 'uproject'
-          : step.kind === 'set'
-            ? 'set'
-            : step.kind === 'prompt'
-              ? `prompt:${step.var}`
-              : (step.label ?? step.argv[0] ?? '(unknown)');
+          : step.kind === 'xci'
+            ? `xci:${step.alias}`
+            : step.kind === 'set'
+              ? 'set'
+              : step.kind === 'prompt'
+                ? `prompt:${step.var}`
+                : (step.label ?? step.argv[0] ?? '(unknown)');
     const displayLabel =
       step.breadcrumb && step.breadcrumb.length > 0 ? step.breadcrumb.join(' > ') : leafLabel;
     const alias = step.breadcrumb?.[0] ?? displayLabel;
@@ -234,6 +237,43 @@ export async function runSequential(
       capturedVars[envKey] = value;
       process.stderr.write(`  ${step.var}=${value}\n`);
       printStepResult(displayLabel, 0, 0);
+      continue;
+    }
+
+    // Handle xci delegate steps inline
+    if (step.kind === 'xci') {
+      setTerminalTitle(`xci: ${alias} [${stepNum}/${totalSteps}] (xci:${step.alias})`);
+      printStepHeader(displayLabel, stepNum, totalSteps);
+      const startTime = Date.now();
+      const stepCwd = step.cwd ?? cwd;
+      const mergedValues = { ...env, ...capturedVars };
+      // Re-interpolate alias, project, and args with captured vars
+      const resolvedAlias = interpolateArgv([step.alias], '(xci)', mergedValues)[0] ?? step.alias;
+      const resolvedProject =
+        step.project !== undefined
+          ? (interpolateArgv([step.project], '(xci)', mergedValues)[0] ?? step.project)
+          : undefined;
+      const resolvedArgs = step.args
+        ? step.args.map((a) => interpolateArgv([a], '(xci)', mergedValues)[0] ?? a)
+        : undefined;
+      // Resolve spawn cwd: resolved project (absolute) > step.cwd > inherited cwd
+      const delegateCwd = resolvedProject ?? stepCwd;
+      const stepEnv = { ...env, ...capturedVars };
+      const xciResult = await runXciDelegate(
+        {
+          alias: resolvedAlias,
+          ...(resolvedProject !== undefined ? { project: resolvedProject } : {}),
+          ...(resolvedArgs !== undefined ? { args: resolvedArgs } : {}),
+          ...(stepCwd !== undefined ? { cwd: stepCwd } : {}),
+        },
+        delegateCwd,
+        stepEnv,
+      );
+      printStepResult(displayLabel, xciResult.exitCode, Date.now() - startTime);
+      if (xciResult.exitCode !== 0) {
+        resetTerminalTitle();
+        return xciResult;
+      }
       continue;
     }
 

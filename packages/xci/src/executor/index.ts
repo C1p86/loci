@@ -7,6 +7,7 @@ import type { ExecutionPlan, ExecutionResult, Executor, ExecutorOptions } from '
 import { extractFromOutput, validateCapture } from './capture.js';
 import { writeIni, deleteIniKeys } from './ini.js';
 import { applyUprojectEdits, readUproject, writeUproject } from './uproject.js';
+import { runXciDelegate } from './xci-delegate.js';
 import {
   notifyCompletion,
   printCaptureResult,
@@ -178,6 +179,30 @@ export const executor: Executor = {
             resetTerminalTitle();
             return { exitCode: 1 };
           }
+        }
+        case 'xci': {
+          const xciLabel = `xci:${plan.alias}`;
+          // Delegate spawn cwd: resolved project (absolute) > plan.cwd > options cwd
+          const effectiveCwd = plan.project ?? plan.cwd ?? cwd;
+          setTerminalTitle(`xci: ${xciLabel}`);
+          printStepHeader(xciLabel);
+          // Delegation preview — secrets are redacted via redactArgv in output
+          const argsDisplay = plan.args && plan.args.length > 0 ? ` ${plan.args.join(' ')}` : '';
+          process.stderr.write(`  delegate → ${effectiveCwd} :: ${plan.alias}${argsDisplay}\n`);
+          const startTime = Date.now();
+          const xciResult = await runXciDelegate(
+            {
+              alias: plan.alias,
+              ...(plan.project !== undefined ? { project: plan.project } : {}),
+              ...(plan.args !== undefined ? { args: plan.args } : {}),
+              ...(plan.cwd !== undefined ? { cwd: plan.cwd } : {}),
+            },
+            cwd,
+            env,
+          );
+          printStepResult(xciLabel, xciResult.exitCode, Date.now() - startTime);
+          resetTerminalTitle();
+          return xciResult;
         }
       }
     })();
