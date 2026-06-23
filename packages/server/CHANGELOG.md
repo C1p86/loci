@@ -1,5 +1,13 @@
 # @xci/server
 
+## 0.3.2
+
+### Patch Changes
+
+- Updated dependencies [11c84dc]
+- Updated dependencies [2e294fd]
+  - xci@0.3.2
+
 ## 0.3.1
 
 ### Patch Changes
