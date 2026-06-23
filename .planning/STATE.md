@@ -4,7 +4,7 @@ milestone: v2.1
 milestone_name: Quality & Parity
 status: Phase complete — ready for verification
 stopped_at: Completed 16-go-cli-output-infrastructure 16-02-PLAN.md
-last_updated: "2026-06-23T00:00:00.000Z"
+last_updated: "2026-06-23T14:23:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 2
@@ -109,6 +109,7 @@ None
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 260623-jqc | Print bright-cyan delegation banner (target folder + redacted params) to stderr at both kind:xci call sites | 2026-06-23 | 11c84dc | [260623-jqc-print-cyan-delegation-banner-with-target](./quick/260623-jqc-print-cyan-delegation-banner-with-target/) |
 | 260623-ipz | Propagate XCI breadcrumb across delegate boundary — full cross-process path in step headers and run header | 2026-06-23 | 25dead7 | [260623-ipz-propagate-xci-delegate-breadcrumb-across](./quick/260623-ipz-propagate-xci-delegate-breadcrumb-across/) |
 | 260623-hp3 | Fix kind:xci delegated output not shown — tee to terminal + logfile, piped+exit-event anti-hang | 2026-06-23 | 3c90081 | [260623-hp3-fix-xci-kind-delegated-output-not-shown-](./quick/260623-hp3-fix-xci-kind-delegated-output-not-shown-/) |
 | 260623-fr4 | Add xci command kind (delegate to a nested xci project) | 2026-06-23 | 3cd5c18 | [260623-fr4-aggiungere-command-kind-xci-delega-a-un-](./quick/260623-fr4-aggiungere-command-kind-xci-delega-a-un-/) |
@@ -153,5 +154,5 @@ None
 ## Session Continuity
 
 Last session: 2026-06-23
-Stopped at: Completed quick task 260623-ipz — propagate XCI breadcrumb across delegate boundary
+Stopped at: Completed quick task 260623-jqc — print cyan delegation banner with target
 Resume: Phase 16 — Go CLI Output Infrastructure (`/gsd:plan-phase 16`)
