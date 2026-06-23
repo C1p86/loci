@@ -1620,3 +1620,32 @@ describe.skipIf(!existsSync(CLI))('xci command kind (260623-fr4)', () => {
     },
   );
 });
+
+/* ================================================================
+ * quick-260623-k2w: secret substring redaction (e2e)
+ * ================================================================ */
+
+describe.skipIf(!existsSync(CLI))('secret substring redaction in argv (quick-260623-k2w)', () => {
+  it('token=${DEPLOY_TOKEN} renders token=*** in stderr and cleartext secret is absent', () => {
+    const dir = trackDir(
+      createTempProject({
+        '.xci/secrets.yml': 'deploy_token: s3cr3t-abc123\n',
+        '.xci/commands.yml': [
+          'show-token:',
+          '  cmd: ["node", "print-args.mjs", "token=${deploy_token}"]',
+          '',
+        ].join('\n'),
+        '.xci/config.yml': '',
+        'print-args.mjs': "process.stdout.write(JSON.stringify(process.argv.slice(2)) + '\\n');\n",
+      }),
+    );
+    // Use --dry-run so the run header + argv are printed to stderr without spawning a real process
+    // (avoids platform-specific spawn issues; the assertion is purely about redaction in stderr)
+    const { stderr, code } = runCliInDir(dir, ['show-token', '--dry-run']);
+    expect(code).toBe(0);
+    // The interpolated token arg must be redacted as a substring
+    expect(stderr).toContain('token=***');
+    // The cleartext secret must never appear in stderr
+    expect(stderr).not.toContain('s3cr3t-abc123');
+  });
+});

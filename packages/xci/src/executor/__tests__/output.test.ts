@@ -709,3 +709,138 @@ describe('printStepPreview — cwd preview', () => {
     expect(joined.indexOf('raw:')).toBeLessThan(joined.indexOf('run:'));
   });
 });
+
+/* ------------------------------------------------------------------ */
+/* quick-260623-k2w: substring secret redaction                        */
+/* ------------------------------------------------------------------ */
+
+describe('substring secret redaction', () => {
+  let chunks: string[];
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    chunks = [];
+    stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(((chunk: unknown) => {
+      chunks.push(typeof chunk === 'string' ? chunk : String(chunk));
+      return true;
+    }) as typeof process.stderr.write);
+    vi.stubEnv('NO_COLOR', '1');
+    vi.stubEnv('FORCE_COLOR', undefined as unknown as string);
+  });
+
+  afterEach(() => {
+    stderrSpy.mockRestore();
+    vi.unstubAllEnvs();
+  });
+
+  it('token=SECRET is redacted to token=*** (embedded secret not leaked)', () => {
+    const secretValues = new Set(['s3cr3t-abc123']);
+    printDelegationBanner('pkg/deploy', 'deploy', ['token=s3cr3t-abc123'], secretValues);
+    const output = chunks.join('');
+    expect(output).toContain('token=***');
+    expect(output).not.toContain('s3cr3t-abc123');
+  });
+
+  it('standalone SECRET token is still fully redacted to *** (old whole-token behavior preserved)', () => {
+    const secretValues = new Set(['s3cr3t']);
+    printDelegationBanner('pkg/deploy', 'deploy', ['s3cr3t'], secretValues);
+    const output = chunks.join('');
+    expect(output).toContain('***');
+    expect(output).not.toContain('s3cr3t');
+  });
+
+  it('secret in the MIDDLE of a token: pre-SECRET-post → pre-***-post', () => {
+    const secretValues = new Set(['MYSECRET']);
+    printDelegationBanner('pkg/deploy', 'deploy', ['pre-MYSECRET-post'], secretValues);
+    const output = chunks.join('');
+    expect(output).toContain('pre-***-post');
+    expect(output).not.toContain('MYSECRET');
+  });
+
+  it('one token containing TWO different secrets: both replaced, neither cleartext present', () => {
+    const secretValues = new Set(['S1val', 'S2val']);
+    printDelegationBanner('pkg/deploy', 'deploy', ['a=S1val;b=S2val'], secretValues);
+    const output = chunks.join('');
+    expect(output).toContain('a=***;b=***');
+    expect(output).not.toContain('S1val');
+    expect(output).not.toContain('S2val');
+  });
+
+  it('overlapping secrets: longer redacted first so no fragment leaks (abc123xyz → ***)', () => {
+    const secretValues = new Set(['abc123', 'abc123xyz']);
+    // token: k=abc123xyz — the short secret is a prefix of the long one
+    // if short is replaced first: k=***xyz (fragment "xyz" leaks)
+    // if long is replaced first: k=*** (correct)
+    printDelegationBanner('pkg/deploy', 'deploy', ['k=abc123xyz'], secretValues);
+    const output = chunks.join('');
+    expect(output).toContain('k=***');
+    // fragment "xyz" must NOT appear after *** (i.e. not "k=***xyz")
+    expect(output).not.toContain('***xyz');
+    expect(output).not.toContain('abc123');
+  });
+
+  it('secret containing regex metacharacters is matched LITERALLY (not as regex)', () => {
+    const secretValues = new Set(['a.b*c$']);
+    // v=a.b*c$ contains metacharacters — must match literally
+    printDelegationBanner('pkg/deploy', 'deploy', ['v=a.b*c$'], secretValues);
+    const output = chunks.join('');
+    expect(output).toContain('v=***');
+    expect(output).not.toContain('a.b*c$');
+  });
+
+  it('token that regex-matches the pattern but is not literal match: unchanged', () => {
+    const secretValues = new Set(['a.b*c$']);
+    // "aXbYcZ" would match the regex /a.b*c$/ but is NOT a literal substring — must be unchanged
+    printDelegationBanner('pkg/deploy', 'deploy', ['v=aXbYcZ'], secretValues);
+    const output = chunks.join('');
+    expect(output).toContain('v=aXbYcZ');
+  });
+
+  it('no-secret token unchanged (empty secret set → output identical to input)', () => {
+    const secretValues = new Set<string>();
+    printDelegationBanner('pkg/deploy', 'deploy', ['hello=world'], secretValues);
+    const output = chunks.join('');
+    expect(output).toContain('hello=world');
+  });
+
+  it('empty-string secret in the set never blanks everything (guard against empty-secret DoS)', () => {
+    // buildSecretValues already excludes '' but the internal guard must also protect
+    const secretValues = new Set(['', 'realsecret']);
+    printDelegationBanner('pkg/deploy', 'deploy', ['hello'], secretValues);
+    const output = chunks.join('');
+    // 'hello' must remain unchanged — the empty-string secret must not blank it
+    expect(output).toContain('hello');
+  });
+
+  it('replace ALL occurrences: SECRET-mid-SECRET → ***-mid-***', () => {
+    const secretValues = new Set(['SECRET']);
+    printDelegationBanner('pkg/deploy', 'deploy', ['SECRET-mid-SECRET'], secretValues);
+    const output = chunks.join('');
+    expect(output).toContain('***-mid-***');
+    expect(output).not.toContain('SECRET');
+  });
+
+  it('cwd embedding a secret substring is redacted in dry-run output', () => {
+    const plan: ExecutionPlan = {
+      kind: 'single',
+      argv: ['echo', 'hi'],
+      cwd: '/home/s3cr3t-abc123/proj',
+    };
+    const secretValues = new Set(['s3cr3t-abc123']);
+    printDryRun(plan, secretValues);
+    const output = chunks.join('');
+    expect(output).toContain('/home/***/proj');
+    expect(output).not.toContain('s3cr3t-abc123');
+  });
+
+  it('undefined cwd in dry-run: no cwd line emitted (unchanged passthrough)', () => {
+    const plan: ExecutionPlan = {
+      kind: 'single',
+      argv: ['echo', 'hi'],
+    };
+    const secretValues = new Set(['s3cr3t']);
+    printDryRun(plan, secretValues);
+    const output = chunks.join('');
+    expect(output).not.toContain('cwd:');
+  });
+});
