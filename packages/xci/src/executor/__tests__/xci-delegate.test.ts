@@ -2,10 +2,10 @@
 //
 // Unit tests for buildDelegateInvocation and runXciDelegate (executor/xci-delegate.ts).
 
-import { mkdtempSync, mkdirSync, readFileSync, rmdirSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
-import { tmpdir } from 'node:os';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { XCI_NESTING_DEPTH_ENV } from '../nesting.js';
 import { buildDelegateInvocation, runXciDelegate } from '../xci-delegate.js';
@@ -16,7 +16,7 @@ const ORIG_DEPTH = process.env[XCI_NESTING_DEPTH_ENV];
 let TARGET_PROJECT: string;
 
 beforeEach(() => {
-  TARGET_PROJECT = mkdtempSync(tmpdir() + '/xci-delegate-test-');
+  TARGET_PROJECT = mkdtempSync(`${tmpdir()}/xci-delegate-test-`);
 });
 
 afterEach(() => {
@@ -173,17 +173,14 @@ describe('runXciDelegate', () => {
 
   it('invokes spawn when depth < 32 and returns exit code', async () => {
     delete process.env[XCI_NESTING_DEPTH_ENV];
-    const pt = new PassThrough();
-    const spawnFn = vi
-      .fn()
-      .mockImplementation(
-        () =>
-          new Promise<{ exitCode: number; stdout: PassThrough; stderr: PassThrough }>((resolve) => {
-            const stdout = new PassThrough();
-            const stderr = new PassThrough();
-            setTimeout(() => resolve({ exitCode: 0, stdout, stderr }), 0);
-          }),
-      );
+    const spawnFn = vi.fn().mockImplementation(
+      () =>
+        new Promise<{ exitCode: number; stdout: PassThrough; stderr: PassThrough }>((resolve) => {
+          const stdout = new PassThrough();
+          const stderr = new PassThrough();
+          setTimeout(() => resolve({ exitCode: 0, stdout, stderr }), 0);
+        }),
+    );
     const result = await runXciDelegate(
       { alias: 'build', project: TARGET_PROJECT },
       EFFECTIVE_CWD,
@@ -223,7 +220,7 @@ describe('runXciDelegate', () => {
       spawnFn,
     );
     expect(capturedArgv).toBeDefined();
-    expect(capturedArgv![capturedArgv!.length - 1]).toBe('--log');
+    expect(capturedArgv?.at(-1)).toBe('--log');
   });
 
   it('forwards --verbose flag in argv when verbose=true', async () => {
@@ -250,7 +247,7 @@ describe('runXciDelegate', () => {
       spawnFn,
     );
     expect(capturedArgv).toBeDefined();
-    expect(capturedArgv![capturedArgv!.length - 1]).toBe('--verbose');
+    expect(capturedArgv?.at(-1)).toBe('--verbose');
   });
 
   it('tees child stdout to logFile via PassThrough fake', async () => {
@@ -415,8 +412,6 @@ describe('runXciDelegate', () => {
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
 
-    const childStdout = new PassThrough();
-    const childStderr = new PassThrough();
     const spawnFn = vi.fn().mockImplementation(
       () =>
         new Promise<{ exitCode: number; stdout: PassThrough; stderr: PassThrough }>((resolve) => {

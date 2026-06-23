@@ -9,7 +9,7 @@ import { execa, type ResultPromise } from 'execa';
 import { SpawnError } from '../errors.js';
 import type { ExecutionResult } from '../types.js';
 import { assertCwdExists } from './cwd.js';
-import { isNested } from './nesting.js';
+import { attachTee } from './tee.js';
 
 const IS_WINDOWS = process.platform === 'win32';
 const FORCE_KILL_DELAY = 5000;
@@ -140,7 +140,7 @@ export async function runSingle(
   const useInherit = !logFile && showOutput && !tailLines;
   // Disable real-time tail cursor-move redraws when nested (attenuation rule).
   // Plain line streaming and the log file still work; only the cursor-up/erase redraw is suppressed.
-  const isTail = tailLines !== undefined && tailLines > 0 && !isNested();
+  // isNested() is called inside attachTee — the nesting check lives there.
 
   const proc = execa(cmd, args, {
     cwd,
@@ -150,54 +150,15 @@ export async function runSingle(
     reject: false,
   }) as unknown as ResultPromise;
 
-  // Real-time tail: keep last N lines and redraw them on each update
-  const tailBuffer: string[] = [];
-  let tailLinesDrawn = 0;
-
-  function redrawTail(): void {
-    if (!isTail) return;
-    const cols = (process.stderr as { columns?: number }).columns ?? 120;
-
-    // Erase previous tail lines
-    if (tailLinesDrawn > 0) {
-      for (let i = 0; i < tailLinesDrawn; i++) {
-        process.stderr.write('\x1b[A\x1b[2K'); // move up + clear line
-      }
-    }
-
-    // Draw last N lines — preserve original colors from the process output
-    const visible = tailBuffer.slice(-tailLines);
-    tailLinesDrawn = visible.length;
-    for (const line of visible) {
-      // Truncate by visible length but keep ANSI codes intact
-      const stripped = line.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
-      const truncated = stripped.length > cols - 4 ? line.slice(0, cols - 5) + '\x1b[0m…' : line;
-      process.stderr.write(`  | ${truncated}\x1b[0m\n`);
-    }
-  }
-
-  function appendTailLine(text: string): void {
-    for (const line of text.split('\n')) {
-      // Strip control chars but keep ANSI color codes intact
-      const cleaned = line.replace(/\r/g, '').replace(/[\x00-\x08\x0b\x0c\x0e-\x1a]/g, '');
-      if (cleaned.length > 0) tailBuffer.push(cleaned);
-    }
-    redrawTail();
-  }
-
+  let removeTeeListeners: (() => void) | undefined;
   if (!useInherit) {
-    proc.stdout?.on('data', (chunk: Buffer) => {
-      const text = chunk.toString('utf8');
-      if (logStream) logStream.write(text);
-      if (showOutput) process.stdout.write(text);
-      if (isTail) appendTailLine(text);
-    });
-    proc.stderr?.on('data', (chunk: Buffer) => {
-      const text = chunk.toString('utf8');
-      if (logStream) logStream.write(text);
-      if (showOutput) process.stderr.write(text);
-      if (isTail) appendTailLine(text);
-    });
+    removeTeeListeners = attachTee(
+      proc.stdout as NodeJS.EventEmitter | null | undefined,
+      proc.stderr as NodeJS.EventEmitter | null | undefined,
+      logStream,
+      showOutput,
+      tailLines,
+    );
   }
 
   let interrupted = false;
@@ -209,6 +170,7 @@ export async function runSingle(
 
   try {
     const result = await proc;
+    removeTeeListeners?.();
     logStream?.end();
 
     if (interrupted) return { exitCode: 130 };
@@ -217,6 +179,7 @@ export async function runSingle(
     }
     return { exitCode: result.exitCode ?? 1 };
   } catch (err: unknown) {
+    removeTeeListeners?.();
     logStream?.end();
     if (interrupted) return { exitCode: 130 };
     if (err instanceof SpawnError) throw err;
