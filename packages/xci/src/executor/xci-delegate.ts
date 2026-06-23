@@ -163,10 +163,10 @@ export async function runXciDelegate(
     return { exitCode: result.exitCode ?? 1 };
   }
 
-  // Production path: use execa with inherit stdio
+  // Production path: use execa with inherit stdio.
+  // invocation.argv = [entryScript, alias, ...args] — pass all of it to Node.
   const { execa } = await import('execa');
-  const [, ...restArgv] = invocation.argv; // drop entryScript from argv[0], it's the first arg
-  const proc = execa(invocation.execPath, restArgv, {
+  const proc = execa(invocation.execPath, invocation.argv, {
     cwd: invocation.cwd,
     env: { ...process.env, ...invocation.env },
     stdio: 'inherit',

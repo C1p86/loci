@@ -426,6 +426,93 @@ xci ue-configure                  # error: missing required parameter "game"
 
 A ready-to-copy `ue-enable-plugins` example ships with xci as a built-in command — run `xci --list` to see it, then copy it into your `.xci/commands.yml` and adjust the paths and plugin names.
 
+### Delegating to Another Project (`kind: xci`)
+
+Use `kind: xci` to run an alias defined in a **different project directory** — a monorepo sub-package, a sibling repository, or any other directory that has its own `.xci/` config.
+
+```yaml
+build-backend:
+  kind: xci
+  description: Build the backend package
+  alias: build          # alias name to invoke in the target project
+  project: packages/backend   # path to the other project (relative or absolute)
+  args: [--watch]       # optional extra args forwarded to the child
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `alias` | Yes | The alias to run in the target project's `.xci/commands.yml` |
+| `project` | No | Path to the target project root. Relative paths are resolved against the parent project root. Defaults to the same project. |
+| `args` | No | Extra CLI arguments forwarded to the child invocation |
+| `cwd` | No | Working directory override (rarely needed; prefer `project`) |
+| `description` | No | Human-readable description shown in `--list` and `--help` |
+| `params` | No | Declare required/optional parameters for placeholder interpolation |
+
+#### Why a separate kind instead of a shell command?
+
+Two bugs motivate this approach:
+
+1. **Garbled output (OSC/banner collision)** — wrapping `xci` in a `cmd:` step (e.g. `cmd: xci build`) re-pipes child stdio through the outer xci's stream processing. The child emits terminal title OSC sequences and a startup banner; those bytes collide with the outer runner's own re-rendering, producing garbled output in the terminal.
+
+2. **Outer process hangs** — the parent's pipe stream never reaches EOF while the child holds its end of the pipe open. The outer xci waits for the pipe to drain, the inner xci waits for the pipe to be consumed, and both hang indefinitely.
+
+`kind: xci` spawns the child with `stdio: 'inherit'` — the child's stdin/stdout/stderr are wired directly to the terminal, bypassing the parent's pipe layer entirely. The parent waits only on the child process exit event.
+
+#### Nesting attenuation
+
+When xci detects it is running inside another xci (via `XCI_NESTING_DEPTH >= 1`), it suppresses its own output decoration to avoid double-wrapping:
+
+- Terminal title OSC sequences are not emitted
+- Desktop completion notifications are not sent
+- Real-time tail (cursor-move redraw) is disabled
+
+`XCI_NESTING_DEPTH` is set automatically — you do not need to set it manually.
+
+#### Exit code propagation
+
+The exit code of the child xci invocation is propagated unchanged. If the child exits with code 3, the `kind: xci` step exits with code 3.
+
+#### Placeholder interpolation
+
+`alias`, `project`, and `args` all support `${placeholder}` interpolation from config layers and CLI params:
+
+```yaml
+deploy-env:
+  params:
+    env: required
+  kind: xci
+  alias: deploy
+  project: "services/${env}"
+  description: Deploy a specific service environment
+```
+
+```
+xci deploy-env env=staging
+```
+
+#### As a sequential step
+
+`kind: xci` can be used inline in a `steps:` list, interleaved with regular `cmd` steps:
+
+```yaml
+release:
+  kind: sequential
+  steps:
+    - cmd: npm run test
+    - kind: xci
+      alias: build
+      project: packages/core
+    - cmd: npm run publish
+```
+
+#### Dry run and listing
+
+`--dry-run` prints the delegation plan without spawning the child. `--list` includes `kind: xci` aliases. Per-alias `--help` shows the alias and project path.
+
+#### Runaway nesting guard
+
+To prevent accidental infinite delegation loops, xci refuses to spawn if `XCI_NESTING_DEPTH` is already 32 or higher, exits with code 1, and prints a message to stderr.
+
 ### Working Directory (`cwd`)
 
 By default every alias runs in the project root — the directory that contains `.xci/`. Use the optional `cwd` field to run an alias from a different directory. It accepts a **relative path** (resolved against the project root), an **absolute path**, or a **`${placeholder}`** interpolated from config or CLI params.
@@ -467,7 +554,7 @@ publish-to-s3:
   cmd: bash publish.sh
 ```
 
-If the directory does not exist, execa surfaces the failure with the full absolute path in the error message. `cwd` works with every alias kind — `cmd`, `steps`, `parallel`, `for_each`, `ini`, and `uproject`.
+If the directory does not exist, execa surfaces the failure with the full absolute path in the error message. `cwd` works with every alias kind — `cmd`, `steps`, `parallel`, `for_each`, `ini`, `uproject`, and `xci`.
 
 ### Split Commands Across Files
 

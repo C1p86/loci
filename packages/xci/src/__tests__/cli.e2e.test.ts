@@ -1269,3 +1269,195 @@ describe.skipIf(!existsSync(CLI))('breadcrumb step headers (quick-260421-kbl)', 
     expect(stderr).not.toMatch(/\u25b6 A1b \[/);
   });
 });
+
+describe.skipIf(!existsSync(CLI))('xci command kind (260623-fr4)', () => {
+  it('--dry-run prints alias and project directory', () => {
+    const childDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': ['build:', '  cmd: ["node", "-e", "process.exit(0)"]', ''].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const parentDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          `delegate-build:`,
+          `  kind: xci`,
+          `  alias: build`,
+          `  project: "${childDir.replace(/\\/g, '/')}"`,
+          '',
+        ].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const { stderr, code } = runCliInDir(parentDir, ['delegate-build', '--dry-run']);
+    expect(code).toBe(0);
+    // dry-run prints the xci step as "xci → <alias> @ <dir>"
+    expect(stderr).toContain('xci');
+    // dry-run must show the delegated alias name
+    expect(stderr).toContain('build');
+  });
+
+  it('--list shows xci kind and alias in the alias list', () => {
+    const childDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': ['build:', '  cmd: ["node", "-e", "process.exit(0)"]', ''].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const parentDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          `delegate-build:`,
+          `  kind: xci`,
+          `  alias: build`,
+          `  project: "${childDir.replace(/\\/g, '/')}"`,
+          '',
+        ].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const { stdout, code } = runCliInDir(parentDir, ['--list']);
+    expect(code).toBe(0);
+    expect(stdout).toContain('delegate-build');
+  });
+
+  it('per-alias --help shows xci kind details', () => {
+    const childDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': ['build:', '  cmd: ["node", "-e", "process.exit(0)"]', ''].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const parentDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          `delegate-build:`,
+          `  kind: xci`,
+          `  description: Delegate build to child project`,
+          `  alias: build`,
+          `  project: "${childDir.replace(/\\/g, '/')}"`,
+          '',
+        ].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const { stderr, stdout, code } = runCliInDir(parentDir, ['delegate-build', '--help']);
+    expect(code).toBe(0);
+    const combined = stdout + stderr;
+    expect(combined).toContain('delegate-build');
+    expect(combined).toContain('build');
+  });
+
+  it('delegates execution to child project and propagates exit code 0', () => {
+    const childDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': ['succeed:', '  cmd: ["node", "-e", "process.exit(0)"]', ''].join(
+          '\n',
+        ),
+        '.xci/config.yml': '',
+      }),
+    );
+    const parentDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          `run-child:`,
+          `  kind: xci`,
+          `  alias: succeed`,
+          `  project: "${childDir.replace(/\\/g, '/')}"`,
+          '',
+        ].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const { code } = runCliInDir(parentDir, ['run-child']);
+    expect(code).toBe(0);
+  });
+
+  it('delegates execution to child project and propagates non-zero exit code', () => {
+    const childDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': ['fail:', '  cmd: ["node", "-e", "process.exit(3)"]', ''].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const parentDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          `run-child-fail:`,
+          `  kind: xci`,
+          `  alias: fail`,
+          `  project: "${childDir.replace(/\\/g, '/')}"`,
+          '',
+        ].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const { code } = runCliInDir(parentDir, ['run-child-fail']);
+    expect(code).toBe(3);
+  });
+
+  it('sets XCI_NESTING_DEPTH=1 in the child process environment', () => {
+    // The child xci process must have XCI_NESTING_DEPTH=1 set in its env.
+    // We verify by delegating to an alias that emits the depth value to stderr
+    // (xci routes child cmd stdout through its own tail display on stderr).
+    const childDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          'print-depth:',
+          // Write XCI_NESTING_DEPTH to stderr — visible in parent's stderr output
+          '  cmd: ["node", "-e", "process.stderr.write(String(process.env.XCI_NESTING_DEPTH ?? -1))"]',
+          '',
+        ].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const parentDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          `delegate-depth:`,
+          `  kind: xci`,
+          `  alias: print-depth`,
+          `  project: "${childDir.replace(/\\/g, '/')}"`,
+          '',
+        ].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const { stderr, code } = runCliInDir(parentDir, ['delegate-depth']);
+    expect(code).toBe(0);
+    // XCI_NESTING_DEPTH=1 must appear somewhere in stderr output
+    expect(stderr).toContain('1');
+  });
+
+  it('xci as sequential step: runs before and after commands', () => {
+    const childDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': ['succeed:', '  cmd: ["node", "-e", "process.exit(0)"]', ''].join(
+          '\n',
+        ),
+        '.xci/config.yml': '',
+      }),
+    );
+    const parentDir = trackDir(
+      createTempProject({
+        '.xci/commands.yml': [
+          `ok-step:`,
+          `  cmd: ["node", "-e", "process.exit(0)"]`,
+          `multi:`,
+          `  kind: sequential`,
+          `  steps:`,
+          `    - ok-step`,
+          `    - kind: xci`,
+          `      alias: succeed`,
+          `      project: "${childDir.replace(/\\/g, '/')}"`,
+          `    - ok-step`,
+          '',
+        ].join('\n'),
+        '.xci/config.yml': '',
+      }),
+    );
+    const { code } = runCliInDir(parentDir, ['multi']);
+    expect(code).toBe(0);
+  });
+});

@@ -12,6 +12,7 @@ import type {
   ParamDef,
   PlatformOverrides,
   PromptStepDef,
+  XciInlineStepDef,
 } from '../types.js';
 import { tokenize } from './tokenize.js';
 
@@ -442,37 +443,74 @@ function normalizeObject(
     if (!Array.isArray(rawSteps)) {
       throw new CommandSchemaError(aliasName, 'steps must be an array');
     }
-    const steps: (string | PromptStepDef)[] = [];
+    const steps: (string | PromptStepDef | XciInlineStepDef)[] = [];
     for (const item of rawSteps) {
       if (typeof item === 'string') {
         steps.push(item);
       } else if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
         const stepObj = item as Record<string, unknown>;
-        if (stepObj.kind !== 'prompt') {
+        if (stepObj.kind === 'prompt') {
+          if (typeof stepObj.var !== 'string' || stepObj.var.length === 0) {
+            throw new CommandSchemaError(
+              aliasName,
+              'prompt step must have a non-empty "var" string',
+            );
+          }
+          if (stepObj.message !== undefined && typeof stepObj.message !== 'string') {
+            throw new CommandSchemaError(aliasName, 'prompt step "message" must be a string');
+          }
+          if (stepObj.default !== undefined && typeof stepObj.default !== 'string') {
+            throw new CommandSchemaError(aliasName, 'prompt step "default" must be a string');
+          }
+          steps.push({
+            kind: 'prompt',
+            var: stepObj.var,
+            ...(stepObj.message !== undefined ? { message: stepObj.message as string } : {}),
+            ...(stepObj.default !== undefined ? { default: stepObj.default as string } : {}),
+          });
+        } else if (stepObj.kind === 'xci') {
+          const rawAlias = stepObj.alias;
+          if (typeof rawAlias !== 'string' || rawAlias.length === 0) {
+            throw new CommandSchemaError(
+              aliasName,
+              'inline xci step must have a non-empty "alias" string',
+            );
+          }
+          if (stepObj.project !== undefined && typeof stepObj.project !== 'string') {
+            throw new CommandSchemaError(aliasName, 'inline xci step "project" must be a string');
+          }
+          let stepArgs: readonly string[] | undefined;
+          if (stepObj.args !== undefined) {
+            stepArgs = validateStringArray(aliasName, stepObj.args, 'args');
+          }
+          const stepCwd =
+            stepObj.cwd !== undefined
+              ? typeof stepObj.cwd === 'string'
+                ? stepObj.cwd
+                : (() => {
+                    throw new CommandSchemaError(
+                      aliasName,
+                      'inline xci step "cwd" must be a string',
+                    );
+                  })()
+              : undefined;
+          steps.push({
+            kind: 'xci',
+            alias: rawAlias,
+            ...(stepObj.project !== undefined ? { project: stepObj.project as string } : {}),
+            ...(stepArgs !== undefined ? { args: stepArgs } : {}),
+            ...(stepCwd !== undefined ? { cwd: stepCwd } : {}),
+          });
+        } else {
           throw new CommandSchemaError(
             aliasName,
-            `inline step objects must have kind: "prompt", got "${String(stepObj.kind)}"`,
+            `inline step objects must have kind: "prompt" or "xci", got "${String(stepObj.kind)}"`,
           );
         }
-        if (typeof stepObj.var !== 'string' || stepObj.var.length === 0) {
-          throw new CommandSchemaError(aliasName, 'prompt step must have a non-empty "var" string');
-        }
-        if (stepObj.message !== undefined && typeof stepObj.message !== 'string') {
-          throw new CommandSchemaError(aliasName, 'prompt step "message" must be a string');
-        }
-        if (stepObj.default !== undefined && typeof stepObj.default !== 'string') {
-          throw new CommandSchemaError(aliasName, 'prompt step "default" must be a string');
-        }
-        steps.push({
-          kind: 'prompt',
-          var: stepObj.var,
-          ...(stepObj.message !== undefined ? { message: stepObj.message as string } : {}),
-          ...(stepObj.default !== undefined ? { default: stepObj.default as string } : {}),
-        });
       } else {
         throw new CommandSchemaError(
           aliasName,
-          `steps must contain strings or prompt objects, got ${item === null ? 'null' : typeof item}`,
+          `steps must contain strings or inline step objects, got ${item === null ? 'null' : typeof item}`,
         );
       }
     }

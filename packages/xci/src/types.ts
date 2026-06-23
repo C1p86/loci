@@ -42,6 +42,15 @@ export interface PromptStepDef {
   readonly default?: string;
 }
 
+/** Inline xci delegate step inside a sequential steps array. */
+export interface XciInlineStepDef {
+  readonly kind: 'xci';
+  readonly alias: string;
+  readonly project?: string;
+  readonly args?: readonly string[];
+  readonly cwd?: string;
+}
+
 export interface PlatformOverrides {
   readonly linux?: readonly string[];
   readonly windows?: readonly string[];
@@ -78,7 +87,7 @@ export type CommandDef =
     }
   | {
       readonly kind: 'sequential';
-      readonly steps: readonly (CommandRef | PromptStepDef)[];
+      readonly steps: readonly (CommandRef | PromptStepDef | XciInlineStepDef)[];
       readonly description?: string;
       readonly params?: Readonly<Record<string, ParamDef>>;
       readonly cwd?: string; // working directory — relative to projectRoot, absolute path, or ${placeholder}. Inherited by child aliases when they don't declare their own.

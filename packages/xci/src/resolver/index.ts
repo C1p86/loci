@@ -120,15 +120,37 @@ function resolveToStepsLenient(
       const allSteps: SequentialStep[] = [];
       for (const step of def.steps) {
         if (typeof step === 'object') {
-          // Inline prompt step
-          const p = step as PromptStepDef;
-          allSteps.push({
-            kind: 'prompt',
-            var: p.var,
-            ...(p.message !== undefined ? { message: p.message } : {}),
-            ...(p.default !== undefined ? { default: p.default } : {}),
-            breadcrumb: [...chain],
-          });
+          if (step.kind === 'xci') {
+            // Inline xci delegate step
+            allSteps.push({
+              kind: 'xci' as const,
+              alias: interpolateArgvLenient([step.alias], config.values)[0] ?? step.alias,
+              ...(step.project !== undefined
+                ? {
+                    project:
+                      interpolateArgvLenient([step.project], config.values)[0] ?? step.project,
+                  }
+                : {}),
+              ...(step.args !== undefined
+                ? {
+                    args: step.args.map((a) => interpolateArgvLenient([a], config.values)[0] ?? a),
+                  }
+                : {}),
+              ...(step.cwd !== undefined ? { cwd: step.cwd } : {}),
+              ...(effectiveCwd !== undefined ? { cwd: step.cwd ?? effectiveCwd } : {}),
+              breadcrumb: [...chain],
+            });
+          } else {
+            // Inline prompt step
+            const p = step as PromptStepDef;
+            allSteps.push({
+              kind: 'prompt',
+              var: p.var,
+              ...(p.message !== undefined ? { message: p.message } : {}),
+              ...(p.default !== undefined ? { default: p.default } : {}),
+              breadcrumb: [...chain],
+            });
+          }
         } else if (VAR_ASSIGN_RE.test(step)) {
           // Variable assignment step: KEY=VALUE
           const eqIdx = step.indexOf('=');
@@ -340,15 +362,37 @@ function resolveAlias(
       const allSteps: SequentialStep[] = [];
       for (const step of def.steps) {
         if (typeof step === 'object') {
-          // Inline prompt step
-          const p = step as PromptStepDef;
-          allSteps.push({
-            kind: 'prompt',
-            var: p.var,
-            ...(p.message !== undefined ? { message: p.message } : {}),
-            ...(p.default !== undefined ? { default: p.default } : {}),
-            breadcrumb: [...chain],
-          });
+          if (step.kind === 'xci') {
+            // Inline xci delegate step
+            allSteps.push({
+              kind: 'xci' as const,
+              alias: interpolateArgvLenient([step.alias], config.values)[0] ?? step.alias,
+              ...(step.project !== undefined
+                ? {
+                    project:
+                      interpolateArgvLenient([step.project], config.values)[0] ?? step.project,
+                  }
+                : {}),
+              ...(step.args !== undefined
+                ? {
+                    args: step.args.map((a) => interpolateArgvLenient([a], config.values)[0] ?? a),
+                  }
+                : {}),
+              ...(step.cwd !== undefined ? { cwd: step.cwd } : {}),
+              ...(effectiveCwd !== undefined ? { cwd: step.cwd ?? effectiveCwd } : {}),
+              breadcrumb: [...chain],
+            });
+          } else {
+            // Inline prompt step
+            const p = step as PromptStepDef;
+            allSteps.push({
+              kind: 'prompt',
+              var: p.var,
+              ...(p.message !== undefined ? { message: p.message } : {}),
+              ...(p.default !== undefined ? { default: p.default } : {}),
+              breadcrumb: [...chain],
+            });
+          }
         } else if (VAR_ASSIGN_RE.test(step)) {
           const eqIdx = step.indexOf('=');
           const key = step.substring(0, eqIdx);
