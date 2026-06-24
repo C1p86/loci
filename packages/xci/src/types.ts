@@ -136,6 +136,14 @@ export type CommandDef =
       readonly cwd?: string; // working directory — relative to projectRoot, absolute path, or ${placeholder}. Inherited by child aliases when they don't declare their own.
     }
   | {
+      readonly kind: 'unreadonly';
+      readonly path: string; // file path, folder path, or the literal 'project' (= project root)
+      readonly recursive?: boolean; // default: false — when true, chmod is applied to all descendants
+      readonly description?: string;
+      readonly params?: Readonly<Record<string, ParamDef>>;
+      readonly cwd?: string; // working directory — relative to projectRoot, absolute path, or ${placeholder}. Inherited by child aliases when they don't declare their own.
+    }
+  | {
       readonly kind: 'xci';
       readonly alias: string; // alias to run in the target project (required)
       readonly project?: string; // target project root (relative/absolute/${...}); default current cwd
@@ -183,6 +191,13 @@ export type SequentialStep =
         readonly remove?: readonly string[];
       };
       readonly set?: Readonly<Record<string, string>>;
+      readonly cwd?: string; // effective working directory (absolute after resolveAbsoluteCwds)
+      readonly breadcrumb?: readonly string[]; // path of containing alias names
+    }
+  | {
+      readonly kind: 'unreadonly';
+      readonly path: string; // file path, folder path, or the literal 'project' (= effective cwd)
+      readonly recursive: boolean; // resolved to concrete boolean at plan time (default false)
       readonly cwd?: string; // effective working directory (absolute after resolveAbsoluteCwds)
       readonly breadcrumb?: readonly string[]; // path of containing alias names
     }
@@ -242,6 +257,12 @@ export type ExecutionPlan =
         readonly remove?: readonly string[];
       };
       readonly set?: Readonly<Record<string, string>>;
+      readonly cwd?: string;
+    }
+  | {
+      readonly kind: 'unreadonly';
+      readonly path: string; // file path, folder path, or the literal 'project' (= effective cwd)
+      readonly recursive: boolean; // concrete boolean (default false applied at resolve time)
       readonly cwd?: string;
     }
   | {
