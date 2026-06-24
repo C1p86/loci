@@ -271,6 +271,40 @@ function normalizeObject(
     };
   }
 
+  // Check for unreadonly (remove readonly file-system attribute)
+  if (Object.hasOwn(obj, 'unreadonly')) {
+    const rawPath = obj.unreadonly;
+    if (typeof rawPath !== 'string') {
+      throw new CommandSchemaError(
+        aliasName,
+        'unreadonly must be a string (file path, folder path, or "project")',
+      );
+    }
+
+    // Validate optional recursive: must be a boolean if present
+    let recursive: boolean | undefined;
+    if (Object.hasOwn(obj, 'recursive')) {
+      const rawRecursive = obj.recursive;
+      if (typeof rawRecursive !== 'boolean') {
+        throw new CommandSchemaError(aliasName, 'unreadonly recursive must be a boolean');
+      }
+      recursive = rawRecursive;
+    }
+
+    const description = typeof obj.description === 'string' ? obj.description : undefined;
+    const params = normalizeParams(aliasName, obj.params);
+    const cwd = parseCwd(aliasName, obj);
+
+    return {
+      kind: 'unreadonly',
+      path: rawPath,
+      ...(recursive !== undefined ? { recursive } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(params !== undefined ? { params } : {}),
+      ...(cwd !== undefined ? { cwd } : {}),
+    };
+  }
+
   // Check for ini (file manipulation)
   if (Object.hasOwn(obj, 'ini')) {
     const raw = obj.ini;

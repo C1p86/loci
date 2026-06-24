@@ -7,6 +7,7 @@ import type { ExecutionPlan, ExecutionResult, Executor, ExecutorOptions } from '
 import { extractFromOutput, validateCapture } from './capture.js';
 import { writeIni, deleteIniKeys } from './ini.js';
 import { applyUprojectEdits, readUproject, writeUproject } from './uproject.js';
+import { removeReadonly } from './unreadonly.js';
 import { runXciDelegate } from './xci-delegate.js';
 import {
   notifyCompletion,
@@ -177,6 +178,35 @@ export const executor: Executor = {
           } catch (err) {
             process.stderr.write(`  error: ${(err as Error).message}\n`);
             printStepResult(uprojectLabel, 1, Date.now() - startTime);
+            resetTerminalTitle();
+            return { exitCode: 1 };
+          }
+        }
+        case 'unreadonly': {
+          const unreadonlyLabel = 'unreadonly';
+          // Resolve target path: 'project' is a special literal meaning the effective cwd.
+          const effectiveCwd = plan.cwd ?? cwd;
+          const targetPath =
+            plan.path === 'project'
+              ? effectiveCwd
+              : isAbsolute(plan.path)
+                ? plan.path
+                : resolvePath(effectiveCwd, plan.path);
+          setTerminalTitle(`xci: ${unreadonlyLabel}`);
+          printStepHeader(unreadonlyLabel);
+          const startTime = Date.now();
+          try {
+            removeReadonly(targetPath, plan.recursive);
+            process.stderr.write(`  ${targetPath}\n`);
+            if (plan.recursive) {
+              process.stderr.write(`  (recursive)\n`);
+            }
+            printStepResult(unreadonlyLabel, 0, Date.now() - startTime);
+            resetTerminalTitle();
+            return { exitCode: 0 };
+          } catch (err) {
+            process.stderr.write(`  error: ${(err as Error).message}\n`);
+            printStepResult(unreadonlyLabel, 1, Date.now() - startTime);
             resetTerminalTitle();
             return { exitCode: 1 };
           }

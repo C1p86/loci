@@ -380,6 +380,7 @@ function appendExtraArgs(plan: ExecutionPlan, extra: readonly string[]): Executi
       if (
         lastStep.kind === 'ini' ||
         lastStep.kind === 'uproject' ||
+        lastStep.kind === 'unreadonly' ||
         lastStep.kind === 'set' ||
         lastStep.kind === 'prompt'
       )
@@ -395,6 +396,7 @@ function appendExtraArgs(plan: ExecutionPlan, extra: readonly string[]): Executi
         i === lastIdx &&
         s.kind !== 'ini' &&
         s.kind !== 'uproject' &&
+        s.kind !== 'unreadonly' &&
         s.kind !== 'set' &&
         s.kind !== 'prompt' &&
         s.kind !== 'xci'
@@ -417,6 +419,9 @@ function appendExtraArgs(plan: ExecutionPlan, extra: readonly string[]): Executi
       return plan;
     case 'uproject':
       // Extra args don't apply to uproject operations
+      return plan;
+    case 'unreadonly':
+      // Extra args don't apply to unreadonly operations
       return plan;
     case 'xci':
       // For xci top-level plan: append extra to args (forwarded to the inner alias)

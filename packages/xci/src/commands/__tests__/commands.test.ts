@@ -589,3 +589,38 @@ describe('commandsLoader.load — cwd field', () => {
     expect(result.get('cfg')).toMatchObject({ kind: 'ini', cwd: 'conf' });
   });
 });
+
+// ---------------------------------------------------------------------------
+// unreadonly kind — normalize tests (quick-260624-fse)
+// ---------------------------------------------------------------------------
+
+describe('commandsLoader.load — unreadonly kind', () => {
+  it('normalizes { unreadonly: ./file.txt } to kind:unreadonly with path and no recursive', async () => {
+    writeCommands('unlock:\n  unreadonly: ./file.txt\n');
+    const result = await commandsLoader.load(tmpDir);
+    const def = result.get('unlock');
+    expect(def).toMatchObject({ kind: 'unreadonly', path: './file.txt' });
+    if (def?.kind === 'unreadonly') {
+      expect(def.recursive).toBeUndefined();
+    }
+  });
+
+  it('normalizes { unreadonly: ./dir, recursive: true } preserving recursive:true', async () => {
+    writeCommands('unlock-dir:\n  unreadonly: ./dir\n  recursive: true\n');
+    const result = await commandsLoader.load(tmpDir);
+    const def = result.get('unlock-dir');
+    expect(def).toMatchObject({ kind: 'unreadonly', path: './dir', recursive: true });
+  });
+
+  it('throws CommandSchemaError when unreadonly is not a string (e.g. number 123)', async () => {
+    writeCommands('unlock:\n  unreadonly: 123\n');
+    await expect(commandsLoader.load(tmpDir)).rejects.toBeInstanceOf(CommandSchemaError);
+    await expect(commandsLoader.load(tmpDir)).rejects.toThrow(/unreadonly must be a string/);
+  });
+
+  it('throws CommandSchemaError when recursive is not a boolean (e.g. string "yes")', async () => {
+    writeCommands('unlock:\n  unreadonly: ./dir\n  recursive: "yes"\n');
+    await expect(commandsLoader.load(tmpDir)).rejects.toBeInstanceOf(CommandSchemaError);
+    await expect(commandsLoader.load(tmpDir)).rejects.toThrow(/recursive must be a boolean/);
+  });
+});

@@ -248,13 +248,15 @@ function buildEntries(plan: ExecutionPlan): CommandEntry[] {
             ? `ini:${step.mode}`
             : step.kind === 'uproject'
               ? 'uproject'
-              : step.kind === 'xci'
-                ? `xci:${step.alias}`
-                : step.kind === 'set'
-                  ? 'set'
-                  : step.kind === 'prompt'
-                    ? `prompt:${step.var}`
-                    : (step.label ?? step.argv[0] ?? '(step)'),
+              : step.kind === 'unreadonly'
+                ? 'unreadonly'
+                : step.kind === 'xci'
+                  ? `xci:${step.alias}`
+                  : step.kind === 'set'
+                    ? 'set'
+                    : step.kind === 'prompt'
+                      ? `prompt:${step.var}`
+                      : (step.label ?? step.argv[0] ?? '(step)'),
         status: 'pending' as CommandStatus,
       }));
     case 'parallel':
@@ -266,6 +268,8 @@ function buildEntries(plan: ExecutionPlan): CommandEntry[] {
       return [{ label: `ini:${plan.mode}`, status: 'pending' }];
     case 'uproject':
       return [{ label: 'uproject', status: 'pending' }];
+    case 'unreadonly':
+      return [{ label: 'unreadonly', status: 'pending' }];
     case 'xci':
       return [{ label: `xci:${plan.alias}`, status: 'pending' }];
   }
@@ -453,6 +457,38 @@ async function execSequential(
         for (const w of warnings) {
           appendLog(`  warning: ${w}`);
         }
+        updateCommand(i, 'success');
+        flushRender();
+      } catch (err) {
+        appendLog(`  error: ${(err as Error).message}`);
+        updateCommand(i, 'failed', 1);
+        for (let j = i + 1; j < plan.steps.length; j++) {
+          updateCommand(j, 'skipped');
+        }
+        flushRender();
+        return { exitCode: 1 };
+      }
+      continue;
+    }
+
+    // Handle unreadonly steps inline
+    if (step.kind === 'unreadonly') {
+      updateCommand(i, 'running');
+      appendLog(`-- step ${i + 1}/${plan.steps.length}: unreadonly --`);
+      flushRender();
+      try {
+        const { removeReadonly } = await import('../executor/unreadonly.js');
+        const { isAbsolute, resolve: resolvePath } = await import('node:path');
+        const stepCwd = step.cwd ?? cwd;
+        const targetPath =
+          step.path === 'project'
+            ? stepCwd
+            : isAbsolute(step.path)
+              ? step.path
+              : resolvePath(stepCwd, step.path);
+        removeReadonly(targetPath, step.recursive);
+        appendLog(`  ${targetPath}`);
+        if (step.recursive) appendLog(`  (recursive)`);
         updateCommand(i, 'success');
         flushRender();
       } catch (err) {

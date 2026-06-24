@@ -297,6 +297,19 @@ function resolveToStepsLenient(
       ];
     }
 
+    case 'unreadonly': {
+      const path = interpolateArgvLenient([def.path], config.values)[0] ?? def.path;
+      return [
+        {
+          kind: 'unreadonly' as const,
+          path,
+          recursive: def.recursive ?? false,
+          ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+          breadcrumb: [...chain],
+        },
+      ];
+    }
+
     case 'xci': {
       const resolvedAlias = interpolateArgvLenient([def.alias], config.values)[0] ?? def.alias;
       const resolvedProject =
@@ -602,6 +615,16 @@ function resolveAlias(
         file,
         ...(def.plugins ? { plugins: def.plugins } : {}),
         ...(set ? { set } : {}),
+        ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
+      };
+    }
+
+    case 'unreadonly': {
+      const path = interpolateArgv([def.path], aliasName, config.values)[0] ?? def.path;
+      return {
+        kind: 'unreadonly',
+        path,
+        recursive: def.recursive ?? false,
         ...(effectiveCwd !== undefined ? { cwd: effectiveCwd } : {}),
       };
     }

@@ -970,6 +970,7 @@ describe('for_each rawArgv bakes loop variable', () => {
       s0.kind === 'prompt' ||
       s0.kind === 'ini' ||
       s0.kind === 'uproject' ||
+      s0.kind === 'unreadonly' ||
       s0.kind === 'xci'
     )
       throw new Error('unreachable');
@@ -978,6 +979,7 @@ describe('for_each rawArgv bakes loop variable', () => {
       s1.kind === 'prompt' ||
       s1.kind === 'ini' ||
       s1.kind === 'uproject' ||
+      s1.kind === 'unreadonly' ||
       s1.kind === 'xci'
     )
       throw new Error('unreachable');
@@ -1016,6 +1018,7 @@ describe('for_each rawArgv bakes loop variable', () => {
       s0.kind === 'prompt' ||
       s0.kind === 'ini' ||
       s0.kind === 'uproject' ||
+      s0.kind === 'unreadonly' ||
       s0.kind === 'xci'
     )
       throw new Error('unreachable');
@@ -1024,6 +1027,7 @@ describe('for_each rawArgv bakes loop variable', () => {
       s1.kind === 'prompt' ||
       s1.kind === 'ini' ||
       s1.kind === 'uproject' ||
+      s1.kind === 'unreadonly' ||
       s1.kind === 'xci'
     )
       throw new Error('unreachable');
@@ -1354,5 +1358,55 @@ describe('resolver.resolve - XCI_BREADCRUMB prefix seeding (quick-260623-ipz)', 
     expect(() => resolver.resolve('top', commands, makeConfig())).not.toThrow();
     const plan = resolver.resolve('top', commands, makeConfig());
     expect(plan.kind).toBe('sequential');
+  });
+});
+
+/* ============================================================
+ * resolver.resolve — unreadonly kind (quick-260624-fse)
+ * ============================================================ */
+
+describe('resolver.resolve — unreadonly kind', () => {
+  it('standalone unreadonly alias resolves to ExecutionPlan kind unreadonly with interpolated path', () => {
+    const def: CommandDef = { kind: 'unreadonly', path: './readme.md' };
+    const plan = resolver.resolve('unlock', makeCommands({ unlock: def }), makeConfig());
+    expect(plan.kind).toBe('unreadonly');
+    if (plan.kind !== 'unreadonly') throw new Error('unreachable');
+    expect(plan.path).toBe('./readme.md');
+    expect(plan.recursive).toBe(false); // default applied at resolve time
+  });
+
+  it('unreadonly with recursive: true resolves with recursive: true', () => {
+    const def: CommandDef = { kind: 'unreadonly', path: './Binaries', recursive: true };
+    const plan = resolver.resolve('unlock-bin', makeCommands({ 'unlock-bin': def }), makeConfig());
+    expect(plan.kind).toBe('unreadonly');
+    if (plan.kind !== 'unreadonly') throw new Error('unreachable');
+    expect(plan.path).toBe('./Binaries');
+    expect(plan.recursive).toBe(true);
+  });
+
+  it('unreadonly path supports ${VAR} interpolation', () => {
+    const def: CommandDef = { kind: 'unreadonly', path: './dist/${BUILD_TARGET}' };
+    const config = makeConfig({ BUILD_TARGET: 'release' });
+    const plan = resolver.resolve('unlock-dist', makeCommands({ 'unlock-dist': def }), config);
+    expect(plan.kind).toBe('unreadonly');
+    if (plan.kind !== 'unreadonly') throw new Error('unreachable');
+    expect(plan.path).toBe('./dist/release');
+  });
+
+  it('unreadonly as a sequential step resolves to SequentialStep kind unreadonly with breadcrumb', () => {
+    const commands = makeCommands({
+      unlock: { kind: 'unreadonly', path: './file.txt' },
+      setup: { kind: 'sequential', steps: ['unlock'] },
+    });
+    const plan = resolver.resolve('setup', commands, makeConfig());
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(1);
+    const step = plan.steps[0];
+    expect(step?.kind).toBe('unreadonly');
+    if (!step || step.kind !== 'unreadonly') throw new Error('unreachable');
+    expect(step.path).toBe('./file.txt');
+    expect(step.recursive).toBe(false);
+    expect(step.breadcrumb).toContain('unlock');
   });
 });

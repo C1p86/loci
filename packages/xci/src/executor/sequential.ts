@@ -16,6 +16,7 @@ import { extractFromOutput, validateCapture } from './capture.js';
 import { assertCwdExists } from './cwd.js';
 import { writeIni, deleteIniKeys } from './ini.js';
 import { applyUprojectEdits, readUproject, writeUproject } from './uproject.js';
+import { removeReadonly } from './unreadonly.js';
 import { runXciDelegate } from './xci-delegate.js';
 import {
   notifyWaitingForInput,
@@ -162,13 +163,15 @@ export async function runSequential(
         ? `ini:${step.mode}`
         : step.kind === 'uproject'
           ? 'uproject'
-          : step.kind === 'xci'
-            ? `xci:${step.alias}`
-            : step.kind === 'set'
-              ? 'set'
-              : step.kind === 'prompt'
-                ? `prompt:${step.var}`
-                : (step.label ?? step.argv[0] ?? '(unknown)');
+          : step.kind === 'unreadonly'
+            ? 'unreadonly'
+            : step.kind === 'xci'
+              ? `xci:${step.alias}`
+              : step.kind === 'set'
+                ? 'set'
+                : step.kind === 'prompt'
+                  ? `prompt:${step.var}`
+                  : (step.label ?? step.argv[0] ?? '(unknown)');
     const displayLabel =
       step.breadcrumb && step.breadcrumb.length > 0 ? step.breadcrumb.join(' > ') : leafLabel;
     const alias = step.breadcrumb?.[0] ?? displayLabel;
@@ -315,6 +318,37 @@ export async function runSequential(
         process.stderr.write(`  ${filePath}\n`);
         for (const w of warnings) {
           process.stderr.write(`  ${formatWarning(w)}\n`);
+        }
+        printStepResult(displayLabel, 0, Date.now() - startTime);
+      } catch (err) {
+        process.stderr.write(`  error: ${(err as Error).message}\n`);
+        printStepResult(displayLabel, 1, Date.now() - startTime);
+        resetTerminalTitle();
+        return { exitCode: 1 };
+      }
+      continue;
+    }
+
+    // Handle unreadonly steps inline
+    if (step.kind === 'unreadonly') {
+      setTerminalTitle(`xci: ${alias} [${stepNum}/${totalSteps}] (unreadonly)`);
+      printStepHeader(displayLabel, stepNum, totalSteps);
+      const startTime = Date.now();
+      const stepCwd = step.cwd ?? cwd;
+      const mergedValues = { ...env, ...capturedVars };
+      // Interpolate path with captured vars, then resolve to absolute
+      const rawPath = interpolateArgv([step.path], '(unreadonly)', mergedValues)[0] ?? step.path;
+      const targetPath =
+        rawPath === 'project'
+          ? stepCwd
+          : isAbsolute(rawPath)
+            ? rawPath
+            : resolvePath(stepCwd, rawPath);
+      try {
+        removeReadonly(targetPath, step.recursive);
+        process.stderr.write(`  ${targetPath}\n`);
+        if (step.recursive) {
+          process.stderr.write(`  (recursive)\n`);
         }
         printStepResult(displayLabel, 0, Date.now() - startTime);
       } catch (err) {

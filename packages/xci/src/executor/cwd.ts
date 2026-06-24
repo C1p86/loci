@@ -78,6 +78,12 @@ export function resolveAbsoluteCwds(plan: ExecutionPlan, projectRoot: string): E
       const abs = toAbs(plan.cwd, projectRoot);
       return abs === undefined ? plan : { ...plan, cwd: abs };
     }
+    case 'unreadonly': {
+      // Rewrite cwd to absolute. path is NOT rewritten here — it is resolved in the
+      // executor against effectiveCwd (same pattern as uproject file).
+      const abs = toAbs(plan.cwd, projectRoot);
+      return abs === undefined ? plan : { ...plan, cwd: abs };
+    }
     case 'xci': {
       const abs = toAbs(plan.cwd, projectRoot);
       const absProject = toAbs(plan.project, projectRoot);

@@ -35,7 +35,7 @@ describe('types.ts — pipeline contracts', () => {
   it('CommandDef is a discriminated union on `kind`', () => {
     type Kinds = CommandDef['kind'];
     expectTypeOf<Kinds>().toEqualTypeOf<
-      'single' | 'sequential' | 'parallel' | 'for_each' | 'ini' | 'uproject' | 'xci'
+      'single' | 'sequential' | 'parallel' | 'for_each' | 'ini' | 'uproject' | 'unreadonly' | 'xci'
     >();
   });
 
@@ -57,7 +57,7 @@ describe('types.ts — pipeline contracts', () => {
   it('ExecutionPlan is a discriminated union with the same kinds as CommandDef', () => {
     type PlanKinds = ExecutionPlan['kind'];
     expectTypeOf<PlanKinds>().toEqualTypeOf<
-      'single' | 'sequential' | 'parallel' | 'ini' | 'uproject' | 'xci'
+      'single' | 'sequential' | 'parallel' | 'ini' | 'uproject' | 'unreadonly' | 'xci'
     >();
   });
 

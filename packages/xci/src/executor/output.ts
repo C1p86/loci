@@ -482,6 +482,15 @@ export function printRunHeader(
           process.stderr.write(
             `  ${i + 1}. uproject ${step.file}${ops ? ` (${ops})` : ''}${stepCwdDisplay}\n`,
           );
+        } else if (step.kind === 'unreadonly') {
+          const stepCwdDisplay =
+            step.cwd && step.cwd !== topCwd
+              ? ` ${yellow}(cwd: ${redactCwd(step.cwd, secretValues)})${reset}`
+              : '';
+          const recurseTag = step.recursive ? ' (recursive)' : '';
+          process.stderr.write(
+            `  ${i + 1}. unreadonly ${step.path}${recurseTag}${stepCwdDisplay}\n`,
+          );
         } else if (step.kind === 'xci') {
           const stepProject = step.project ?? step.cwd ?? topCwd ?? '.';
           const argsStr =
@@ -547,6 +556,11 @@ export function printRunHeader(
       const setKeys = plan.set ? `set: ${Object.keys(plan.set).join(', ')}` : '';
       const ops = [pluginSummary, setKeys].filter(Boolean).join('; ');
       process.stderr.write(`  uproject: ${plan.file}${ops ? ` (${ops})` : ''}\n`);
+      break;
+    }
+    case 'unreadonly': {
+      const recurseTag = plan.recursive ? ' (recursive)' : '';
+      process.stderr.write(`  unreadonly: ${plan.path}${recurseTag}\n`);
       break;
     }
     case 'xci': {
@@ -726,6 +740,13 @@ export function printDryRun(
               .map(([k, v]) => `${k}=${v}`)
               .join(', ');
             process.stderr.write(`${prefix}   ${i + 1}. set ${assignments}\n`);
+          } else if (step.kind === 'unreadonly') {
+            const stepCwdDisplay =
+              step.cwd && step.cwd !== topCwd ? ` (cwd: ${redactCwd(step.cwd, secretValues)})` : '';
+            const recurseTag = step.recursive ? ' (recursive)' : '';
+            process.stderr.write(
+              `${prefix}   ${i + 1}. unreadonly ${step.path}${recurseTag}${stepCwdDisplay}\n`,
+            );
           } else if (step.kind === 'prompt') {
             const defaultStr = step.default !== undefined ? ` [default: ${step.default}]` : '';
             const msg = step.message ? ` "${step.message}"` : '';
@@ -923,6 +944,13 @@ export function printVerboseCommand(
             const ops = [pluginSummary, setKeys].filter(Boolean).join('; ');
             process.stderr.write(
               `${prefix}   ${i + 1}. uproject ${step.file}${ops ? ` (${ops})` : ''}${stepCwdDisplay}\n`,
+            );
+          } else if (step.kind === 'unreadonly') {
+            const stepCwdDisplay =
+              step.cwd && step.cwd !== topCwd ? ` (cwd: ${redactCwd(step.cwd, secretValues)})` : '';
+            const recurseTag = step.recursive ? ' (recursive)' : '';
+            process.stderr.write(
+              `${prefix}   ${i + 1}. unreadonly ${step.path}${recurseTag}${stepCwdDisplay}\n`,
             );
           } else if (step.kind === 'xci') {
             const stepProject = step.project ?? step.cwd ?? topCwd ?? '.';
