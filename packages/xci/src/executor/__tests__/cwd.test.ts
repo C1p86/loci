@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, resolve as resolvePath } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { resolveAbsoluteCwds } from '../cwd.js';
+import { resolveAbsoluteCwds, resolveRuntimeCwd } from '../cwd.js';
 import { executor } from '../index.js';
 import { runSingle } from '../single.js';
 import type { ExecutionPlan, SequentialStep } from '../../types.js';
@@ -99,6 +99,71 @@ describe('resolveAbsoluteCwds — parallel plan', () => {
     if (out.kind !== 'parallel') throw new Error('unreachable');
     expect(out.group[0]?.cwd).toBe(resolvePath('/p', 'x'));
     expect(out.group[1]?.cwd).toBeUndefined();
+  });
+});
+
+describe('resolveAbsoluteCwds — defers unresolved placeholders', () => {
+  it('single plan: cwd containing ${ is returned unchanged (not joined to projectRoot)', () => {
+    const plan: ExecutionPlan = { kind: 'single', argv: ['echo', 'hi'], cwd: '${VAR}' };
+    const out = resolveAbsoluteCwds(plan, '/proj');
+    if (out.kind !== 'single') throw new Error('unreachable');
+    expect(out.cwd).toBe('${VAR}');
+  });
+
+  it('sequential cmd step: cwd containing ${ is returned unchanged', () => {
+    const steps: readonly SequentialStep[] = [{ argv: ['echo', 'hi'], cwd: '${VAR}' }];
+    const plan: ExecutionPlan = { kind: 'sequential', steps };
+    const out = resolveAbsoluteCwds(plan, '/proj');
+    if (out.kind !== 'sequential') throw new Error('unreachable');
+    const s0 = out.steps[0];
+    if (!s0 || s0.kind === 'set' || s0.kind === 'ini' || s0.kind === 'prompt')
+      throw new Error('unreachable');
+    expect(s0.cwd).toBe('${VAR}');
+  });
+
+  it('no regression: relative cwd without placeholder still absolutizes', () => {
+    const plan: ExecutionPlan = { kind: 'single', argv: ['echo'], cwd: 'sub' };
+    const out = resolveAbsoluteCwds(plan, '/proj');
+    if (out.kind !== 'single') throw new Error('unreachable');
+    expect(out.cwd).toBe(resolvePath('/proj', 'sub'));
+  });
+
+  it('no regression: absolute cwd without placeholder passes through verbatim', () => {
+    const abs = resolvePath('/abs/path');
+    const plan: ExecutionPlan = { kind: 'single', argv: ['echo'], cwd: abs };
+    const out = resolveAbsoluteCwds(plan, '/proj');
+    if (out.kind !== 'single') throw new Error('unreachable');
+    expect(out.cwd).toBe(abs);
+  });
+});
+
+describe('resolveRuntimeCwd', () => {
+  it('undefined rawCwd returns baseCwd unchanged', () => {
+    expect(resolveRuntimeCwd(undefined, {}, '/base')).toBe('/base');
+  });
+
+  it('absolute captured value is returned as-is', () => {
+    const abs = resolvePath('/captured/abs/path');
+    expect(resolveRuntimeCwd('${VAR}', { VAR: abs }, '/base')).toBe(abs);
+  });
+
+  it('relative captured value is resolved against baseCwd', () => {
+    expect(resolveRuntimeCwd('${VAR}', { VAR: 'sub' }, '/base')).toBe(
+      resolvePath('/base', 'sub'),
+    );
+  });
+
+  it('throws for a placeholder whose var was never captured', () => {
+    expect(() => resolveRuntimeCwd('${MISSING}', {}, '/base')).toThrow();
+  });
+
+  it('no-placeholder rawCwd (absolute) returns as-is', () => {
+    const abs = resolvePath('/some/dir');
+    expect(resolveRuntimeCwd(abs, {}, '/base')).toBe(abs);
+  });
+
+  it('no-placeholder rawCwd (relative) is resolved against baseCwd', () => {
+    expect(resolveRuntimeCwd('relative', {}, '/base')).toBe(resolvePath('/base', 'relative'));
   });
 });
 

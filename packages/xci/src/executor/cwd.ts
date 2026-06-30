@@ -7,6 +7,7 @@
 import { statSync } from 'node:fs';
 import { isAbsolute, resolve as resolvePath } from 'node:path';
 import { CwdMissingError } from '../errors.js';
+import { interpolateArgv } from '../resolver/interpolate.js';
 import type { ExecutionPlan, SequentialStep } from '../types.js';
 
 /**
@@ -27,6 +28,10 @@ export function assertCwdExists(cwd: string | undefined): void {
 
 function toAbs(cwd: string | undefined, projectRoot: string): string | undefined {
   if (cwd === undefined) return undefined;
+  // Defer absolutization when an unresolved ${placeholder} remains.
+  // The string must survive to runtime so resolveRuntimeCwd can interpolate it
+  // against captured vars; config-resolved cwds (no placeholder) keep existing behavior.
+  if (cwd.includes('${')) return cwd;
   if (isAbsolute(cwd)) return cwd;
   return resolvePath(projectRoot, cwd);
 }
@@ -48,6 +53,31 @@ function resolveStepCwd(step: SequentialStep, projectRoot: string): SequentialSt
   }
   if (abs === undefined) return step;
   return { ...step, cwd: abs };
+}
+
+/**
+ * Runtime counterpart to resolve-time toAbs. Used inside the sequential executor where a
+ * step's cwd may be a placeholder like ${P4_WORKSPACE_ROOT} that only exists as a captured
+ * variable at execution time.
+ *
+ * - rawCwd undefined  → return baseCwd (inherited cwd, no interpolation)
+ * - rawCwd with ${...} → STRICT interpolation against values (throws UndefinedPlaceholderError
+ *   when the placeholder is never captured — consistent with argv re-interpolation behaviour)
+ * - interpolated absolute path → returned as-is
+ * - interpolated relative path → resolvePath(baseCwd, interpolated)
+ *
+ * Does NOT call assertCwdExists — spawn-path callers (runAndCapture / runSingle) handle
+ * existence checks on the final resolved value.
+ */
+export function resolveRuntimeCwd(
+  rawCwd: string | undefined,
+  values: Readonly<Record<string, string>>,
+  baseCwd: string,
+): string {
+  if (rawCwd === undefined) return baseCwd;
+  const interpolated = interpolateArgv([rawCwd], '(cwd)', values)[0] ?? rawCwd;
+  if (isAbsolute(interpolated)) return interpolated;
+  return resolvePath(baseCwd, interpolated);
 }
 
 /**
