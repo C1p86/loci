@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Quality & Parity
 status: Phase complete — ready for verification
-stopped_at: Completed quick task 260630-quj — capture regex multiline flag default
-last_updated: "2026-06-30T17:19:50.818Z"
+stopped_at: Completed quick task 260630-uq4 — runtime cwd interpolation against captured vars
+last_updated: "2026-06-30T20:07:20.292Z"
 progress:
   total_phases: 6
   completed_phases: 2
@@ -109,6 +109,7 @@ None
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 260630-uq4 | Re-interpolate `cwd` at runtime against captured vars (capture/set/prompt) in sequential executor; defer cwd absolutization while `${...}` placeholders remain; bake `for_each` loop var into `step.cwd` at resolve time. `cwd: "${P4_WORKSPACE_ROOT}"` now resolves after capture. Verified 7/7 | 2026-06-30 | 53572d1 | [260630-uq4-re-interpolate-cwd-at-runtime-against-ca](./quick/260630-uq4-re-interpolate-cwd-at-runtime-against-ca/) |
 | 260630-quj | Fix capture regex — add `'m'` (multiline) flag default in `extractFromOutput` so `^`/`$` anchor per-line on multi-line command output; rebuilt + reinstalled xci | 2026-06-30 | 42aca9b | [260630-quj-fix-capture-regex-add-multiline-flag-def](./quick/260630-quj-fix-capture-regex-add-multiline-flag-def/) |
 | 260624-fse | Add `unreadonly` command kind — removes readonly filesystem attributes via fs.chmodSync (file: 0o666, dir: 0o777, recursive walk) wired through all 5 pipeline stages | 2026-06-24 | 208852a | [260624-fse-add-unreadonly-kind](./quick/260624-fse-add-unreadonly-kind/) |
 | 260623-k2w | Security fix: redact secret values as substrings in argv tokens and cwd strings (closes token=${SECRET} cleartext leak) | 2026-06-23 | 68e0eb9 | [260623-k2w-redact-secret-values-as-substrings-in-ar](./quick/260623-k2w-redact-secret-values-as-substrings-in-ar/) |
@@ -157,5 +158,5 @@ None
 ## Session Continuity
 
 Last session: 2026-06-30
-Stopped at: Completed quick task 260630-quj — capture regex multiline flag default
+Stopped at: Completed quick task 260630-uq4 — runtime cwd interpolation against captured vars
 Resume: Phase 16 — Go CLI Output Infrastructure (`/gsd:plan-phase 16`)
