@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Quality & Parity
 status: Phase complete — ready for verification
-stopped_at: Completed quick task 260624-fse — add unreadonly command kind
-last_updated: "2026-06-24T09:22:05.000Z"
+stopped_at: Completed quick task 260630-quj — capture regex multiline flag default
+last_updated: "2026-06-30T17:19:50.818Z"
 progress:
   total_phases: 6
   completed_phases: 2
@@ -109,6 +109,7 @@ None
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 260630-quj | Fix capture regex — add `'m'` (multiline) flag default in `extractFromOutput` so `^`/`$` anchor per-line on multi-line command output; rebuilt + reinstalled xci | 2026-06-30 | 42aca9b | [260630-quj-fix-capture-regex-add-multiline-flag-def](./quick/260630-quj-fix-capture-regex-add-multiline-flag-def/) |
 | 260624-fse | Add `unreadonly` command kind — removes readonly filesystem attributes via fs.chmodSync (file: 0o666, dir: 0o777, recursive walk) wired through all 5 pipeline stages | 2026-06-24 | 208852a | [260624-fse-add-unreadonly-kind](./quick/260624-fse-add-unreadonly-kind/) |
 | 260623-k2w | Security fix: redact secret values as substrings in argv tokens and cwd strings (closes token=${SECRET} cleartext leak) | 2026-06-23 | 68e0eb9 | [260623-k2w-redact-secret-values-as-substrings-in-ar](./quick/260623-k2w-redact-secret-values-as-substrings-in-ar/) |
 | 260623-jqc | Print bright-cyan delegation banner (target folder + redacted params) to stderr at both kind:xci call sites | 2026-06-23 | 11c84dc | [260623-jqc-print-cyan-delegation-banner-with-target](./quick/260623-jqc-print-cyan-delegation-banner-with-target/) |
@@ -155,6 +156,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-06-24
-Stopped at: Completed quick task 260624-fse — add unreadonly command kind
+Last session: 2026-06-30
+Stopped at: Completed quick task 260630-quj — capture regex multiline flag default
 Resume: Phase 16 — Go CLI Output Infrastructure (`/gsd:plan-phase 16`)
