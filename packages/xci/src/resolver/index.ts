@@ -33,29 +33,49 @@ function csvSplit(s: string): string[] {
 }
 
 /**
- * Bake a single loop-variable placeholder into each step's rawArgv using lenient
+ * Bake a single loop-variable placeholder into each step's rawArgv AND cwd using lenient
  * interpolation. Known `${loopVar}` becomes `loopValue`; all other placeholders
  * (captured vars, env vars, outer loop vars) are preserved untouched so the
  * runtime executor can resolve them against env + capturedVars.
  *
- * Steps without rawArgv (`set`, `ini`, or command steps with rawArgv=undefined)
- * are returned unchanged. Returns a new array; never mutates input.
+ * rawArgv baking is gated on the command variant (kind undefined/'cmd' with rawArgv present).
+ * cwd baking is NOT gated on rawArgv — it applies to ANY step that carries a cwd field
+ * (xci/ini/uproject/unreadonly body steps also need their loop-var cwd baked).
  *
- * Fixes quick-260421-lhg: previously the loop var survived into rawArgv and
- * executor/sequential.ts would throw UndefinedPlaceholderError at runtime.
+ * Combined ordering: bake (resolve time, loop var → rawArgv + cwd)
+ * → resolveAbsoluteCwds defers if `${` still remains (loop var already gone; captured-var
+ *   placeholder survives to runtime)
+ * → runtime resolveRuntimeCwd handles captured vars.
+ *
+ * Returns a new array; never mutates input.
+ *
+ * Fixes quick-260421-lhg: loop var survived into rawArgv → UndefinedPlaceholderError at runtime.
+ * Fixes quick-260630-uq4: loop var survived into step.cwd when for_each def has cwd:'${loopVar}'
+ * and sub-steps inherit it as parentCwd (loop var is never in capturedVars at runtime).
  */
 function bakeLoopVarIntoRawArgv(
   steps: readonly SequentialStep[],
   loopVar: string,
   loopValue: string,
 ): SequentialStep[] {
+  const loopVarValues = { [loopVar]: loopValue };
   return steps.map((s) => {
-    // Narrow to the command variant: only that variant has rawArgv.
-    // `kind: 'set'` and `kind: 'ini'` discriminants exclude it.
-    if ((s.kind === undefined || s.kind === 'cmd') && s.rawArgv !== undefined) {
-      return { ...s, rawArgv: interpolateArgvLenient(s.rawArgv, { [loopVar]: loopValue }) };
+    // Bake loop var into rawArgv (command variant only — other kinds have no rawArgv).
+    const withBakedArgv: SequentialStep =
+      (s.kind === undefined || s.kind === 'cmd') && s.rawArgv !== undefined
+        ? { ...s, rawArgv: interpolateArgvLenient(s.rawArgv, loopVarValues) }
+        : s;
+    // Bake loop var into cwd for ANY step that carries a cwd.
+    // set and prompt have no cwd field — excluded explicitly.
+    if (withBakedArgv.kind === 'set' || withBakedArgv.kind === 'prompt') {
+      return withBakedArgv;
     }
-    return s;
+    if (withBakedArgv.cwd === undefined) {
+      return withBakedArgv;
+    }
+    const bakedCwd =
+      interpolateArgvLenient([withBakedArgv.cwd], loopVarValues)[0] ?? withBakedArgv.cwd;
+    return { ...withBakedArgv, cwd: bakedCwd };
   });
 }
 

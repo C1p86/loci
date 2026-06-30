@@ -1410,3 +1410,98 @@ describe('resolver.resolve — unreadonly kind', () => {
     expect(step.breadcrumb).toContain('unlock');
   });
 });
+
+/* ============================================================
+ * resolver — for_each bakes loop variable into step.cwd (quick-260630-uq4)
+ * Regression: bakeLoopVarIntoRawArgv must also bake loop var into step.cwd,
+ * not just into rawArgv. A for_each with cwd:'${region}' produces effectiveCwd
+ * '${region}' (computed from config without loop var); sub-steps inherit that
+ * cwd. Without the fix the step has cwd:'${region}' after resolve; at runtime
+ * resolveRuntimeCwd throws UndefinedPlaceholderError because region is not a
+ * captured var.
+ * ============================================================ */
+
+describe('resolver — for_each bakes loop variable into step.cwd (quick-260630-uq4)', () => {
+  it('(a) for_each with cwd "${region}" and run sub-alias (no own cwd): bakes per-iteration', () => {
+    // for_each has cwd:'${region}'. computeEffectiveCwd is called with config (no loop var)
+    // so effectiveCwd='${region}'. Sub-steps inherit it as parentCwd. bakeLoopVarIntoRawArgv
+    // must bake '${region}' → 'eu'/'us' on each step.
+    const commands = makeCommands({
+      'deploy-one': {
+        kind: 'single',
+        cmd: ['echo', 'deploying'],
+        // NO own cwd — inherits effectiveCwd from for_each parent
+      },
+      'deploy-all': {
+        kind: 'for_each',
+        var: 'region',
+        in: ['eu', 'us'],
+        mode: 'steps',
+        run: 'deploy-one',
+        cwd: '${region}',
+      },
+    });
+    const plan = resolver.resolve('deploy-all', commands, makeConfig({}));
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(2);
+    const s0 = plan.steps[0];
+    const s1 = plan.steps[1];
+    if (!s0 || !s1) throw new Error('unreachable');
+    // Loop var baked: placeholder must be gone
+    expect(s0.cwd).toBe('eu');
+    expect(s1.cwd).toBe('us');
+  });
+
+  it('(b) mixed cwd "${region}/${CAPTURED}": loop var baked, captured placeholder preserved', () => {
+    const commands = makeCommands({
+      'deploy-one': {
+        kind: 'single',
+        cmd: ['echo', 'deploying'],
+      },
+      'deploy-all': {
+        kind: 'for_each',
+        var: 'region',
+        in: ['eu', 'us'],
+        mode: 'steps',
+        run: 'deploy-one',
+        cwd: '${region}/${CAPTURED}',
+      },
+    });
+    const plan = resolver.resolve('deploy-all', commands, makeConfig({}));
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(2);
+    expect(plan.steps[0]?.cwd).toBe('eu/${CAPTURED}');
+    expect(plan.steps[1]?.cwd).toBe('us/${CAPTURED}');
+  });
+
+  it('(c) regression: for_each body step with no cwd has no cwd, rawArgv still baked', () => {
+    const commands = makeCommands({
+      'deploy-one': {
+        kind: 'single',
+        cmd: ['echo', '${region}'],
+        // NO cwd
+      },
+      'deploy-all': {
+        kind: 'for_each',
+        var: 'region',
+        in: ['eu'],
+        mode: 'steps',
+        run: 'deploy-one',
+        // No cwd on for_each
+      },
+    });
+    const plan = resolver.resolve('deploy-all', commands, makeConfig({}));
+    expect(plan.kind).toBe('sequential');
+    if (plan.kind !== 'sequential') throw new Error('unreachable');
+    expect(plan.steps).toHaveLength(1);
+    const s0 = plan.steps[0];
+    if (!s0) throw new Error('unreachable');
+    // No cwd added
+    expect(s0.cwd).toBeUndefined();
+    // rawArgv still has loop var baked (existing behaviour)
+    if (!('rawArgv' in s0) || s0.rawArgv === undefined) throw new Error('unreachable');
+    expect(s0.rawArgv).toEqual(['echo', 'eu']);
+  });
+});
