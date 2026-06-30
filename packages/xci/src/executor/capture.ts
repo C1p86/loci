@@ -13,7 +13,7 @@ import type { CaptureConfig } from '../types.js';
 export function extractFromOutput(stdout: string, config: CaptureConfig): string {
   if (!config.regex) return stdout.trim();
   try {
-    const re = new RegExp(config.regex);
+    const re = new RegExp(config.regex, 'm');
     const match = re.exec(stdout);
     if (!match) return '';
     return (match[1] !== undefined ? match[1] : match[0]).trim();

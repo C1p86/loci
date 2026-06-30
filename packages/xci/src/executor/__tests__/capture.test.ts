@@ -1,7 +1,7 @@
 // src/executor/__tests__/capture.test.ts
 
 import { describe, expect, it } from 'vitest';
-import { validateCapture } from '../capture.js';
+import { extractFromOutput, validateCapture } from '../capture.js';
 
 describe('validateCapture — type coercion', () => {
   it('string type accepts any value', () => {
@@ -229,5 +229,31 @@ describe('validateCapture — json assertions', () => {
     const r = validateCapture('not json', { var: 'x', assert: 'valid json or empty' });
     expect(r.valid).toBe(false);
     expect(r.error).toContain('expected valid JSON or empty');
+  });
+});
+
+describe('extractFromOutput — multiline', () => {
+  it('captures from a middle line of multi-line stdout using ^/$ anchors', () => {
+    const stdout = 'Some banner\nClient root: /home/user/proj\nOther: x';
+    const result = extractFromOutput(stdout, { var: 'root', regex: '^Client root:\\s*(.+)$' });
+    expect(result).toBe('/home/user/proj');
+  });
+
+  it('returns trimmed full stdout when no regex is set', () => {
+    const stdout = '  /home/user/proj  \n';
+    const result = extractFromOutput(stdout, { var: 'root' });
+    expect(result).toBe('/home/user/proj');
+  });
+
+  it('single-line match still returns the capture group (no regression)', () => {
+    const stdout = 'version: 1.2.3';
+    const result = extractFromOutput(stdout, { var: 'ver', regex: '^version:\\s*(.+)$' });
+    expect(result).toBe('1.2.3');
+  });
+
+  it('returns empty string when regex does not match', () => {
+    const stdout = 'Some banner\nOther: x';
+    const result = extractFromOutput(stdout, { var: 'root', regex: '^Client root:\\s*(.+)$' });
+    expect(result).toBe('');
   });
 });
