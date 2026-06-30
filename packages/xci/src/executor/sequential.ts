@@ -13,7 +13,7 @@ const IS_WINDOWS = process.platform === 'win32';
 import { interpolateArgv } from '../resolver/interpolate.js';
 import type { ExecutionResult, SequentialStep } from '../types.js';
 import { extractFromOutput, validateCapture } from './capture.js';
-import { assertCwdExists } from './cwd.js';
+import { assertCwdExists, resolveRuntimeCwd } from './cwd.js';
 import { writeIni, deleteIniKeys } from './ini.js';
 import { applyUprojectEdits, readUproject, writeUproject } from './uproject.js';
 import { removeReadonly } from './unreadonly.js';
@@ -249,8 +249,8 @@ export async function runSequential(
       setTerminalTitle(`xci: ${alias} [${stepNum}/${totalSteps}] (xci:${step.alias})`);
       printStepHeader(displayLabel, stepNum, totalSteps);
       const startTime = Date.now();
-      const stepCwd = step.cwd ?? cwd;
       const mergedValues = { ...env, ...capturedVars };
+      const stepCwd = resolveRuntimeCwd(step.cwd, mergedValues, cwd);
       // Re-interpolate alias, project, and args with captured vars
       const resolvedAlias = interpolateArgv([step.alias], '(xci)', mergedValues)[0] ?? step.alias;
       const resolvedProject =
@@ -295,8 +295,8 @@ export async function runSequential(
       setTerminalTitle(`xci: ${alias} [${stepNum}/${totalSteps}] (uproject)`);
       printStepHeader(displayLabel, stepNum, totalSteps);
       const startTime = Date.now();
-      const stepCwd = step.cwd ?? cwd;
       const mergedValues = { ...env, ...capturedVars };
+      const stepCwd = resolveRuntimeCwd(step.cwd, mergedValues, cwd);
       // Interpolate file path with captured vars
       const rawFilePath = isAbsolute(step.file) ? step.file : resolvePath(stepCwd, step.file);
       const filePath = interpolateArgv([rawFilePath], '(uproject)', mergedValues)[0] ?? rawFilePath;
@@ -334,8 +334,8 @@ export async function runSequential(
       setTerminalTitle(`xci: ${alias} [${stepNum}/${totalSteps}] (unreadonly)`);
       printStepHeader(displayLabel, stepNum, totalSteps);
       const startTime = Date.now();
-      const stepCwd = step.cwd ?? cwd;
       const mergedValues = { ...env, ...capturedVars };
+      const stepCwd = resolveRuntimeCwd(step.cwd, mergedValues, cwd);
       // Interpolate path with captured vars, then resolve to absolute
       const rawPath = interpolateArgv([step.path], '(unreadonly)', mergedValues)[0] ?? step.path;
       const targetPath =
@@ -366,8 +366,8 @@ export async function runSequential(
       printStepHeader(displayLabel, stepNum, totalSteps);
       const startTime = Date.now();
       // quick-260421-g99: resolve file relative to step.cwd ?? default cwd.
-      const stepCwd = step.cwd ?? cwd;
       const mergedValues = { ...env, ...capturedVars };
+      const stepCwd = resolveRuntimeCwd(step.cwd, mergedValues, cwd);
       const rawFilePath = isAbsolute(step.file) ? step.file : resolvePath(stepCwd, step.file);
       const filePath = interpolateArgv([rawFilePath], '(ini)', mergedValues)[0] ?? rawFilePath;
       // Re-interpolate set values with capturedVars so runtime assignments like
@@ -412,7 +412,8 @@ export async function runSequential(
     // quick-260421-g99: per-step cwd override (absolute when set by resolveAbsoluteCwds).
     // quick-260422-mxr: declared before printStepPreview so preview always shows
     // the EFFECTIVE spawn cwd (own override or inherited/default), never hides it.
-    const stepSpawnCwd = step.cwd ?? cwd;
+    // quick-260630-uq4: re-interpolate against mergedValues so captured-var cwds resolve.
+    const stepSpawnCwd = resolveRuntimeCwd(step.cwd, mergedValues, cwd);
 
     const stepCmd = displayLabel;
     const rawCmd = finalArgv.join(' ');

@@ -1,6 +1,9 @@
 // src/executor/__tests__/sequential.test.ts
 
-import { describe, expect, it, vi } from 'vitest';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve as resolvePath } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runSequential } from '../sequential.js';
 
 describe('runSequential', () => {
@@ -259,5 +262,90 @@ describe('runSequential', () => {
     expect(joined).toMatch(/A > A1 > A1b.*SKIPPED|SKIPPED.*A > A1 > A1b/);
     expect(joined).toMatch(/A > A2.*SKIPPED|SKIPPED.*A > A2/);
     stderrSpy.mockRestore();
+  });
+});
+
+/* ================================================================
+ * quick-260630-uq4: runtime cwd re-interpolation against captured vars
+ * ================================================================ */
+
+describe('runSequential — runtime cwd re-interpolation', () => {
+  let tmpDir: string;
+  let subDir: string;
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'xci-seq-cwd-'));
+    subDir = join(tmpDir, 'subdir');
+    mkdirSync(subDir);
+  });
+
+  afterEach(() => {
+    try {
+      rmSync(tmpDir, { recursive: true, force: true });
+    } catch {
+      /* */
+    }
+  });
+
+  it('absolute captured cwd: set step stores absolute path in WS, cmd step spawns there', async () => {
+    const result = await runSequential(
+      [
+        { kind: 'set', vars: { WS: subDir } },
+        {
+          argv: [
+            process.execPath,
+            '-e',
+            `process.exit(process.cwd() === ${JSON.stringify(subDir)} ? 0 : 7)`,
+          ],
+          cwd: '${WS}',
+        },
+      ],
+      tmpDir,
+      {},
+      undefined,
+      false,
+    );
+    expect(result.exitCode).toBe(0);
+  });
+
+  it('relative captured cwd: set step stores subdir name, cmd step resolves against base cwd', async () => {
+    const expectedDir = resolvePath(tmpDir, 'subdir');
+    const result = await runSequential(
+      [
+        { kind: 'set', vars: { SUBNAME: 'subdir' } },
+        {
+          argv: [
+            process.execPath,
+            '-e',
+            `process.exit(process.cwd() === ${JSON.stringify(expectedDir)} ? 0 : 8)`,
+          ],
+          cwd: '${SUBNAME}',
+        },
+      ],
+      tmpDir,
+      {},
+      undefined,
+      false,
+    );
+    expect(result.exitCode).toBe(0);
+  });
+
+  it('no-cwd step inherits the base cwd passed to runSequential', async () => {
+    const result = await runSequential(
+      [
+        {
+          argv: [
+            process.execPath,
+            '-e',
+            `process.exit(process.cwd() === ${JSON.stringify(tmpDir)} ? 0 : 9)`,
+          ],
+        },
+      ],
+      tmpDir,
+      {},
+      undefined,
+      false,
+    );
+    expect(result.exitCode).toBe(0);
   });
 });
