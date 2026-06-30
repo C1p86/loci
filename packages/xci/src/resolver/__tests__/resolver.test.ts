@@ -1448,6 +1448,8 @@ describe('resolver — for_each bakes loop variable into step.cwd (quick-260630-
     const s0 = plan.steps[0];
     const s1 = plan.steps[1];
     if (!s0 || !s1) throw new Error('unreachable');
+    if (s0.kind === 'set' || s0.kind === 'prompt') throw new Error('expected cwd-carrying step');
+    if (s1.kind === 'set' || s1.kind === 'prompt') throw new Error('expected cwd-carrying step');
     // Loop var baked: placeholder must be gone
     expect(s0.cwd).toBe('eu');
     expect(s1.cwd).toBe('us');
@@ -1472,8 +1474,12 @@ describe('resolver — for_each bakes loop variable into step.cwd (quick-260630-
     expect(plan.kind).toBe('sequential');
     if (plan.kind !== 'sequential') throw new Error('unreachable');
     expect(plan.steps).toHaveLength(2);
-    expect(plan.steps[0]?.cwd).toBe('eu/${CAPTURED}');
-    expect(plan.steps[1]?.cwd).toBe('us/${CAPTURED}');
+    const s0b = plan.steps[0];
+    const s1b = plan.steps[1];
+    if (!s0b || s0b.kind === 'set' || s0b.kind === 'prompt') throw new Error('unreachable');
+    if (!s1b || s1b.kind === 'set' || s1b.kind === 'prompt') throw new Error('unreachable');
+    expect(s0b.cwd).toBe('eu/${CAPTURED}');
+    expect(s1b.cwd).toBe('us/${CAPTURED}');
   });
 
   it('(c) regression: for_each body step with no cwd has no cwd, rawArgv still baked', () => {
@@ -1498,7 +1504,9 @@ describe('resolver — for_each bakes loop variable into step.cwd (quick-260630-
     expect(plan.steps).toHaveLength(1);
     const s0 = plan.steps[0];
     if (!s0) throw new Error('unreachable');
-    // No cwd added
+    // No cwd added (neither set nor prompt has cwd, and non-set/prompt steps without own cwd
+    // would have cwd: undefined — either way the step has no cwd property here)
+    if (s0.kind === 'set' || s0.kind === 'prompt') throw new Error('expected cmd step');
     expect(s0.cwd).toBeUndefined();
     // rawArgv still has loop var baked (existing behaviour)
     if (!('rawArgv' in s0) || s0.rawArgv === undefined) throw new Error('unreachable');
